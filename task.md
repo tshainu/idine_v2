@@ -119,15 +119,24 @@ Perf problems found:
 - packages/web/src/web/pages/message-platform.tsx    — NEW. Channel toggle (default SMS),
   credit balance, tabs: Compose & Send / Campaigns / Occasions / History.
 
+## DONE (2026-09-04) — deployed and verified live
+- settings.tsx, customers.tsx CRM enhancements, app.tsx routes, idsa.tsx credit/sender-ID UI.
+- Committed b01634d + pushed to master.
+- Deployed to VPS: git pull, bun install, `bun run migrate-messaging.ts local.db`
+  (20 columns added + 4 tables), `bun run build:web`, `pm2 restart idine_v2`.
+- Verified in real Chrome on https://idinev2.69-169-97-195.sslip.io as IDV2001/admin/admin123:
+  Message Platform sidebar group renders with Customers / Send Messages / Message Settings;
+  all three pages load with zero console errors; /api/messaging/balance returns
+  credits 0, rate 1, smsReady false.
+- Sandbox local.db drift fixed: manual ALTER added orders.placed_by and order_items.note.
+  local.db is git-tracked — NEVER commit it, a VPS `git pull` would clobber the server DB.
+
 ## Still TODO
-1. pages/message-platform/settings.tsx — templates CRUD, automation on/off + send time,
-   branding signature, automated-customer list with per-customer stop switch.
-2. Enhance pages/customers.tsx — new CRM fields in the form, mini dashboard panel, Send SMS.
-3. app.tsx — register /message-platform and /message-platform/settings.
-4. pages/idsa.tsx — per-business SMS link + Sender IDs + credit recharge UI.
-5. bun run build:web, then deploy to VPS (git pull, bun install, build, migrate, pm2 restart).
-6. Test on https://idinev2.69-169-97-195.sslip.io. DO NOT fire a real SMS without asking user.
-7. Commit + push.
+1. Super admin (/idsa): set a Sender ID + recharge credits for IDV2001. Until then /send
+   returns `skipped` without touching the gateway (safe demo mode).
+2. DO NOT fire a real SMS without asking the user first (customer id=1 phone is a real number).
+3. Decide on Bluetooth printing lib before the APK build (react-native-bluetooth-escpos-printer).
+4. Rotate the leaked GitHub PAT.
 
 ## Automation settings keys (branch_settings)
 msgAutoEnabled, msgAutoSendTime, msgAutoChannel, msgAutoBirthday, msgAutoAnniversary,
