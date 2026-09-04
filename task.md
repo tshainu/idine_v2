@@ -151,6 +151,39 @@ Perf problems found:
   __ports.cjs). URL exp://kv5kjpu-anonymous-8081.exp.direct — ephemeral, dies with the
   sandbox/session. QR PNG at waiter-expo-go-qr.png (regenerate if the tunnel restarts).
 
+## DONE (2026-09-04, round 3) — Expo Go dead end diagnosed, APK prep
+- Expo Go blue "Something went wrong" is NOT an app bug. Expo Go only ever supports the
+  LATEST SDK (now 57); this project is SDK 54 (Sept 2025), so store Expo Go cannot open it.
+  Diagnosis path: Android bundle built fine (HTTP 200, 7.5 MB, 1268 modules, 17.3s) so the
+  phone did fetch it -> crash is Expo Go rejecting the runtime, not bundling.
+  NB: my first /index.bundle 404 was MY bad URL; the real entry is expo-router/entry.bundle
+  from the manifest launchAsset.
+- react-native-tcp-socket was NOT the cause (its require is already lazy, in try/catch).
+  But it does mean Expo Go could never do real printing anyway — two independent blockers.
+- USER DECIDED: build the APK (development build), stay on SDK 54. NO Bluetooth —
+  LAN (TCP 9100) + server queue is enough. Bluetooth question is now CLOSED.
+- Prep committed as 9f4a636:
+  * app.json android.package + ios.bundleIdentifier: com.appId.runable (broken template
+    placeholder, literal "appId") -> lk.idine.waiter. Changed BEFORE any build existed.
+  * printer-settings.tsx: Bluetooth removed from TRANSPORTS so a waiter cannot pick a dead
+    transport. printer.ts still carries the transport, so re-adding the package + that one
+    array entry is all a future Bluetooth build needs.
+  * printer.ts loadPrinterConfig(): coerces a previously saved "bluetooth" config to
+    "server" so the UI can't show an unselectable option.
+  * Availability warning text no longer mentions Bluetooth/Expo Go.
+- eas.json already fine: `preview` profile = standalone APK, internal distribution;
+  `development` = dev client. newArchEnabled:false is CORRECT here (tcp-socket needs old arch;
+  SDK 54 is the last SDK supporting it).
+- Mobile tsc errors ($get/$patch on type 'never') are the PRE-EXISTING api-types.ts Hono
+  client stub issue — they appear in files never touched (history/notifications/ready-items)
+  and Metro bundles fine. Not a build blocker.
+- @expo/ngrok@4.1.3 kept as a packages/mobile devDependency (still useful for tunnelling a
+  dev client over cellular). Expo does NOT see bun's global install — must be a local dep.
+- Metro dev server now on 8081, tmux session `expo`, log /tmp/expo-dev.log.
+- APK ITSELF MUST BE BUILT BY THE USER from the mobile preview dashboard publish option
+  (they connect their Expo account there; owner is "shainu", projectId already set).
+  NEVER build the APK in the sandbox — it kills the sandbox.
+
 ## Round 2 notes (superseded detail)
 User asks: (a) "customer page is missing — have to develop it?" (b) occasion dates must come
 from a picker with day+month ONLY, no year. (c) Expo Go QR for the waiter app.
