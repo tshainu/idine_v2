@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
-  StatusBar, Alert, ActivityIndicator, Switch, KeyboardAvoidingView, Platform,
+  Alert, ActivityIndicator, Switch, KeyboardAvoidingView, Platform,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -11,27 +11,15 @@ import {
   directPrintAvailable, type PrinterConfig, type Transport,
 } from "../lib/printer";
 import { kotPreviewText } from "../lib/escpos";
+import { Colors, Fonts, Radius, Shadow, Space } from "../constants/theme";
+import { Card, Loading, PrimaryButton, ScreenHeader } from "../components/ui";
 
-const C = {
-  navy: "#0D1B6E",
-  navy2: "#162280",
-  navy3: "#0A1255",
-  accent: "#4F6EF7",
-  white: "#FFFFFF",
-  light: "#EEF0FB",
-  muted: "#8891B8",
-  red: "#EF4444",
-  green: "#22C55E",
-  amber: "#F59E0B",
-  gold: "#F5A623",
-  card: "#F7F8FE",
-  border: "#DDE1F5",
-};
+const c = Colors.light;
 
 // Bluetooth is deliberately NOT offered: the APK is built without
 // react-native-bluetooth-escpos-printer, so selecting it would silently fall back to the
 // kitchen queue and look broken. printer.ts still carries the transport, so re-adding the
-// package and this entry is all that a future Bluetooth build needs.
+// package and an entry here is all that a future Bluetooth build needs.
 const TRANSPORTS: { key: Transport; label: string; icon: keyof typeof Ionicons.glyphMap; hint: string }[] = [
   { key: "lan", label: "Wi-Fi / LAN", icon: "wifi-outline", hint: "Network thermal printer on port 9100" },
   { key: "server", label: "Kitchen queue", icon: "cloud-upload-outline", hint: "Send to the POS print queue" },
@@ -50,14 +38,13 @@ const SAMPLE = kotPreviewText({
 
 export default function PrinterSettingsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [cfg, setCfg] = useState<PrinterConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
 
   useEffect(() => {
-    loadPrinterConfig().then((c) => {
-      setCfg(c);
+    loadPrinterConfig().then((saved) => {
+      setCfg(saved);
       setLoading(false);
     });
   }, []);
@@ -75,9 +62,9 @@ export default function PrinterSettingsScreen() {
     setTesting(true);
     try {
       const result = await printTest(cfg);
-      Alert.alert(result.ok ? "Test sent ✅" : "Test failed ⚠️", result.message);
+      Alert.alert(result.ok ? "Test sent" : "Test failed", result.message);
     } catch (e) {
-      Alert.alert("Test failed ⚠️", (e as Error)?.message ?? "Unknown error");
+      Alert.alert("Test failed", (e as Error)?.message ?? "Unknown error");
     } finally {
       setTesting(false);
     }
@@ -88,33 +75,31 @@ export default function PrinterSettingsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.safe}>
-        <ActivityIndicator color={C.accent} style={{ marginTop: 40 }} />
+        <ScreenHeader title="KOT Printer" onBack={() => router.back()} />
+        <Loading label="Loading printer setup…" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={["left", "right", "bottom"]}>
-      <StatusBar barStyle="light-content" backgroundColor={C.navy3} />
-
-      <View style={[s.header, { paddingTop: insets.top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={s.headerIconBtn}>
-          <Ionicons name="arrow-back" size={19} color={C.white} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>KOT Printer</Text>
-          <Text style={s.headerSub}>Print kitchen tickets from this phone</Text>
-        </View>
-      </View>
+    <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
+      <ScreenHeader
+        title="KOT Printer"
+        subtitle="Print kitchen tickets from this phone"
+        onBack={() => router.back()}
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
       >
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Transport picker */}
-          <View style={s.card}>
+          <Card style={s.gap}>
             <Text style={s.cardTitle}>How should this phone print?</Text>
             {TRANSPORTS.map((t) => {
               const active = cfg.transport === t.key;
@@ -123,24 +108,29 @@ export default function PrinterSettingsScreen() {
                   key={t.key}
                   style={[s.option, active && s.optionActive]}
                   onPress={() => patch({ transport: t.key })}
+                  activeOpacity={0.8}
                 >
-                  <View style={[s.optionIcon, active && { backgroundColor: C.accent }]}>
-                    <Ionicons name={t.icon} size={17} color={active ? C.white : C.accent} />
+                  <View style={[s.optionIcon, active && { backgroundColor: c.primary }]}>
+                    <Ionicons name={t.icon} size={18} color={active ? c.onPrimary : c.muted} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[s.optionLabel, active && { color: C.navy }]}>{t.label}</Text>
+                    <Text style={s.optionLabel}>{t.label}</Text>
                     <Text style={s.optionHint}>{t.hint}</Text>
                   </View>
-                  {active && <Ionicons name="checkmark-circle" size={20} color={C.green} />}
+                  {active ? (
+                    <Ionicons name="checkmark-circle" size={22} color={c.success} />
+                  ) : (
+                    <View style={s.radioOff} />
+                  )}
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </Card>
 
           {/* Availability warning */}
           {!nativeReady && (
             <View style={s.warn}>
-              <Ionicons name="alert-circle-outline" size={18} color={C.amber} />
+              <Ionicons name="alert-circle-outline" size={18} color={c.warning} />
               <Text style={s.warnTxt}>
                 Wi-Fi printing needs the installed APK build. In the browser preview it is
                 unavailable, so tickets fall back to the kitchen queue automatically.
@@ -150,7 +140,7 @@ export default function PrinterSettingsScreen() {
 
           {/* LAN fields */}
           {cfg.transport === "lan" && (
-            <View style={s.card}>
+            <Card style={s.gap}>
               <Text style={s.cardTitle}>Printer address</Text>
               <Text style={s.label}>IP address</Text>
               <TextInput
@@ -158,7 +148,7 @@ export default function PrinterSettingsScreen() {
                 value={cfg.host}
                 onChangeText={(v) => patch({ host: v.trim() })}
                 placeholder="192.168.1.50"
-                placeholderTextColor={C.muted}
+                placeholderTextColor={c.mutedSoft}
                 keyboardType="numbers-and-punctuation"
                 autoCapitalize="none"
               />
@@ -168,44 +158,17 @@ export default function PrinterSettingsScreen() {
                 value={String(cfg.port)}
                 onChangeText={(v) => patch({ port: Number(v.replace(/\D/g, "")) || 9100 })}
                 placeholder="9100"
-                placeholderTextColor={C.muted}
+                placeholderTextColor={c.mutedSoft}
                 keyboardType="number-pad"
               />
               <Text style={s.help}>Almost every network thermal printer listens on 9100.</Text>
-            </View>
-          )}
-
-          {/* Bluetooth fields */}
-          {cfg.transport === "bluetooth" && (
-            <View style={s.card}>
-              <Text style={s.cardTitle}>Paired printer</Text>
-              <Text style={s.label}>Printer name</Text>
-              <TextInput
-                style={s.input}
-                value={cfg.btName}
-                onChangeText={(v) => patch({ btName: v })}
-                placeholder="RPP02N"
-                placeholderTextColor={C.muted}
-              />
-              <Text style={s.label}>Bluetooth MAC address</Text>
-              <TextInput
-                style={s.input}
-                value={cfg.btAddress}
-                onChangeText={(v) => patch({ btAddress: v.trim().toUpperCase() })}
-                placeholder="00:11:22:33:44:55"
-                placeholderTextColor={C.muted}
-                autoCapitalize="characters"
-              />
-              <Text style={s.help}>
-                Pair the printer in Android Bluetooth settings first, then copy its MAC address here.
-              </Text>
-            </View>
+            </Card>
           )}
 
           {/* Paper width */}
-          <View style={s.card}>
+          <Card style={s.gap}>
             <Text style={s.cardTitle}>Paper width</Text>
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: Space.sm }}>
               {([32, 48] as const).map((w) => {
                 const active = cfg.paperWidth === w;
                 return (
@@ -213,19 +176,20 @@ export default function PrinterSettingsScreen() {
                     key={w}
                     style={[s.chip, active && s.chipActive]}
                     onPress={() => patch({ paperWidth: w })}
+                    activeOpacity={0.8}
                   >
-                    <Text style={[s.chipTxt, active && { color: C.white }]}>
+                    <Text style={[s.chipTxt, active && { color: c.onPrimary }]}>
                       {w === 32 ? "58 mm" : "80 mm"}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </Card>
 
           {/* Also queue on server */}
-          <View style={[s.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}>
-            <View style={{ flex: 1 }}>
+          <Card style={s.rowCard}>
+            <View style={{ flex: 1, gap: Space.xs }}>
               <Text style={s.cardTitle}>Also send to kitchen queue</Text>
               <Text style={s.help}>
                 Keeps the kitchen station printing its own copy even when this phone prints one.
@@ -234,30 +198,26 @@ export default function PrinterSettingsScreen() {
             <Switch
               value={cfg.alsoQueueOnServer}
               onValueChange={(v) => patch({ alsoQueueOnServer: v })}
-              trackColor={{ true: C.accent, false: C.border }}
-              thumbColor={C.white}
+              trackColor={{ true: c.primary, false: c.border }}
+              thumbColor={c.card}
             />
-          </View>
+          </Card>
 
           {/* Preview */}
-          <View style={s.card}>
+          <Card style={s.gap}>
             <Text style={s.cardTitle}>Ticket preview</Text>
             <View style={s.preview}>
               <Text style={s.previewTxt}>{SAMPLE}</Text>
             </View>
-          </View>
+          </Card>
 
-          {/* Test */}
-          <TouchableOpacity style={[s.testBtn, testing && { opacity: 0.6 }]} onPress={runTest} disabled={testing}>
-            {testing ? (
-              <ActivityIndicator size="small" color={C.white} />
-            ) : (
-              <>
-                <Ionicons name="print-outline" size={17} color={C.white} />
-                <Text style={s.testBtnTxt}>Print test ticket</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <PrimaryButton
+            label="Print test ticket"
+            icon="print-outline"
+            onPress={runTest}
+            loading={testing}
+            variant="dark"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -265,63 +225,60 @@ export default function PrinterSettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.light },
-  header: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: C.navy, paddingHorizontal: 14, paddingBottom: 14,
-  },
-  headerIconBtn: {
-    width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  headerTitle: { color: C.white, fontSize: 17, fontWeight: "700" },
-  headerSub: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 1 },
+  safe: { flex: 1, backgroundColor: c.background },
+  scroll: { padding: Space.lg, paddingBottom: Space.xxl + Space.xl, gap: Space.md },
 
-  card: { backgroundColor: C.white, borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: C.border },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: C.navy },
+  gap: { gap: Space.sm },
+  rowCard: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  cardTitle: { fontFamily: Fonts.semibold, fontSize: 14.5, color: c.foreground },
 
   option: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    padding: 11, borderRadius: 11, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card,
+    flexDirection: "row", alignItems: "center", gap: Space.md,
+    padding: Space.md, borderRadius: Radius.md,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.cardAlt,
+    minHeight: 60,
   },
-  optionActive: { borderColor: C.accent, backgroundColor: "#EEF2FF" },
+  optionActive: { borderColor: c.primary, backgroundColor: c.primarySoft },
   optionIcon: {
-    width: 34, height: 34, borderRadius: 9, alignItems: "center", justifyContent: "center",
-    backgroundColor: "#E5EAFF",
+    width: 38, height: 38, borderRadius: Radius.sm,
+    alignItems: "center", justifyContent: "center", backgroundColor: c.background,
   },
-  optionLabel: { fontSize: 13.5, fontWeight: "700", color: C.navy2 },
-  optionHint: { fontSize: 11, color: C.muted, marginTop: 1 },
+  optionLabel: { fontFamily: Fonts.semibold, fontSize: 14, color: c.foreground },
+  optionHint: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.muted, marginTop: 1 },
+  radioOff: {
+    width: 20, height: 20, borderRadius: Radius.pill,
+    borderWidth: 1.5, borderColor: c.border,
+  },
 
-  label: { fontSize: 11.5, fontWeight: "600", color: C.muted, marginTop: 4 },
+  label: { fontFamily: Fonts.medium, fontSize: 12, color: c.muted, marginTop: Space.xs },
   input: {
-    borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12,
-    paddingVertical: 10, fontSize: 14, color: C.navy, backgroundColor: C.card,
+    borderWidth: 1, borderColor: c.border, borderRadius: Radius.md,
+    paddingHorizontal: Space.md, height: 48,
+    fontFamily: Fonts.regular, fontSize: 15, color: c.foreground,
+    backgroundColor: c.background,
   },
-  help: { fontSize: 11, color: C.muted, lineHeight: 15 },
+  help: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.muted, lineHeight: 17 },
 
   chip: {
-    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.card,
+    paddingHorizontal: Space.xl, paddingVertical: Space.md, borderRadius: Radius.pill,
+    borderWidth: 1.5, borderColor: c.border, backgroundColor: c.cardAlt,
   },
-  chipActive: { backgroundColor: C.accent, borderColor: C.accent },
-  chipTxt: { fontSize: 13, fontWeight: "700", color: C.navy2 },
+  chipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  chipTxt: { fontFamily: Fonts.semibold, fontSize: 13.5, color: c.muted },
 
   warn: {
-    flexDirection: "row", gap: 10, alignItems: "flex-start",
-    backgroundColor: "#FEF3C7", borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: "#FCD34D",
+    flexDirection: "row", gap: Space.sm, alignItems: "flex-start",
+    backgroundColor: c.warningSoft, borderRadius: Radius.md, padding: Space.md,
+    borderWidth: 1, borderColor: "#F5D9A8",
   },
-  warnTxt: { flex: 1, fontSize: 11.5, color: "#92400E", lineHeight: 16 },
+  warnTxt: { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: "#8A5206", lineHeight: 17 },
 
-  preview: { backgroundColor: "#111827", borderRadius: 10, padding: 12 },
+  preview: {
+    backgroundColor: "#15161A", borderRadius: Radius.md, padding: Space.md,
+    ...Shadow.card,
+  },
   previewTxt: {
-    color: "#E5E7EB", fontSize: 11, lineHeight: 15,
+    color: "#E9EAEE", fontSize: 11, lineHeight: 15,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
-
-  testBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: C.navy, borderRadius: 12, paddingVertical: 14,
-  },
-  testBtnTxt: { color: C.white, fontSize: 14.5, fontWeight: "700" },
 });

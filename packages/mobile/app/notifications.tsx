@@ -1,158 +1,180 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Alert } from "react-native";
+import { useMemo } from "react";
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "../lib/api";
-import { clearUser, loadUser, WaiterUser } from "../lib/auth";
-import { BottomNav } from "./tables";
+import { Colors, Fonts, Radius, Space } from "../constants/theme";
+import { Card, ScreenHeader, Loading, EmptyState, ErrorBanner } from "../components/ui";
+import { useSession } from "../hooks/use-session";
+import { useOrders } from "../queries/orders";
+import { useTables } from "../queries/tables";
+import { usePendingPrintJobs } from "../queries/print";
+import { elapsed, lkr } from "../lib/format";
 
-const C = {
-  navy:   "#0D1B6E",
-  navy3:  "#0A1255",
-  accent: "#4F6EF7",
-  white:  "#FFFFFF",
-  light:  "#EEF0FB",
-  muted:  "#8891B8",
-  green:  "#22C55E",
-  greenBg:"#DCFCE7",
-  amber:  "#F59E0B",
-  amberBg:"#FEF3C7",
-  card:   "#F7F8FE",
-  border: "#DDE1F5",
+const c = Colors.light;
+
+type Alert = {
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: "success" | "warning" | "danger" | "info";
+  title: string;
+  body: string;
+  when: number;
+  href?: string;
 };
+
+const TONES = {
+  success: { fg: c.success, bg: c.successSoft },
+  warning: { fg: c.warning, bg: c.warningSoft },
+  danger: { fg: c.destructive, bg: c.destructiveSoft },
+  info: { fg: c.info, bg: c.infoSoft },
+};
+
+// Waiting longer than this without being served is worth flagging.
+const SLOW_MS = 20 * 60_000;
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [user, setUser] = useState<WaiterUser | null>(null);
-  useEffect(() => { loadUser().then(setUser); }, []);
-  const branchId = user?.branchId ?? 1;
+  const { branchId } = useSession();
+  const orders = useOrders(branchId, { poll: 20_000 });
+  const tables = useTables(branchId);
+  const jobs = usePendingPrintJobs(branchId);
 
-  const { data, refetch } = useQuery({
-    queryKey: ["notif-ready", branchId],
-    queryFn: async () => {
-      const res = await (api.orders.$get as any)({ query: { branchId: String(branchId), status: "ready" } });
-      const json = await res.json() as any;
-      return json.orders ?? json;
-    },
-    refetchInterval: 15000,
-  });
+  const alerts = useMemo<Alert[]>(() => {
+    const out: Alert[] = [];
+    const tableName = (id: number | null) =>
+      (tables.data ?? []).find((t) => t.id === id)?.name ?? "Takeaway";
 
-  const orders: any[] = Array.isArray(data) ? data : [];
+    for (const o of orders.data ?? []) {
+      const at = o.createdAt ? new Date(o.createdAt).getTime() : 0;
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: async () => { await clearUser(); router.replace("/"); } },
-    ]);
-  };
+      if (o.status === "ready") {
+        out.push({
+          id: `ready-${o.id}`,
+          icon: "restaurant",
+          tone: "success",
+          title: `${tableName(o.tableId)} — food ready`,
+          body: `${o.orderNumber} · ${o.items?.length ?? 0} items · ${lkr(o.total)}`,
+          when: at,
+          href: "/ready-items",
+        });
+      }
+
+      if (["pending", "confirmed"].includes(o.status) && at && Date.now() - at > SLOW_MS) {
+        out.push({
+          id: `slow-${o.id}`,
+          icon: "hourglass-outline",
+          tone: "warning",
+          title: `${tableName(o.tableId)} waiting ${elapsed(at)}`,
+          body: `${o.orderNumber} is still ${o.status}. Check with the kitchen.`,
+          when: at,
+        });
+      }
+
+      if (o.status === "billed" || o.status === "paid") {
+        out.push({
+          id: `paid-${o.id}`,
+          icon: "card-outline",
+          tone: "info",
+          title: `${tableName(o.tableId)} settled`,
+          body: `${o.orderNumber} · ${lkr(o.total)}${(o.tipAmount ?? 0) > 0 ? ` · tip ${lkr(o.tipAmount)}` : ""}`,
+          when: at,
+        });
+      }
+    }
+
+    if ((jobs.data?.length ?? 0) > 0) {
+      out.push({
+        id: "print-queue",
+        icon: "print-outline",
+        tone: "danger",
+        title: `${jobs.data!.length} print job${jobs.data!.length === 1 ? "" : "s"} stuck`,
+        body: "Tickets are queued but not printed. Check the printer or the Windows helper.",
+        when: Date.now(),
+        href: "/printer-settings",
+      });
+    }
+
+    return out.sort((a, b) => b.when - a.when);
+  }, [orders.data, tables.data, jobs.data]);
+
+  if (orders.isLoading) {
+    return (
+      <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
+        <ScreenHeader title="Notifications" onBack={() => router.back()} />
+        <Loading />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
-      <StatusBar barStyle="light-content" backgroundColor={C.navy3} />
+      <ScreenHeader
+        title="Notifications"
+        subtitle={alerts.length ? `${alerts.length} update${alerts.length === 1 ? "" : "s"}` : "Nothing new"}
+        onBack={() => router.back()}
+      />
 
-      {/* ── Header ── */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={C.white} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/tables" as any)} style={s.backBtn}>
-          <Ionicons name="home" size={19} color={C.white} />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>Notifications</Text>
-          {orders.length > 0 && (
-            <View style={s.countBadge}>
-              <Text style={s.countTxt}>{orders.length}</Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity style={s.refreshBtn} onPress={() => refetch()}>
-          <Ionicons name="refresh" size={18} color={C.white} />
-        </TouchableOpacity>
-      </View>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={orders.isFetching}
+            onRefresh={() => { orders.refetch(); jobs.refetch(); }}
+            tintColor={c.primary}
+          />
+        }
+      >
+        {orders.error ? (
+          <ErrorBanner message={(orders.error as Error).message} onRetry={() => orders.refetch()} />
+        ) : null}
 
-      {orders.length === 0 ? (
-        <View style={s.center}>
-          <View style={s.emptyIcon}>
-            <Ionicons name="notifications-off-outline" size={38} color={C.muted} />
-          </View>
-          <Text style={s.emptyTitle}>All caught up!</Text>
-          <Text style={s.emptyBody}>No new notifications right now</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={{ padding: 14, paddingBottom: 110, gap: 10 }}
-          ListHeaderComponent={
-            <Text style={s.sectionHeader}>
-              KITCHEN READY  ·  {orders.length} order{orders.length !== 1 ? "s" : ""}
-            </Text>
-          }
-          renderItem={({ item: o }) => {
-            const orderNum = o.orderNumber ?? `#${String(o.id).padStart(4, "0")}`;
-            return (
-              <TouchableOpacity
-                style={s.card}
-                onPress={() => router.push("/ready-items" as any)}
-                activeOpacity={0.8}
-              >
-                <View style={s.iconWrap}>
-                  <Ionicons name="checkmark-circle" size={28} color={C.green} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.notifTitle}>Ready to Serve  ·  {orderNum}</Text>
-                  <Text style={s.notifBody}>
-                    {o.customerName ?? "Guest"}  ·  Table {o.tableId}
-                  </Text>
-                  <View style={s.readyChip}>
-                    <Text style={s.readyChipTxt}>Tap to mark served →</Text>
+        {alerts.length === 0 ? (
+          <EmptyState
+            icon="notifications-off-outline"
+            title="No notifications"
+            hint="Kitchen updates, slow tables and printer problems appear here."
+          />
+        ) : (
+          alerts.map((a) => {
+            const tone = TONES[a.tone];
+            const body = (
+              <Card key={a.id} style={{ marginBottom: Space.md }}>
+                <View style={s.row}>
+                  <View style={[s.icon, { backgroundColor: tone.bg }]}>
+                    <Ionicons name={a.icon} size={18} color={tone.fg} />
                   </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.title}>{a.title}</Text>
+                    <Text style={s.body}>{a.body}</Text>
+                  </View>
+                  {a.href ? <Ionicons name="chevron-forward" size={17} color={c.mutedSoft} /> : null}
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={C.muted} />
-              </TouchableOpacity>
+              </Card>
             );
-          }}
-        />
-      )}
-
-      <BottomNav active="notifications" router={router} onLogout={handleLogout} />
+            return a.href ? (
+              <TouchableOpacity key={a.id} activeOpacity={0.85} onPress={() => router.push(a.href as never)}>
+                {body}
+              </TouchableOpacity>
+            ) : (
+              body
+            );
+          })
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.card },
-
-  header: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: C.navy, paddingHorizontal: 16, paddingVertical: 12, gap: 10,
+  safe: { flex: 1, backgroundColor: c.background },
+  scroll: { padding: Space.lg, paddingBottom: Space.xxl },
+  row: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  icon: {
+    width: 38, height: 38, borderRadius: Radius.md,
+    alignItems: "center", justifyContent: "center",
   },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.white + "18", alignItems: "center", justifyContent: "center" },
-  headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { color: C.white, fontSize: 17, fontWeight: "700" },
-  countBadge: { backgroundColor: C.green, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  countTxt: { color: C.white, fontSize: 12, fontWeight: "800" },
-  refreshBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.white + "18", alignItems: "center", justifyContent: "center" },
-
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.light, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  emptyTitle: { color: C.navy, fontSize: 17, fontWeight: "700" },
-  emptyBody: { color: C.muted, fontSize: 13 },
-
-  sectionHeader: { color: C.muted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginBottom: 4 },
-
-  card: {
-    backgroundColor: C.white, borderRadius: 14, flexDirection: "row", alignItems: "center",
-    padding: 14, gap: 12,
-    shadowColor: C.navy, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  iconWrap: { width: 50, height: 50, borderRadius: 25, backgroundColor: C.greenBg, alignItems: "center", justifyContent: "center" },
-  notifTitle: { color: C.navy, fontSize: 14, fontWeight: "700" },
-  notifBody: { color: C.muted, fontSize: 12, marginTop: 3 },
-  readyChip: { marginTop: 6, backgroundColor: C.greenBg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: "flex-start" },
-  readyChipTxt: { color: C.green, fontSize: 11, fontWeight: "700" },
+  title: { fontFamily: Fonts.semibold, fontSize: 14, color: c.foreground },
+  body: { fontFamily: Fonts.regular, fontSize: 12.5, color: c.muted, marginTop: 2, lineHeight: 18 },
 });

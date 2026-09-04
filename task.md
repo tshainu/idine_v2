@@ -210,3 +210,135 @@ from a picker with day+month ONLY, no year. (c) Expo Go QR for the waiter app.
 ## Automation settings keys (branch_settings)
 msgAutoEnabled, msgAutoSendTime, msgAutoChannel, msgAutoBirthday, msgAutoAnniversary,
 msgAutoChildBirthday, msgAutoSenderId, msgSignature, msgAutoLastRunDate (worker-owned)
+
+## Round N: Manjal Jaffna menu import (in progress)
+- Business already existed on VPS: businesses.id=2 `PUM9211` "Manjal Jaffna", branch_id=2, admin/Yellow@sep26.
+- Margin confirmed: products.tsx derives cost_price = priceDineIn*(1-pct/100); DEFAULT_MARGIN_PCT=30 -> import sets cost_price = price*0.7.
+- `manjal-menu.json` (generated from the xlsx) + `import-manjal.ts` (idempotent, bun:sqlite) committed (8b78d4b).
+- Applied on VPS: 30 categories, 204 items, 23 variation rows, avg margin 30.00%. DB backup /root/idine_v2-local.db.bak.1788507902.
+- Biryani recategorisation + Grilled Fish price swap applied in the JSON generation step.
+- IMAGES (in progress): queries in /tmp/manjal_queries.json (code/name/query/slug, 204 rows).
+  web_search type=images downloads to /home/user/Images/<slug>_N.jpg. Batches of 5 queries.
+  `tools/manjal-images.py` picks the best candidate per item -> packages/web/public/menu/manjal/<CODE>.jpg (600x600 jpg).
+  Then set menu_items.image_url = /menu/manjal/<CODE>.jpg via a small script, commit images, pull+build on VPS.
+  Bing/DDG/Openverse scraping all failed (bot-blocked / irrelevant) — web_search is the only working image source.
+- Image progress checkpoint: searched items MJ001-MJ062 (through Boiled Egg). Remaining: MJ063 onwards
+  (egg dishes, meals, indian bread, dosai, dessert, mojito, juice, soda, ice cream, soft drinks, lassi,
+  kulukki, falooda, milkshake, sharjah, tube/bucket biryani, arabian dishes, fish).
+  Re-run `python3 tools/manjal-images.py` after each search round; it prints ready/missing.
+
+## Round N (done): Manjal images COMPLETE
+- 204/204 photos in packages/web/public/menu/manjal/<CODE>.jpg (600x600, 15 MB), commit 524740b.
+- manjal-menu.json now carries `image` per item; import-manjal.ts writes menu_items.image_url.
+- Deployed to VPS + verified in Chrome: /products 204 items / 30 categories, /pos renders 204 images, 0 broken, no console errors.
+
+## Round N+1: DEDICATED WAITER ANDROID APP (in progress)
+User rejected the old packages/mobile screens ("this is not waiter's app"). Approved plan:
+rebuild packages/mobile in place (keeps live API, lk.idine.waiter package id, EAS project
+535f993b-342c-4ea5-a958-22ee26076d4d). Light & clean design, Manjal yellow #F2B705, Poppins.
+Login: full login once -> 4-digit PIN for re-entry. Tabs: Home/Tables/History/Reports/More.
+Screens approved: Dashboard, Tables floor view, Take Order (photo grid + variations + modifiers +
+notes + qty), Cart->KOT, Order History, KOT REPRINT (explicitly requested), Reports, Ready Items,
+Notifications, Customer lookup, Printer Settings, Profile & Shift.
+User also approved the two flagged gaps: TIPS + SERVER-SIDE SHIFTS.
+
+### Backend added (done)
+- schema.ts: orders.tipAmount (`tip_amount` REAL default 0) + new `shifts` table
+  (branch_id, user_id, user_name, clock_in, clock_out, device, created_at).
+- routes/shifts.ts: GET /, GET /active?userId, POST /clock-in, POST /clock-out. Registered in api/index.ts.
+- `migrate-waiter.ts <db>` — idempotent ALTER TABLE/CREATE TABLE (drizzle-kit push still unusable:
+  drizzle.config.ts is dialect:"turso" and demands an authToken against a file: URL). Applied to sandbox local.db.
+  STILL TO RUN ON VPS: bun run migrate-waiter.ts local.db
+
+### Mobile foundation (done)
+constants/theme.ts (Colors.light, Fonts, Radius, Space, Shadow, TableStatus map),
+hooks/use-colors.ts, lib/http.ts (typed fetch wrapper -> replaces the `never`-typed hono stub client,
+friendly offline message), lib/session.ts (session + PIN, migrates the old `waiter_user` key),
+lib/format.ts (money/lkr/toDate/timeOf/elapsed/startOfDay|Week|Month/initials).
+NOTE: no `@/*` alias in packages/mobile/tsconfig.json and metro.config.js is template-managed —
+use RELATIVE imports (`../constants/theme`) everywhere.
+
+### Verified API contracts (read from the route files, not assumed)
+- POST /order-items/**bulk** `{items:[...]}` -> `{orderItems}` (server computes each `total = price*qty`).
+  NOTE: earlier notes said `/batch` for order-items — WRONG, that is print-jobs only.
+- POST /print-jobs/**batch** `{jobs:[...]}` -> `{printJobs}`; every job needs a unique
+  `idempotencyKey` (unique col) + `type` (kot|bill|reprint) + `payload` (text) + status default pending.
+  Duplicate keys come back with `duplicate:true` instead of inserting twice.
+- POST /orders -> `{order}` (pass orderNumber:"TEMP" to get ORD-#### generated); PATCH /orders/:id -> `{order}`.
+- GET /orders?branchId&status -> `{orders}` (items always embedded); GET /orders/:id -> `{order, items}`.
+- GET /customers?search= (name OR phone LIKE) -> `{customers}`; POST/PATCH -> `{customer}`.
+- GET /menu-items -> `{menuItems}` with `variations` ALREADY EMBEDDED per item.
+- /shifts: GET /?branchId&userId&since, GET /active?userId -> `{shift|null}`,
+  POST /clock-in (reuses open shift, `alreadyOpen:true`), POST /clock-out (404 "No open shift").
+
+### Round N+1 progress log
+- Removed the dead `useVariations` hook from queries/menu.ts (GET /variations returns [] without a
+  menuItemId, and variations are embedded in /menu-items anyway). Dropped the now-unused Variation import.
+- lib/types.ts: MenuItem gained `variations?: Variation[]`.
+- Installed via `npx expo install`: expo-font, @expo-google-fonts/poppins, expo-image.
+- queries/orders.ts written: useOrders, useOrder, useOpenOrderForTable (appends a round instead of
+  duplicating an order), useSendToKitchen (creates-or-appends + bulk items + flips table to occupied;
+  modifier surcharges ride on the unit price), useUpdateOrder, useAddTip, useDeleteOrderItem.
+
+### Round N+1 progress log (cont.)
+- queries/customers.ts (useCustomerSearch min 2 chars, useCustomer, useCustomerOrders, useCreateCustomer),
+  queries/shifts.ts (useActiveShift, useMyShifts, useClockIn, useClockOut — 404 on clock-out treated as
+  success since another device may have closed it), queries/print.ts (useSendKot with direct-printer-then-
+  server-queue fallback + marks kotPrinted, useReprintKot with a Date.now() nonce so reprints bypass the
+  idempotencyKey, kotPreview, usePendingPrintJobs).
+- hooks/use-session.ts — session via react-query (one AsyncStorage read shared app-wide); signOut clears cache.
+- app/_layout.tsx EXTENDED IN PLACE (kept the QueryClient tuning + focusManager effect): added Poppins
+  useFonts gate + auto-lock (re-lock after 2 min backgrounded -> /pin).
+- components/pin-pad.tsx (PinDots/PinPad, 72pt keys), app/index.tsx (login), app/pin-setup.tsx
+  (create + confirm), app/pin.tsx (unlock, 3 strikes -> password).
+- app/(tabs)/_layout.tsx (Home/Tables/History/Reports/More) + app/(tabs)/index.tsx (Dashboard:
+  greeting, shift banner, 4 stat tiles, my-tips card, quick actions, open orders list).
+- DELETED (git rm) the legacy screens + broken client: app/tables.tsx, app/waiter-order.tsx,
+  app/history.tsx, app/ready-items.tsx, app/notifications.tsx, lib/api.ts, lib/api-types.ts, lib/auth.ts.
+  KEPT app/printer-settings.tsx (only depends on lib/printer.ts + lib/escpos.ts; needs restyling).
+- `npx tsc --noEmit` in packages/mobile is now CLEAN except the pre-existing lib/analytics.ts
+  onedollarstats module error (@onedollarstats/expo is not installed — pre-existing, not a regression).
+
+### !! APP IS NOT RUNNABLE YET — missing route files !!
+(tabs)/_layout.tsx registers 5 tabs but only index.tsx exists. Still to write:
+- app/(tabs)/tables.tsx   floor grid, status colours, tap -> /order/[tableId]
+- app/(tabs)/history.tsx  order list + KOT reprint button
+- app/(tabs)/reports.tsx  today/week/month toggle, sales + tips
+- app/(tabs)/more.tsx     menu -> ready-items / notifications / customer-lookup / printer-settings / profile
+Also referenced but missing (would crash on navigation):
+- app/order/[tableId].tsx (take order: photo grid + variations + modifiers + notes + qty + cart -> KOT)
+- app/ready-items.tsx, app/notifications.tsx, app/customer-lookup.tsx, app/profile.tsx (clock in/out)
+Then: restyle printer-settings.tsx, run `bun run build` at root, kill stale Metro on 8081,
+start `bun run dev:mobile` (port 4300), deliver type:mobile port 4300, commit explicit paths,
+then on VPS: git pull && bun install && bun run migrate-waiter.ts local.db && bun run build:web && pm2 restart idine_v2.
+
+### Round N+1: ALL 12 SCREENS WRITTEN — app boots
+Written this round: (tabs)/tables.tsx (floor grid + zone filter + legend + open-bill totals),
+(tabs)/history.tsx (range filter, mine-only, expandable order detail, REPRINT KOT button),
+(tabs)/reports.tsx (today/week/month, sales/orders/avg/tips, hours worked, by-type bars, top sellers),
+(tabs)/more.tsx (waiter card, service+device links, pending-print badge, sign out),
+order/[tableId].tsx (search + category chips + photo grid + ItemSheet with variations/modifiers/note/qty
+  + cart sheet -> useSendToKitchen then useSendKot; appends to an existing open bill),
+ready-items.tsx (oldest-first pickup queue, late >15min flagged, mark served),
+notifications.tsx (derived alerts: ready / slow >20min / settled / stuck print queue),
+customer-lookup.tsx (search >=2 chars, guest sheet w/ visits+lifetime+points+recent orders, add customer),
+profile.tsx (identity, clock in/out, today's sales+tips, this week's shifts, change PIN, sign out).
+
+VERIFIED:
+- `npx tsc --noEmit` CLEAN across all 12 screens (only pre-existing lib/analytics.ts onedollarstats error).
+- Metro runs on port 4300 (`bun run dev:mobile --port 4300`; the root script does NOT default to 4300,
+  it starts on 8081 unless --port is passed). tmux session `expo`, log /tmp/expo-dev.log.
+- Loaded http://localhost:4300 in Chrome via `mb`: login screen renders, Poppins + Manjal yellow correct,
+  no console errors. Screenshot /tmp/login.png.
+- Expo warns expo@54.0.35 vs expected ~54.0.37 and expo-constants 18.0.13 vs ~18.0.14 (pre-existing, benign).
+
+### BLOCKER before the app is usable against the VPS
+routes/shifts.ts + orders.tip_amount + the `shifts` table exist ONLY in the sandbox. The app's
+API_BASE points at https://idinev2.69-169-97-195.sslip.io, so /api/shifts is 404 there and the
+dashboard shift banner + profile clock-in will fail until the VPS is deployed:
+  cd /var/www/idine_v2 && git pull --no-rebase origin master && bun install \
+    && bun run migrate-waiter.ts local.db && bun run build:web && pm2 restart idine_v2
+
+### Known UI bug to fix
+Password eye toggle in app/index.tsx overflows the card's right edge on web — the bare <Ionicons onPress>
+does not respect the flex row. Wrap it in a TouchableOpacity with a fixed width.

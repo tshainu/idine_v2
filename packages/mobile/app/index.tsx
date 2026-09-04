@@ -1,191 +1,226 @@
 import { useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  StatusBar, TextInput, KeyboardAvoidingView, Platform, ScrollView,
+  View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useMutation } from "@tanstack/react-query";
-import Constants from "expo-constants";
-import { loadUser, saveUser, WaiterUser } from "../lib/auth";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Fonts, Radius, Shadow, Space } from "../constants/theme";
+import { PrimaryButton, ErrorBanner } from "../components/ui";
+import { http, ApiError } from "../lib/http";
+import { hasPin } from "../lib/session";
+import { useSession, useSessionActions } from "../hooks/use-session";
+import type { WaiterSession } from "../lib/session";
 
-// ── Design tokens ────────────────────────────────────────────────
-const C = {
-  navy:    "#0D1B6E",
-  navy2:   "#162280",
-  navy3:   "#0A1255",
-  accent:  "#4F6EF7",
-  white:   "#FFFFFF",
-  light:   "#EEF0FB",
-  muted:   "#8891B8",
-  red:     "#EF4444",
-  green:   "#22C55E",
-  gold:    "#F5A623",
-  card:    "#F7F8FE",
-  border:  "#DDE1F5",
+const c = Colors.light;
+
+type LoginUser = {
+  id: number;
+  name: string;
+  role: string;
+  branchId: number | null;
+  username: string | null;
 };
-
-const baseUrl: string =
-  Constants.expoConfig?.extra?.apiUrl ??
-  process.env.EXPO_PUBLIC_API_URL ??
-  "https://idinev2.69-169-97-195.sslip.io/";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { session, isLoading } = useSession();
+  const { signIn } = useSessionActions();
+
   const [userId, setUserId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState("");
-  const [checking, setChecking] = useState(true);
 
+  // Already signed in on this device: go straight to the PIN lock, or to the app
+  // when no PIN has been set yet.
   useEffect(() => {
-    loadUser().then((u) => {
-      if (u) router.replace("/tables" as any);
-      else setChecking(false);
-    });
-  }, []);
+    if (isLoading || !session) return;
+    (async () => {
+      router.replace((await hasPin()) ? "/pin" : "/pin-setup");
+    })();
+  }, [isLoading, session, router]);
 
-  const loginMutation = useMutation({
-    mutationFn: async () => {
-      const url = baseUrl.replace(/\/$/, "") + "/api/auth/login";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId.trim(), username: username.trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error((data as any)?.error || "Login failed");
-      return data as { user: WaiterUser };
-    },
-    onSuccess: async ({ user }) => {
-      await saveUser({ ...user, branchId: user.branchId ?? 1 });
-      router.replace("/tables" as any);
-    },
-    onError: (e: any) => {
-      setError(e?.message || "Login failed. Check your details and try again.");
-    },
-  });
-
-  const handleSubmit = () => {
-    setError("");
+  async function submit() {
     if (!userId.trim() || !username.trim() || !password) {
-      setError("Please fill in all fields.");
+      setError("Enter your User ID, username and password.");
       return;
     }
-    loginMutation.mutate();
-  };
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await http.post<{ user: LoginUser }>("/auth/login", {
+        userId: userId.trim().toUpperCase(),
+        username: username.trim(),
+        password,
+      });
+      const u = res.user;
+      const next: WaiterSession = {
+        id: u.id,
+        name: u.name,
+        role: u.role ?? "waiter",
+        branchId: u.branchId ?? 1,
+        userId: userId.trim().toUpperCase(),
+        username: u.username ?? username.trim(),
+      };
+      await signIn(next);
+      router.replace("/pin-setup");
+    } catch (e) {
+      const msg =
+        e instanceof ApiError && e.status === 401
+          ? "Wrong User ID, username or password."
+          : (e as Error)?.message ?? "Could not sign in.";
+      setError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  if (checking) {
+  if (isLoading || session) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.navy, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={C.accent} />
-      </View>
+      <SafeAreaView style={st.loadingWrap} edges={["top", "left", "right"]}>
+        <ActivityIndicator color={c.primary} size="large" />
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={s.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={C.navy3} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, width: "100%" }}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 32 }}
-          keyboardShouldPersistTaps="handled">
-
-          {/* ── Brand ── */}
-          <View style={s.brandWrap}>
-            <View style={s.logoCircle}>
-              <Ionicons name="restaurant" size={28} color={C.white} />
+    <SafeAreaView style={st.safe} edges={["top", "left", "right"]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <ScrollView
+          contentContainerStyle={st.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={st.logoWrap}>
+            <View style={st.logo}>
+              <Ionicons name="restaurant" size={30} color={c.onPrimary} />
             </View>
-            <Text style={s.brandName}>iDINE</Text>
-            <Text style={s.brandSub}>Waiter Portal</Text>
+            <Text style={st.brand}>iDine Waiter</Text>
+            <Text style={st.tagline}>Sign in once — then unlock with a PIN.</Text>
           </View>
 
-          {/* ── Card ── */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Sign In</Text>
+          <View style={st.card}>
+            {error ? <ErrorBanner message={error} /> : null}
 
-            <View style={s.field}>
-              <Text style={s.label}>Business User ID</Text>
-              <TextInput style={s.input} value={userId} onChangeText={setUserId}
-                placeholder="e.g. ELE5236" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} />
+            <Text style={st.label}>Restaurant User ID</Text>
+            <View style={st.inputWrap}>
+              <Ionicons name="business-outline" size={18} color={c.mutedSoft} />
+              <TextInput
+                value={userId}
+                onChangeText={setUserId}
+                placeholder="e.g. PUM9211"
+                placeholderTextColor={c.mutedSoft}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                style={st.input}
+                returnKeyType="next"
+              />
             </View>
 
-            <View style={s.field}>
-              <Text style={s.label}>Username</Text>
-              <TextInput style={s.input} value={username} onChangeText={setUsername}
-                placeholder="e.g. waiter1" placeholderTextColor={C.muted} autoCapitalize="none" autoCorrect={false} />
+            <Text style={st.label}>Username</Text>
+            <View style={st.inputWrap}>
+              <Ionicons name="person-outline" size={18} color={c.mutedSoft} />
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Your username"
+                placeholderTextColor={c.mutedSoft}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={st.input}
+                returnKeyType="next"
+              />
             </View>
 
-            <View style={s.field}>
-              <Text style={s.label}>Password</Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TextInput style={[s.input, { flex: 1 }]} value={password} onChangeText={setPassword}
-                  placeholder="Password" placeholderTextColor={C.muted} secureTextEntry={!showPw} autoCapitalize="none" />
-                <TouchableOpacity onPress={() => setShowPw(v => !v)} style={{ paddingHorizontal: 10 }}>
-                  <Ionicons name={showPw ? "eye-off-outline" : "eye-outline"} size={20} color={C.muted} />
-                </TouchableOpacity>
-              </View>
+            <Text style={st.label}>Password</Text>
+            <View style={st.inputWrap}>
+              <Ionicons name="lock-closed-outline" size={18} color={c.mutedSoft} />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor={c.mutedSoft}
+                secureTextEntry={!showPw}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[st.input, st.inputPw]}
+                returnKeyType="go"
+                onSubmitEditing={submit}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPw((v) => !v)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={st.eyeBtn}
+              >
+                <Ionicons
+                  name={showPw ? "eye-off-outline" : "eye-outline"}
+                  size={19}
+                  color={c.mutedSoft}
+                />
+              </TouchableOpacity>
             </View>
 
-            {error ? (
-              <View style={s.errorRow}>
-                <Ionicons name="alert-circle" size={14} color={C.red} />
-                <Text style={s.errorTxt}>{error}</Text>
-              </View>
-            ) : null}
-
-            <TouchableOpacity style={s.submitBtn} onPress={handleSubmit} disabled={loginMutation.isPending} activeOpacity={0.85}>
-              {loginMutation.isPending ? (
-                <ActivityIndicator color={C.white} size="small" />
-              ) : (
-                <Text style={s.submitTxt}>Sign In</Text>
-              )}
-            </TouchableOpacity>
+            <PrimaryButton
+              label="Sign in"
+              onPress={submit}
+              loading={busy}
+              icon="arrow-forward"
+              style={{ marginTop: Space.xl }}
+            />
           </View>
+
+          <Text style={st.foot}>Ask your manager for your login details.</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.navy },
-
-  brandWrap: { alignItems: "center", marginBottom: 28 },
-  logoCircle: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: C.accent, alignItems: "center", justifyContent: "center",
-    marginBottom: 14,
-    shadowColor: C.accent, shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+const st = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.background },
+  loadingWrap: { flex: 1, backgroundColor: c.background, alignItems: "center", justifyContent: "center" },
+  scroll: { padding: Space.xl, paddingTop: Space.xxl, flexGrow: 1, justifyContent: "center" },
+  logoWrap: { alignItems: "center", marginBottom: Space.xxl },
+  logo: {
+    width: 64, height: 64, borderRadius: Radius.xl, backgroundColor: c.primary,
+    alignItems: "center", justifyContent: "center", ...Shadow.raised,
   },
-  brandName: { color: C.white, fontSize: 22, fontWeight: "800", letterSpacing: 2 },
-  brandSub: { color: C.muted, fontSize: 13, marginTop: 2, letterSpacing: 0.5 },
-
+  brand: { fontFamily: Fonts.bold, fontSize: 24, color: c.foreground, marginTop: Space.lg },
+  tagline: { fontFamily: Fonts.regular, fontSize: 13.5, color: c.muted, marginTop: 4, textAlign: "center" },
   card: {
-    backgroundColor: C.white, borderRadius: 24, paddingHorizontal: 24, paddingVertical: 28,
-    width: "88%",
-    shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    backgroundColor: c.card, borderRadius: Radius.xl, padding: Space.xl,
+    borderWidth: 1, borderColor: c.border, ...Shadow.card,
   },
-  cardTitle: { color: C.navy, fontSize: 18, fontWeight: "700", marginBottom: 20, textAlign: "center" },
-
-  field: { marginBottom: 14 },
-  label: { color: C.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
+  label: {
+    fontFamily: Fonts.medium, fontSize: 12.5, color: c.muted,
+    marginBottom: 6, marginTop: Space.lg,
+  },
+  inputWrap: {
+    position: "relative", overflow: "hidden",
+    flexDirection: "row", alignItems: "center", gap: Space.md,
+    backgroundColor: c.background, borderRadius: Radius.md,
+    borderWidth: 1, borderColor: c.border, paddingHorizontal: Space.lg,
+    height: 52,
+  },
   input: {
-    backgroundColor: C.light, borderRadius: 10, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.navy,
+    flex: 1, minWidth: 0, fontFamily: Fonts.regular, fontSize: 15.5,
+    color: c.foreground, height: "100%",
   },
-
-  errorRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2, marginBottom: 8 },
-  errorTxt: { color: C.red, fontSize: 12, fontWeight: "600", flexShrink: 1 },
-
-  submitBtn: {
-    backgroundColor: C.accent, borderRadius: 12, paddingVertical: 14, alignItems: "center",
-    marginTop: 6,
-    shadowColor: C.accent, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+  inputPw: { paddingRight: 30 },
+  eyeBtn: {
+    position: "absolute", right: Space.lg, top: 0, bottom: 0,
+    width: 24, alignItems: "center", justifyContent: "center",
   },
-  submitTxt: { color: C.white, fontSize: 16, fontWeight: "700" },
+  foot: {
+    fontFamily: Fonts.regular, fontSize: 12.5, color: c.mutedSoft,
+    textAlign: "center", marginTop: Space.xl,
+  },
 });

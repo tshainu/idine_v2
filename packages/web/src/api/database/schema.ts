@@ -163,6 +163,7 @@ export const orders = sqliteTable("orders", {
   subtotal: real("subtotal").notNull().default(0),
   discount: real("discount").notNull().default(0),
   serviceCharge: real("service_charge").notNull().default(0),
+  tipAmount: real("tip_amount").notNull().default(0), // waiter tip, excluded from revenue, credited to waiterId
   total: real("total").notNull().default(0),
   paymentMethod: text("payment_method").default("Cash"),
   amountPaid: real("amount_paid").notNull().default(0),
@@ -203,6 +204,18 @@ export const printJobs = sqliteTable("print_jobs", {
   attempts: integer("attempts").notNull().default(0),
   lastAttemptAt: integer("last_attempt_at", { mode: "timestamp" }),
   completedAt: integer("completed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Staff shifts (clock in / clock out from the waiter app, visible to admin)
+export const shifts = sqliteTable("shifts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  userId: integer("user_id").references(() => users.id),
+  userName: text("user_name"),                 // snapshot so it still reads if the staff row changes
+  clockIn: integer("clock_in", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  clockOut: integer("clock_out", { mode: "timestamp" }),
+  device: text("device"),                      // e.g. "waiter-app"
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 

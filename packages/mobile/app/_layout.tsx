@@ -1,8 +1,17 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { AppState, Platform } from "react-native";
+import { useEffect, useRef } from "react";
+import { ActivityIndicator, AppState, Platform, View } from "react-native";
+import { useFonts } from "expo-font";
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+} from "@expo-google-fonts/poppins";
+import { Colors } from "../constants/theme";
+import { hasPin } from "../lib/session";
 
 // Shared cache tuning for the whole waiter app.
 // Before: every screen used raw defaults, so each mount refired its request and
@@ -30,16 +39,59 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
-  // Tell react-query when the app is actually in the foreground so
-  // refetchIntervalInBackground: false can do its job on native.
+// Re-lock after this long in the background, so a phone left on a table is safe
+// but stepping out to the kitchen for a minute doesn't force a PIN re-entry.
+const LOCK_AFTER_MS = 2 * 60_000;
+
+function useAutoLock() {
+  const router = useRouter();
+  const backgroundedAt = useRef<number | null>(null);
+
   useEffect(() => {
     if (Platform.OS === "web") return;
-    const sub = AppState.addEventListener("change", (state) => {
+    const sub = AppState.addEventListener("change", async (state) => {
       focusManager.setFocused(state === "active");
+
+      if (state === "background" || state === "inactive") {
+        if (backgroundedAt.current === null) backgroundedAt.current = Date.now();
+        return;
+      }
+
+      if (state === "active") {
+        const since = backgroundedAt.current;
+        backgroundedAt.current = null;
+        if (since === null || Date.now() - since < LOCK_AFTER_MS) return;
+        if (await hasPin()) router.replace("/pin");
+      }
     });
     return () => sub.remove();
-  }, []);
+  }, [router]);
+}
+
+export default function RootLayout() {
+  useAutoLock();
+
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: Colors.light.background,
+        }}
+      >
+        <ActivityIndicator color={Colors.light.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>

@@ -1,182 +1,149 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, StatusBar, Alert } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "../lib/api";
-import { clearUser, loadUser, WaiterUser } from "../lib/auth";
-import { BottomNav } from "./tables";
+import { Colors, Fonts, Radius, Space } from "../constants/theme";
+import { Card, ScreenHeader, Loading, EmptyState, ErrorBanner, PrimaryButton, Pill } from "../components/ui";
+import { useSession } from "../hooks/use-session";
+import { useOrders, useUpdateOrder } from "../queries/orders";
+import { useTables } from "../queries/tables";
+import { lkr, elapsed } from "../lib/format";
 
-const C = {
-  navy:   "#0D1B6E",
-  navy2:  "#162280",
-  navy3:  "#0A1255",
-  accent: "#4F6EF7",
-  white:  "#FFFFFF",
-  light:  "#EEF0FB",
-  muted:  "#8891B8",
-  green:  "#22C55E",
-  greenBg:"#DCFCE7",
-  card:   "#F7F8FE",
-  border: "#DDE1F5",
-};
+const c = Colors.light;
 
 export default function ReadyItemsScreen() {
   const router = useRouter();
-  const qc = useQueryClient();
-  const [user, setUser] = useState<WaiterUser | null>(null);
-  useEffect(() => { loadUser().then(setUser); }, []);
-  const branchId = user?.branchId ?? 1;
+  const { branchId } = useSession();
+  // Kitchen marks orders ready — poll faster here, this is a live pickup queue.
+  const orders = useOrders(branchId, { poll: 15_000 });
+  const tables = useTables(branchId);
+  const update = useUpdateOrder();
+  const [busyId, setBusyId] = useState<number | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["orders-ready", branchId],
-    queryFn: async () => {
-      const res = await (api.orders.$get as any)({ query: { branchId: String(branchId), status: "ready" } });
-      const json = await res.json() as any;
-      return json.orders ?? json;
-    },
-    refetchInterval: 10000,
-  });
+  const ready = useMemo(
+    () =>
+      (orders.data ?? [])
+        .filter((o) => o.status === "ready")
+        .sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return ta - tb; // oldest first — that food is getting cold
+        }),
+    [orders.data],
+  );
 
-  const orders: any[] = Array.isArray(data) ? data : [];
+  async function markServed(id: number, orderNumber: string) {
+    setBusyId(id);
+    try {
+      await update.mutateAsync({ id, status: "served" });
+    } catch (e) {
+      Alert.alert("Could not update", (e as Error)?.message ?? `${orderNumber} was not updated.`);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
-  const markServed = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await (api.orders[":id"].$patch as any)({
-        param: { id: String(id) },
-        json: { status: "served" },
-      });
-      return res.json();
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders-ready"] }),
-    onError: () => Alert.alert("Error", "Could not update order"),
-  });
-
-  const handleLogout = () => {
-    Alert.alert("Logout", "Sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: async () => { await clearUser(); router.replace("/"); } },
-    ]);
-  };
+  if (orders.isLoading) {
+    return (
+      <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
+        <ScreenHeader title="Ready items" onBack={() => router.back()} />
+        <Loading label="Checking the kitchen…" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
-      <StatusBar barStyle="light-content" backgroundColor={C.navy3} />
+      <ScreenHeader
+        title="Ready items"
+        subtitle={ready.length ? `${ready.length} waiting for pickup` : "Nothing waiting"}
+        onBack={() => router.back()}
+      />
 
-      {/* ── Header ── */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={C.white} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/tables" as any)} style={s.backBtn}>
-          <Ionicons name="home" size={19} color={C.white} />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>Ready to Serve</Text>
-          {orders.length > 0 && (
-            <View style={s.countBadge}>
-              <Text style={s.countTxt}>{orders.length}</Text>
-            </View>
-          )}
-        </View>
-        <TouchableOpacity style={s.refreshBtn} onPress={() => refetch()}>
-          <Ionicons name="refresh" size={18} color={C.white} />
-        </TouchableOpacity>
-      </View>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={orders.isFetching} onRefresh={() => orders.refetch()} tintColor={c.primary} />
+        }
+      >
+        {orders.error ? (
+          <ErrorBanner message={(orders.error as Error).message} onRetry={() => orders.refetch()} />
+        ) : null}
 
-      {isLoading ? (
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={C.accent} />
-        </View>
-      ) : orders.length === 0 ? (
-        <View style={s.center}>
-          <View style={s.emptyCircle}>
-            <Ionicons name="checkmark-done" size={40} color={C.green} />
-          </View>
-          <Text style={s.emptyTitle}>All cleared!</Text>
-          <Text style={s.emptyBody}>No orders waiting to be served</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={{ padding: 14, paddingBottom: 110, gap: 10 }}
-          renderItem={({ item: o }) => {
-            const orderNum = o.orderNumber ?? `#${String(o.id).padStart(4, "0")}`;
-            const itemCount = o.items?.length ?? 0;
-            const busy = markServed.isPending;
+        {ready.length === 0 ? (
+          <EmptyState
+            icon="checkmark-done-outline"
+            title="All caught up"
+            hint="When the kitchen marks an order ready, it shows up here."
+          />
+        ) : (
+          ready.map((o) => {
+            const table = (tables.data ?? []).find((t) => t.id === o.tableId);
+            const waited = o.createdAt ? Date.now() - new Date(o.createdAt).getTime() : 0;
+            const late = waited > 15 * 60_000;
             return (
-              <View style={s.card}>
-                {/* Green left bar */}
-                <View style={s.cardBar} />
-                <View style={s.cardInner}>
-                  <View style={s.greenCircle}>
-                    <Ionicons name="checkmark" size={22} color={C.white} />
+              <Card key={o.id} style={{ marginBottom: Space.md }}>
+                <View style={s.head}>
+                  <View style={s.iconWrap}>
+                    <Ionicons name="restaurant" size={18} color={c.success} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.orderNum}>{orderNum}</Text>
-                    <Text style={s.orderMeta}>{o.customerName ?? "Guest"}  ·  Table {o.tableId}</Text>
-                    <Text style={s.orderMeta}>{itemCount} item{itemCount !== 1 ? "s" : ""}</Text>
+                    <Text style={s.table}>{table?.name ?? o.type}</Text>
+                    <Text style={s.order}>{o.orderNumber} · {lkr(o.total)}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={[s.serveBtn, busy && { opacity: 0.5 }]}
-                    onPress={() => markServed.mutate(o.id)}
-                    disabled={busy}
-                  >
-                    {busy
-                      ? <ActivityIndicator size="small" color={C.white} />
-                      : <>
-                          <Ionicons name="checkmark-circle" size={16} color={C.white} />
-                          <Text style={s.serveTxt}>Served</Text>
-                        </>
-                    }
-                  </TouchableOpacity>
+                  <Pill
+                    label={elapsed(o.createdAt)}
+                    fg={late ? c.destructive : c.muted}
+                    bg={late ? c.destructiveSoft : c.background}
+                  />
                 </View>
-              </View>
-            );
-          }}
-        />
-      )}
 
-      <BottomNav active="ready" router={router} onLogout={handleLogout} />
+                <View style={s.items}>
+                  {(o.items ?? []).map((it) => (
+                    <View key={it.id} style={s.itemRow}>
+                      <Text style={s.qty}>{it.qty}×</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.itemName}>{it.name}</Text>
+                        {it.note ? <Text style={s.itemNote}>{it.note}</Text> : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                <PrimaryButton
+                  label="Mark as served"
+                  icon="checkmark-circle-outline"
+                  variant="success"
+                  loading={busyId === o.id}
+                  onPress={() => markServed(o.id, o.orderNumber)}
+                />
+              </Card>
+            );
+          })
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.card },
-
-  header: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: C.navy, paddingHorizontal: 16, paddingVertical: 12, gap: 10,
+  safe: { flex: 1, backgroundColor: c.background },
+  scroll: { padding: Space.lg, paddingBottom: Space.xxl },
+  head: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  iconWrap: {
+    width: 38, height: 38, borderRadius: Radius.md, backgroundColor: c.successSoft,
+    alignItems: "center", justifyContent: "center",
   },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.white + "18", alignItems: "center", justifyContent: "center" },
-  headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { color: C.white, fontSize: 17, fontWeight: "700" },
-  countBadge: { backgroundColor: C.green, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  countTxt: { color: C.white, fontSize: 12, fontWeight: "800" },
-  refreshBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.white + "18", alignItems: "center", justifyContent: "center" },
-
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-  emptyCircle: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.greenBg, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  emptyTitle: { color: C.navy, fontSize: 18, fontWeight: "800" },
-  emptyBody: { color: C.muted, fontSize: 13, textAlign: "center" },
-
-  card: {
-    backgroundColor: C.white, borderRadius: 14, flexDirection: "row", overflow: "hidden",
-    shadowColor: C.navy, shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+  table: { fontFamily: Fonts.semibold, fontSize: 15.5, color: c.foreground },
+  order: { fontFamily: Fonts.regular, fontSize: 12.5, color: c.muted, marginTop: 1 },
+  items: {
+    marginTop: Space.md, marginBottom: Space.lg, paddingTop: Space.md,
+    borderTopWidth: 1, borderTopColor: c.border,
   },
-  cardBar: { width: 4, backgroundColor: C.green },
-  cardInner: { flex: 1, flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  greenCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.green, alignItems: "center", justifyContent: "center" },
-  orderNum: { color: C.navy, fontSize: 15, fontWeight: "800" },
-  orderMeta: { color: C.muted, fontSize: 12, marginTop: 2 },
-  serveBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: C.navy, borderRadius: 10,
-    paddingVertical: 10, paddingHorizontal: 14,
-  },
-  serveTxt: { color: C.white, fontSize: 13, fontWeight: "700" },
+  itemRow: { flexDirection: "row", gap: Space.md, paddingVertical: 4 },
+  qty: { fontFamily: Fonts.semibold, fontSize: 13, color: c.primaryDark, minWidth: 26 },
+  itemName: { fontFamily: Fonts.regular, fontSize: 13.5, color: c.foreground },
+  itemNote: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.warning, marginTop: 1 },
 });
