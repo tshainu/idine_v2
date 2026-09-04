@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { getBranchId } from "../lib/store";
@@ -589,22 +589,49 @@ function Occ({ icon: Icon, label, value }: any) {
  * Stores "MM-DD"; also reads legacy "YYYY-MM-DD" values so old rows still show.
  */
 function DayMonth({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-  const md = monthDayOf(value);
-  const [mm, dd] = md ? md.split("-") : ["", ""];
-  const set = (nextMm: string, nextDd: string) => {
-    if (!nextMm || !nextDd) { onChange(""); return; }
-    const capped = Math.min(Number(nextDd), daysInMonth(nextMm));
-    onChange(`${nextMm}-${String(capped).padStart(2, "0")}`);
+  const initial = monthDayOf(value);
+  // Month and day are held locally so a half-finished pick (month chosen, day not
+  // yet) survives. Reporting upward only happens once both are set — otherwise
+  // picking a month would clear itself and the day list could never unlock.
+  const [mm, setMm] = useState(initial ? initial.split("-")[0] : "");
+  const [dd, setDd] = useState(initial ? initial.split("-")[1] : "");
+
+  // Re-sync when the parent swaps in a different customer, but ignore the value
+  // we ourselves just reported (or cleared) so local half-picks aren't wiped.
+  useEffect(() => {
+    const incoming = monthDayOf(value);
+    if (incoming === (mm && dd ? `${mm}-${dd}` : "")) return;
+    setMm(incoming ? incoming.split("-")[0] : "");
+    setDd(incoming ? incoming.split("-")[1] : "");
+  }, [value]);
+
+  const report = (nextMm: string, nextDd: string) =>
+    onChange(nextMm && nextDd ? `${nextMm}-${nextDd}` : "");
+
+  const pickMonth = (next: string) => {
+    setMm(next);
+    // 31 -> February must not stay out of range
+    const capped = dd && Number(dd) > daysInMonth(next)
+      ? String(daysInMonth(next)).padStart(2, "0")
+      : dd;
+    setDd(capped);
+    report(next, capped);
   };
+
+  const pickDay = (next: string) => {
+    setDd(next);
+    report(mm, next);
+  };
+
   return (
     <div className="grid grid-cols-2 gap-2">
-      <select value={mm} onChange={e => set(e.target.value, dd)} style={cinp}>
+      <select value={mm} onChange={e => pickMonth(e.target.value)} style={cinp}>
         <option value="">Month</option>
         {MONTHS.map((name, i) => (
           <option key={name} value={String(i + 1).padStart(2, "0")}>{name}</option>
         ))}
       </select>
-      <select value={dd} onChange={e => set(mm, e.target.value)} style={cinp} disabled={!mm}>
+      <select value={dd} onChange={e => pickDay(e.target.value)} style={cinp} disabled={!mm}>
         <option value="">Day</option>
         {Array.from({ length: daysInMonth(mm) }, (_, i) => String(i + 1).padStart(2, "0"))
           .map(d => <option key={d} value={d}>{Number(d)}</option>)}
