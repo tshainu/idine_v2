@@ -1,1977 +1,2181 @@
 {
- "categories": [
-  "Veg Variety Dish",
-  "Signature Gravy (Non Veg)",
-  "Only On Special Days",
-  "Biryani Varieties",
-  "Extra Add Ons",
-  "Salad",
-  "Veg Soup",
-  "Non-Veg Soup",
-  "Veg Starter",
-  "Non-Veg Starter",
-  "Kekab",
-  "Tikka",
-  "Noodles Varieties",
-  "Egg Varieties",
-  "Meals",
-  "Indian Bread",
-  "Dosai Varieties",
-  "Dessert",
-  "Mojito",
-  "Juice",
-  "Soda",
-  "Ice Cream",
-  "Soft Drinks",
-  "Lassi",
-  "Kulukki",
-  "Falooda",
-  "Milkshake",
-  "Sharjah",
-  "Arabian Dishes",
-  "Arabian Dishes (Fish)"
- ],
- "items": [
-  {
-   "code": "MJ001",
-   "name": "Mixed Vegetable Curry",
-   "category": "Veg Variety Dish",
-   "price": 1350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ002",
-   "name": "Channa Masala",
-   "category": "Veg Variety Dish",
-   "price": 1350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ003",
-   "name": "Vegetable Kuruma",
-   "category": "Veg Variety Dish",
-   "price": 1350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ004",
-   "name": "Navarathna Kuruma",
-   "category": "Veg Variety Dish",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ005",
-   "name": "Mushroom Masala",
-   "category": "Veg Variety Dish",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ006",
-   "name": "Paneer Tikka Masala",
-   "category": "Veg Variety Dish",
-   "price": 1560.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ007",
-   "name": "Paneer Butter Masala",
-   "category": "Veg Variety Dish",
-   "price": 1560.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ008",
-   "name": "Kadai Paneer",
-   "category": "Veg Variety Dish",
-   "price": 1950.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ009",
-   "name": "Kadai Chicken",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ010",
-   "name": "Punjabi Chicken",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ011",
-   "name": "Pepper Chicken Masala",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ012",
-   "name": "Andhra Chicken Curry",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ013",
-   "name": "Chettinad Chicken",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ014",
-   "name": "Guntur Chicken Masala",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ015",
-   "name": "Chicken Tikka",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ016",
-   "name": "Butter Chicken Masala",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ017",
-   "name": "Chicken Vettai Curry",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1950.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ018",
-   "name": "Chicken Chukka",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 1890.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ019",
-   "name": "Mutton Chettinad",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 2350.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ020",
-   "name": "Mutton Vettai Curry",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 2450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ021",
-   "name": "Prawn Vettai Curry",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 2450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ022",
-   "name": "Rogan Josh Mutton",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 2450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ023",
-   "name": "Prawn Masala",
-   "category": "Signature Gravy (Non Veg)",
-   "price": 2450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ024",
-   "name": "Dragon Chicken (Dry)",
-   "category": "Only On Special Days",
-   "price": 1650.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ025",
-   "name": "Lemon Chicken (Dry)",
-   "category": "Only On Special Days",
-   "price": 1650.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ026",
-   "name": "Honey Chicken (Sweet, Dry)",
-   "category": "Only On Special Days",
-   "price": 1650.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ027",
-   "name": "Idiyappa Combo - 1 (Mutton Nalli Paaya + 10 String Hoppers)",
-   "category": "Only On Special Days",
-   "price": 2650.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ028",
-   "name": "Mandi Chicken (Half)",
-   "category": "Only On Special Days",
-   "price": 4200.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ029",
-   "name": "Mandi Chicken (Full)",
-   "category": "Only On Special Days",
-   "price": 6500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ030",
-   "name": "Mandi Mutton (Half)",
-   "category": "Only On Special Days",
-   "price": 6200.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ031",
-   "name": "Mandi Mutton (Full)",
-   "category": "Only On Special Days",
-   "price": 12500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ032",
-   "name": "Nellai Egg Biryani",
-   "category": "Biryani Varieties",
-   "price": 1400.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ033",
-   "name": "Nellai Chicken Biryani",
-   "category": "Biryani Varieties",
-   "price": 1600.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ034",
-   "name": "Nellai Mutton Biryani",
-   "category": "Biryani Varieties",
-   "price": 2200.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ035",
-   "name": "Chicken 65 Biryani",
-   "category": "Biryani Varieties",
-   "price": 1900.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ036",
-   "name": "Alfaham Chicken Biryani",
-   "category": "Biryani Varieties",
-   "price": 1900.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ037",
-   "name": "BBQ Chicken Biryani",
-   "category": "Biryani Varieties",
-   "price": 1900.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ038",
-   "name": "Tandoori Chicken Biryani",
-   "category": "Biryani Varieties",
-   "price": 1900.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ039",
-   "name": "Prawn Biryani",
-   "category": "Biryani Varieties",
-   "price": 2100.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ040",
-   "name": "Mayonnaise",
-   "category": "Extra Add Ons",
-   "price": 100.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ041",
-   "name": "Onion Raita",
-   "category": "Extra Add Ons",
-   "price": 100.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ042",
-   "name": "Gravy",
-   "category": "Extra Add Ons",
-   "price": 200.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ043",
-   "name": "Chilli Paste",
-   "category": "Extra Add Ons",
-   "price": 180.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ044",
-   "name": "Green Salad",
-   "category": "Salad",
-   "price": 750.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ045",
-   "name": "Tomato Soup",
-   "category": "Veg Soup",
-   "price": 580.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ046",
-   "name": "Sweet Corn Soup",
-   "category": "Veg Soup",
-   "price": 490.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ047",
-   "name": "Hot & Sour Soup",
-   "category": "Veg Soup",
-   "price": 490.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ048",
-   "name": "Noodles-Soup",
-   "category": "Veg Soup",
-   "price": 700.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ049",
-   "name": "Manchow Soup",
-   "category": "Veg Soup",
-   "price": 790.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ050",
-   "name": "Chicken Pepper Soup",
-   "category": "Non-Veg Soup",
-   "price": 700.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ051",
-   "name": "Pepper Mutton Soup",
-   "category": "Non-Veg Soup",
-   "price": 900.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ052",
-   "name": "Manchow Mutton Soup",
-   "category": "Non-Veg Soup",
-   "price": 950.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ053",
-   "name": "Bone Mutton Soup",
-   "category": "Non-Veg Soup",
-   "price": 950.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ054",
-   "name": "French Fries",
-   "category": "Veg Starter",
-   "price": 800.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ055",
-   "name": "Mushroom 65",
-   "category": "Veg Starter",
-   "price": 920.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ056",
-   "name": "Gobi 65",
-   "category": "Veg Starter",
-   "price": 970.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ057",
-   "name": "Paneer 65",
-   "category": "Veg Starter",
-   "price": 1320.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ058",
-   "name": "Panipuri Chicken",
-   "category": "Non-Veg Starter",
-   "price": 1200.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ059",
-   "name": "Chicken 65",
-   "category": "Non-Veg Starter",
-   "price": 1290.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ060",
-   "name": "Chicken Lollipop",
-   "category": "Non-Veg Starter",
-   "price": 1650.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ061",
-   "name": "Chicken Popcorn",
-   "category": "Non-Veg Starter",
-   "price": 1800.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ062",
-   "name": "Fish & Chips",
-   "category": "Non-Veg Starter",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ063",
-   "name": "Manjal Special Golden Prawns",
-   "category": "Non-Veg Starter",
-   "price": 2450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ064",
-   "name": "Assorted Live Sigdi Kekab",
-   "category": "Kekab",
-   "price": 5050.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ065",
-   "name": "Malai Tikka",
-   "category": "Tikka",
-   "price": 1640.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ066",
-   "name": "Hariyali Tikka",
-   "category": "Tikka",
-   "price": 1740.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ067",
-   "name": "Maharani Tikka",
-   "category": "Tikka",
-   "price": 1840.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ068",
-   "name": "Vegetable Noodles",
-   "category": "Noodles Varieties",
-   "price": 1350.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ069",
-   "name": "Egg Fried Noodles",
-   "category": "Noodles Varieties",
-   "price": 1350.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ070",
-   "name": "Chicken Fried Noodles",
-   "category": "Noodles Varieties",
-   "price": 1550.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ071",
-   "name": "Chicken Schezwan Noodles",
-   "category": "Noodles Varieties",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ072",
-   "name": "Boiled Egg",
-   "category": "Egg Varieties",
-   "price": 160.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ073",
-   "name": "Omelette",
-   "category": "Egg Varieties",
-   "price": 350.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ074",
-   "name": "Half Boiled Egg",
-   "category": "Egg Varieties",
-   "price": 350.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ075",
-   "name": "Chicken Omelette (Kalakki)",
-   "category": "Egg Varieties",
-   "price": 950.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ076",
-   "name": "Egg Masala",
-   "category": "Egg Varieties",
-   "price": 1050.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ077",
-   "name": "Egg Keema Masala",
-   "category": "Egg Varieties",
-   "price": 1050.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ078",
-   "name": "Mutton Omelette (Kalakki)",
-   "category": "Egg Varieties",
-   "price": 1150.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ079",
-   "name": "Manjal Veetu Sapadu - Veg",
-   "category": "Meals",
-   "price": 1250.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ080",
-   "name": "Plain Naan",
-   "category": "Indian Bread",
-   "price": 290.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ081",
-   "name": "Parotta",
-   "category": "Indian Bread",
-   "price": 310.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ082",
-   "name": "Tandoori Roti",
-   "category": "Indian Bread",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ083",
-   "name": "Nool Parotta",
-   "category": "Indian Bread",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ084",
-   "name": "Garlic Naan",
-   "category": "Indian Bread",
-   "price": 400.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ085",
-   "name": "Bun Parotta",
-   "category": "Indian Bread",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ086",
-   "name": "Chappathi",
-   "category": "Indian Bread",
-   "price": 360.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ087",
-   "name": "Butter Naan",
-   "category": "Indian Bread",
-   "price": 360.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ088",
-   "name": "Plain Veechu Parotta",
-   "category": "Indian Bread",
-   "price": 520.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ089",
-   "name": "Egg Veechu Parotta",
-   "category": "Indian Bread",
-   "price": 620.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ090",
-   "name": "Japan Chicken Kothu Parotta",
-   "category": "Indian Bread",
-   "price": 1950.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ091",
-   "name": "Kizhi Thattu Parotta (Egg)",
-   "category": "Indian Bread",
-   "price": 1560.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ092",
-   "name": "Kizhi Thattu Parotta (Chicken)",
-   "category": "Indian Bread",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ093",
-   "name": "Chicken Murthaba Parotta",
-   "category": "Indian Bread",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ094",
-   "name": "Kerala Chicken Kothu Parotta",
-   "category": "Indian Bread",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ095",
-   "name": "Koondu Kulla Kizhi Parotta (Chicken)",
-   "category": "Indian Bread",
-   "price": 1950.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ096",
-   "name": "Japan Seafood Kothu Parotta",
-   "category": "Indian Bread",
-   "price": 2150.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ097",
-   "name": "Kizhi Thattu Parotta (Mutton)",
-   "category": "Indian Bread",
-   "price": 2350.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ098",
-   "name": "Kerala Mutton Kothu Parotta",
-   "category": "Indian Bread",
-   "price": 2450.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ099",
-   "name": "Mutton Murthaba Parotta",
-   "category": "Indian Bread",
-   "price": 2450.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ100",
-   "name": "Chicken Manpaanai (Claypot) Parotta",
-   "category": "Indian Bread",
-   "price": 3500.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ101",
-   "name": "Mutton Manpaanai (Claypot) Parotta",
-   "category": "Indian Bread",
-   "price": 3900.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ102",
-   "name": "Prawn Manpaanai (Claypot) Parotta",
-   "category": "Indian Bread",
-   "price": 4150.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ103",
-   "name": "Paper Roast",
-   "category": "Dosai Varieties",
-   "price": 650.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ104",
-   "name": "Egg Dosai",
-   "category": "Dosai Varieties",
-   "price": 550.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ105",
-   "name": "Ghee Roast Dosai",
-   "category": "Dosai Varieties",
-   "price": 750.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ106",
-   "name": "Chicken Curry Dosai",
-   "category": "Dosai Varieties",
-   "price": 1530.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ107",
-   "name": "Mutton Curry Dosai",
-   "category": "Dosai Varieties",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ108",
-   "name": "Gulab Jamun",
-   "category": "Dessert",
-   "price": 720.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ109",
-   "name": "Fruit Salad",
-   "category": "Dessert",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ110",
-   "name": "Fruit Salad with Ice Cream",
-   "category": "Dessert",
-   "price": 1200.0,
-   "isVeg": 1,
-   "isBeverage": 0,
-   "variations": []
-  },
-  {
-   "code": "MJ111",
-   "name": "Virgin Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ112",
-   "name": "Mango Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ113",
-   "name": "Kiwi Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ114",
-   "name": "Strawberry Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ115",
-   "name": "Pineapple Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ116",
-   "name": "Blue Curacao (Blueberry) Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ117",
-   "name": "Green Apple Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ118",
-   "name": "Orange Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ119",
-   "name": "Pomegranate Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ120",
-   "name": "Watermelon Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ121",
-   "name": "Peppermint Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ122",
-   "name": "Refreshing Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ123",
-   "name": "Passionfruit Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ124",
-   "name": "Roasted Almond Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ125",
-   "name": "Lychee Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ126",
-   "name": "Blackcurrant Mojito",
-   "category": "Mojito",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ127",
-   "name": "Lemon Juice",
-   "category": "Juice",
-   "price": 750.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ128",
-   "name": "Watermelon Juice",
-   "category": "Juice",
-   "price": 950.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ129",
-   "name": "Pineapple Juice",
-   "category": "Juice",
-   "price": 950.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ130",
-   "name": "Papaya Juice",
-   "category": "Juice",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ131",
-   "name": "Mint Lemon",
-   "category": "Juice",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ132",
-   "name": "Orange Juice",
-   "category": "Juice",
-   "price": 1150.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ133",
-   "name": "Apple Juice",
-   "category": "Juice",
-   "price": 1150.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ134",
-   "name": "Grape Juice",
-   "category": "Juice",
-   "price": 1250.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ135",
-   "name": "Mango Juice",
-   "category": "Juice",
-   "price": 1150.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ136",
-   "name": "Pomegranate Juice",
-   "category": "Juice",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ137",
-   "name": "Mix Fruit Juice",
-   "category": "Juice",
-   "price": 1550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ138",
-   "name": "Lemon Soda",
-   "category": "Soda",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ139",
-   "name": "Mint Lemon Soda",
-   "category": "Soda",
-   "price": 900.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ140",
-   "name": "Jaljeera Soda",
-   "category": "Soda",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ141",
-   "name": "Vanilla Ice Cream",
-   "category": "Ice Cream",
-   "price": 499.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ142",
-   "name": "Chocolate Ice Cream",
-   "category": "Ice Cream",
-   "price": 499.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ143",
-   "name": "Strawberry Ice Cream",
-   "category": "Ice Cream",
-   "price": 499.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ144",
-   "name": "Blackcurrant Ice Cream",
-   "category": "Ice Cream",
-   "price": 550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ145",
-   "name": "Fruit & Nut Ice Cream",
-   "category": "Ice Cream",
-   "price": 550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ146",
-   "name": "Mango Ice Cream",
-   "category": "Ice Cream",
-   "price": 550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ147",
-   "name": "Mexican Brownies Icecream",
-   "category": "Ice Cream",
-   "price": 1550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ148",
-   "name": "Death By Chocolate",
-   "category": "Ice Cream",
-   "price": 1690.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ149",
-   "name": "Nutella Cookies Ice Cream",
-   "category": "Ice Cream",
-   "price": 1690.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ150",
-   "name": "Brownie with Ice Cream",
-   "category": "Ice Cream",
-   "price": 1790.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ151",
-   "name": "Monster Oreo",
-   "category": "Ice Cream",
-   "price": 1960.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ152",
-   "name": "Monster Chocolate",
-   "category": "Ice Cream",
-   "price": 1960.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ153",
-   "name": "Monster Kitkat",
-   "category": "Ice Cream",
-   "price": 1960.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ154",
-   "name": "Nutella Brownies with Ice Cream",
-   "category": "Ice Cream",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ155",
-   "name": "Sizzling Brownie with Ice Cream",
-   "category": "Ice Cream",
-   "price": 1980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ156",
-   "name": "Aqua Fresh Water (1L)",
-   "category": "Soft Drinks",
-   "price": 100.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ157",
-   "name": "Ginger Beer (Single Serve)",
-   "category": "Soft Drinks",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ158",
-   "name": "Coca-Cola (Single Serve)",
-   "category": "Soft Drinks",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ159",
-   "name": "Sprite (Single Serve)",
-   "category": "Soft Drinks",
-   "price": 350.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ160",
-   "name": "Ginger Lemon",
-   "category": "Soft Drinks",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ161",
-   "name": "Plain Lassi",
-   "category": "Lassi",
-   "price": 660.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ162",
-   "name": "Mango Lassi",
-   "category": "Lassi",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ163",
-   "name": "Strawberry Lassi",
-   "category": "Lassi",
-   "price": 850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ164",
-   "name": "Mixed Fruit Lassi",
-   "category": "Lassi",
-   "price": 890.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ165",
-   "name": "Pineapple Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ166",
-   "name": "Orange Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ167",
-   "name": "Green Apple Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ168",
-   "name": "Passion Fruit Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ169",
-   "name": "Mango Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ170",
-   "name": "Kiwi Kulukki",
-   "category": "Kulukki",
-   "price": 980.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ171",
-   "name": "Fancy Falooda",
-   "category": "Falooda",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ172",
-   "name": "Mango Falooda",
-   "category": "Falooda",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ173",
-   "name": "Strawberry Falooda",
-   "category": "Falooda",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ174",
-   "name": "Royal Falooda",
-   "category": "Falooda",
-   "price": 1750.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ175",
-   "name": "Dry Fruit Falooda",
-   "category": "Falooda",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ176",
-   "name": "Vanilla Milkshake",
-   "category": "Milkshake",
-   "price": 1350.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ177",
-   "name": "Chocolate Milkshake",
-   "category": "Milkshake",
-   "price": 1450.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ178",
-   "name": "Mango Milkshake",
-   "category": "Milkshake",
-   "price": 1550.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ179",
-   "name": "Strawberry Milkshake",
-   "category": "Milkshake",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ180",
-   "name": "Fruit & Nut Milkshake",
-   "category": "Milkshake",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ181",
-   "name": "Oreo Milkshake",
-   "category": "Milkshake",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ182",
-   "name": "Kit-Kat Milkshake",
-   "category": "Milkshake",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ183",
-   "name": "Sharjah Fruit Punch",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ184",
-   "name": "Chocolate Sharjah",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ185",
-   "name": "Mango Sharjah",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ186",
-   "name": "Strawberry Sharjah",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ187",
-   "name": "Blackcurrant Sharjah",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ188",
-   "name": "Vanilla Sharjah",
-   "category": "Sharjah",
-   "price": 1650.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ189",
-   "name": "Dryfruit Sharjah",
-   "category": "Sharjah",
-   "price": 1950.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ190",
-   "name": "Oreo Sharjah",
-   "category": "Sharjah",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ191",
-   "name": "Kit-Kat Sharjah",
-   "category": "Sharjah",
-   "price": 1850.0,
-   "isVeg": 1,
-   "isBeverage": 1,
-   "variations": []
-  },
-  {
-   "code": "MJ192",
-   "name": "Tube Chicken Biryani (2 Pax)",
-   "category": "Biryani Varieties",
-   "price": 3100.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
+  "categories": [
+    "Veg Variety Dish",
+    "Signature Gravy (Non Veg)",
+    "Only On Special Days",
+    "Biryani Varieties",
+    "Extra Add Ons",
+    "Salad",
+    "Veg Soup",
+    "Non-Veg Soup",
+    "Veg Starter",
+    "Non-Veg Starter",
+    "Kekab",
+    "Tikka",
+    "Noodles Varieties",
+    "Egg Varieties",
+    "Meals",
+    "Indian Bread",
+    "Dosai Varieties",
+    "Dessert",
+    "Mojito",
+    "Juice",
+    "Soda",
+    "Ice Cream",
+    "Soft Drinks",
+    "Lassi",
+    "Kulukki",
+    "Falooda",
+    "Milkshake",
+    "Sharjah",
+    "Arabian Dishes",
+    "Arabian Dishes (Fish)"
+  ],
+  "items": [
     {
-     "name": "Standard",
-     "price": 3100.0
-    }
-   ]
-  },
-  {
-   "code": "MJ193",
-   "name": "Tube Mutton Biryani (2 Pax)",
-   "category": "Biryani Varieties",
-   "price": 4250.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Standard",
-     "price": 4250.0
-    }
-   ]
-  },
-  {
-   "code": "MJ194",
-   "name": "Bucket Chicken Biryani (4 Pax)",
-   "category": "Biryani Varieties",
-   "price": 5500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Standard",
-     "price": 5500.0
-    }
-   ]
-  },
-  {
-   "code": "MJ195",
-   "name": "Bucket Mutton Biryani (4 Pax)",
-   "category": "Biryani Varieties",
-   "price": 7500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Standard",
-     "price": 7500.0
-    }
-   ]
-  },
-  {
-   "code": "MJ196",
-   "name": "Bucket Chicken Biryani (7 Pax)",
-   "category": "Biryani Varieties",
-   "price": 12500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Standard",
-     "price": 12500.0
-    }
-   ]
-  },
-  {
-   "code": "MJ197",
-   "name": "Bucket Mutton Biryani (7 Pax)",
-   "category": "Biryani Varieties",
-   "price": 15500.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Standard",
-     "price": 15500.0
-    }
-   ]
-  },
-  {
-   "code": "MJ198",
-   "name": "Grill Chicken",
-   "category": "Arabian Dishes",
-   "price": 3250.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 3250.0
+      "code": "MJ001",
+      "name": "Mixed Vegetable Curry",
+      "category": "Veg Variety Dish",
+      "price": 1350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ001.jpg"
     },
     {
-     "name": "Half",
-     "price": 1600.0
+      "code": "MJ002",
+      "name": "Channa Masala",
+      "category": "Veg Variety Dish",
+      "price": 1350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ002.jpg"
     },
     {
-     "name": "Quarter",
-     "price": 980.0
+      "code": "MJ003",
+      "name": "Vegetable Kuruma",
+      "category": "Veg Variety Dish",
+      "price": 1350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ003.jpg"
+    },
+    {
+      "code": "MJ004",
+      "name": "Navarathna Kuruma",
+      "category": "Veg Variety Dish",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ004.jpg"
+    },
+    {
+      "code": "MJ005",
+      "name": "Mushroom Masala",
+      "category": "Veg Variety Dish",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ005.jpg"
+    },
+    {
+      "code": "MJ006",
+      "name": "Paneer Tikka Masala",
+      "category": "Veg Variety Dish",
+      "price": 1560.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ006.jpg"
+    },
+    {
+      "code": "MJ007",
+      "name": "Paneer Butter Masala",
+      "category": "Veg Variety Dish",
+      "price": 1560.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ007.jpg"
+    },
+    {
+      "code": "MJ008",
+      "name": "Kadai Paneer",
+      "category": "Veg Variety Dish",
+      "price": 1950.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ008.jpg"
+    },
+    {
+      "code": "MJ009",
+      "name": "Kadai Chicken",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ009.jpg"
+    },
+    {
+      "code": "MJ010",
+      "name": "Punjabi Chicken",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ010.jpg"
+    },
+    {
+      "code": "MJ011",
+      "name": "Pepper Chicken Masala",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ011.jpg"
+    },
+    {
+      "code": "MJ012",
+      "name": "Andhra Chicken Curry",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ012.jpg"
+    },
+    {
+      "code": "MJ013",
+      "name": "Chettinad Chicken",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ013.jpg"
+    },
+    {
+      "code": "MJ014",
+      "name": "Guntur Chicken Masala",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ014.jpg"
+    },
+    {
+      "code": "MJ015",
+      "name": "Chicken Tikka",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ015.jpg"
+    },
+    {
+      "code": "MJ016",
+      "name": "Butter Chicken Masala",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ016.jpg"
+    },
+    {
+      "code": "MJ017",
+      "name": "Chicken Vettai Curry",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1950.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ017.jpg"
+    },
+    {
+      "code": "MJ018",
+      "name": "Chicken Chukka",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 1890.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ018.jpg"
+    },
+    {
+      "code": "MJ019",
+      "name": "Mutton Chettinad",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 2350.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ019.jpg"
+    },
+    {
+      "code": "MJ020",
+      "name": "Mutton Vettai Curry",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 2450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ020.jpg"
+    },
+    {
+      "code": "MJ021",
+      "name": "Prawn Vettai Curry",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 2450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ021.jpg"
+    },
+    {
+      "code": "MJ022",
+      "name": "Rogan Josh Mutton",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 2450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ022.jpg"
+    },
+    {
+      "code": "MJ023",
+      "name": "Prawn Masala",
+      "category": "Signature Gravy (Non Veg)",
+      "price": 2450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ023.jpg"
+    },
+    {
+      "code": "MJ024",
+      "name": "Dragon Chicken (Dry)",
+      "category": "Only On Special Days",
+      "price": 1650.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ024.jpg"
+    },
+    {
+      "code": "MJ025",
+      "name": "Lemon Chicken (Dry)",
+      "category": "Only On Special Days",
+      "price": 1650.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ025.jpg"
+    },
+    {
+      "code": "MJ026",
+      "name": "Honey Chicken (Sweet, Dry)",
+      "category": "Only On Special Days",
+      "price": 1650.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ026.jpg"
+    },
+    {
+      "code": "MJ027",
+      "name": "Idiyappa Combo - 1 (Mutton Nalli Paaya + 10 String Hoppers)",
+      "category": "Only On Special Days",
+      "price": 2650.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ027.jpg"
+    },
+    {
+      "code": "MJ028",
+      "name": "Mandi Chicken (Half)",
+      "category": "Only On Special Days",
+      "price": 4200.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ028.jpg"
+    },
+    {
+      "code": "MJ029",
+      "name": "Mandi Chicken (Full)",
+      "category": "Only On Special Days",
+      "price": 6500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ029.jpg"
+    },
+    {
+      "code": "MJ030",
+      "name": "Mandi Mutton (Half)",
+      "category": "Only On Special Days",
+      "price": 6200.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ030.jpg"
+    },
+    {
+      "code": "MJ031",
+      "name": "Mandi Mutton (Full)",
+      "category": "Only On Special Days",
+      "price": 12500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ031.jpg"
+    },
+    {
+      "code": "MJ032",
+      "name": "Nellai Egg Biryani",
+      "category": "Biryani Varieties",
+      "price": 1400.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ032.jpg"
+    },
+    {
+      "code": "MJ033",
+      "name": "Nellai Chicken Biryani",
+      "category": "Biryani Varieties",
+      "price": 1600.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ033.jpg"
+    },
+    {
+      "code": "MJ034",
+      "name": "Nellai Mutton Biryani",
+      "category": "Biryani Varieties",
+      "price": 2200.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ034.jpg"
+    },
+    {
+      "code": "MJ035",
+      "name": "Chicken 65 Biryani",
+      "category": "Biryani Varieties",
+      "price": 1900.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ035.jpg"
+    },
+    {
+      "code": "MJ036",
+      "name": "Alfaham Chicken Biryani",
+      "category": "Biryani Varieties",
+      "price": 1900.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ036.jpg"
+    },
+    {
+      "code": "MJ037",
+      "name": "BBQ Chicken Biryani",
+      "category": "Biryani Varieties",
+      "price": 1900.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ037.jpg"
+    },
+    {
+      "code": "MJ038",
+      "name": "Tandoori Chicken Biryani",
+      "category": "Biryani Varieties",
+      "price": 1900.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ038.jpg"
+    },
+    {
+      "code": "MJ039",
+      "name": "Prawn Biryani",
+      "category": "Biryani Varieties",
+      "price": 2100.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ039.jpg"
+    },
+    {
+      "code": "MJ040",
+      "name": "Mayonnaise",
+      "category": "Extra Add Ons",
+      "price": 100.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ040.jpg"
+    },
+    {
+      "code": "MJ041",
+      "name": "Onion Raita",
+      "category": "Extra Add Ons",
+      "price": 100.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ041.jpg"
+    },
+    {
+      "code": "MJ042",
+      "name": "Gravy",
+      "category": "Extra Add Ons",
+      "price": 200.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ042.jpg"
+    },
+    {
+      "code": "MJ043",
+      "name": "Chilli Paste",
+      "category": "Extra Add Ons",
+      "price": 180.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ043.jpg"
+    },
+    {
+      "code": "MJ044",
+      "name": "Green Salad",
+      "category": "Salad",
+      "price": 750.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ044.jpg"
+    },
+    {
+      "code": "MJ045",
+      "name": "Tomato Soup",
+      "category": "Veg Soup",
+      "price": 580.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ045.jpg"
+    },
+    {
+      "code": "MJ046",
+      "name": "Sweet Corn Soup",
+      "category": "Veg Soup",
+      "price": 490.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ046.jpg"
+    },
+    {
+      "code": "MJ047",
+      "name": "Hot & Sour Soup",
+      "category": "Veg Soup",
+      "price": 490.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ047.jpg"
+    },
+    {
+      "code": "MJ048",
+      "name": "Noodles-Soup",
+      "category": "Veg Soup",
+      "price": 700.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ048.jpg"
+    },
+    {
+      "code": "MJ049",
+      "name": "Manchow Soup",
+      "category": "Veg Soup",
+      "price": 790.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ049.jpg"
+    },
+    {
+      "code": "MJ050",
+      "name": "Chicken Pepper Soup",
+      "category": "Non-Veg Soup",
+      "price": 700.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ050.jpg"
+    },
+    {
+      "code": "MJ051",
+      "name": "Pepper Mutton Soup",
+      "category": "Non-Veg Soup",
+      "price": 900.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ051.jpg"
+    },
+    {
+      "code": "MJ052",
+      "name": "Manchow Mutton Soup",
+      "category": "Non-Veg Soup",
+      "price": 950.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ052.jpg"
+    },
+    {
+      "code": "MJ053",
+      "name": "Bone Mutton Soup",
+      "category": "Non-Veg Soup",
+      "price": 950.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ053.jpg"
+    },
+    {
+      "code": "MJ054",
+      "name": "French Fries",
+      "category": "Veg Starter",
+      "price": 800.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ054.jpg"
+    },
+    {
+      "code": "MJ055",
+      "name": "Mushroom 65",
+      "category": "Veg Starter",
+      "price": 920.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ055.jpg"
+    },
+    {
+      "code": "MJ056",
+      "name": "Gobi 65",
+      "category": "Veg Starter",
+      "price": 970.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ056.jpg"
+    },
+    {
+      "code": "MJ057",
+      "name": "Paneer 65",
+      "category": "Veg Starter",
+      "price": 1320.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ057.jpg"
+    },
+    {
+      "code": "MJ058",
+      "name": "Panipuri Chicken",
+      "category": "Non-Veg Starter",
+      "price": 1200.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ058.jpg"
+    },
+    {
+      "code": "MJ059",
+      "name": "Chicken 65",
+      "category": "Non-Veg Starter",
+      "price": 1290.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ059.jpg"
+    },
+    {
+      "code": "MJ060",
+      "name": "Chicken Lollipop",
+      "category": "Non-Veg Starter",
+      "price": 1650.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ060.jpg"
+    },
+    {
+      "code": "MJ061",
+      "name": "Chicken Popcorn",
+      "category": "Non-Veg Starter",
+      "price": 1800.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ061.jpg"
+    },
+    {
+      "code": "MJ062",
+      "name": "Fish & Chips",
+      "category": "Non-Veg Starter",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ062.jpg"
+    },
+    {
+      "code": "MJ063",
+      "name": "Manjal Special Golden Prawns",
+      "category": "Non-Veg Starter",
+      "price": 2450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ063.jpg"
+    },
+    {
+      "code": "MJ064",
+      "name": "Assorted Live Sigdi Kekab",
+      "category": "Kekab",
+      "price": 5050.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ064.jpg"
+    },
+    {
+      "code": "MJ065",
+      "name": "Malai Tikka",
+      "category": "Tikka",
+      "price": 1640.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ065.jpg"
+    },
+    {
+      "code": "MJ066",
+      "name": "Hariyali Tikka",
+      "category": "Tikka",
+      "price": 1740.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ066.jpg"
+    },
+    {
+      "code": "MJ067",
+      "name": "Maharani Tikka",
+      "category": "Tikka",
+      "price": 1840.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ067.jpg"
+    },
+    {
+      "code": "MJ068",
+      "name": "Vegetable Noodles",
+      "category": "Noodles Varieties",
+      "price": 1350.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ068.jpg"
+    },
+    {
+      "code": "MJ069",
+      "name": "Egg Fried Noodles",
+      "category": "Noodles Varieties",
+      "price": 1350.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ069.jpg"
+    },
+    {
+      "code": "MJ070",
+      "name": "Chicken Fried Noodles",
+      "category": "Noodles Varieties",
+      "price": 1550.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ070.jpg"
+    },
+    {
+      "code": "MJ071",
+      "name": "Chicken Schezwan Noodles",
+      "category": "Noodles Varieties",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ071.jpg"
+    },
+    {
+      "code": "MJ072",
+      "name": "Boiled Egg",
+      "category": "Egg Varieties",
+      "price": 160.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ072.jpg"
+    },
+    {
+      "code": "MJ073",
+      "name": "Omelette",
+      "category": "Egg Varieties",
+      "price": 350.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ073.jpg"
+    },
+    {
+      "code": "MJ074",
+      "name": "Half Boiled Egg",
+      "category": "Egg Varieties",
+      "price": 350.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ074.jpg"
+    },
+    {
+      "code": "MJ075",
+      "name": "Chicken Omelette (Kalakki)",
+      "category": "Egg Varieties",
+      "price": 950.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ075.jpg"
+    },
+    {
+      "code": "MJ076",
+      "name": "Egg Masala",
+      "category": "Egg Varieties",
+      "price": 1050.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ076.jpg"
+    },
+    {
+      "code": "MJ077",
+      "name": "Egg Keema Masala",
+      "category": "Egg Varieties",
+      "price": 1050.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ077.jpg"
+    },
+    {
+      "code": "MJ078",
+      "name": "Mutton Omelette (Kalakki)",
+      "category": "Egg Varieties",
+      "price": 1150.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ078.jpg"
+    },
+    {
+      "code": "MJ079",
+      "name": "Manjal Veetu Sapadu - Veg",
+      "category": "Meals",
+      "price": 1250.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ079.jpg"
+    },
+    {
+      "code": "MJ080",
+      "name": "Plain Naan",
+      "category": "Indian Bread",
+      "price": 290.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ080.jpg"
+    },
+    {
+      "code": "MJ081",
+      "name": "Parotta",
+      "category": "Indian Bread",
+      "price": 310.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ081.jpg"
+    },
+    {
+      "code": "MJ082",
+      "name": "Tandoori Roti",
+      "category": "Indian Bread",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ082.jpg"
+    },
+    {
+      "code": "MJ083",
+      "name": "Nool Parotta",
+      "category": "Indian Bread",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ083.jpg"
+    },
+    {
+      "code": "MJ084",
+      "name": "Garlic Naan",
+      "category": "Indian Bread",
+      "price": 400.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ084.jpg"
+    },
+    {
+      "code": "MJ085",
+      "name": "Bun Parotta",
+      "category": "Indian Bread",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ085.jpg"
+    },
+    {
+      "code": "MJ086",
+      "name": "Chappathi",
+      "category": "Indian Bread",
+      "price": 360.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ086.jpg"
+    },
+    {
+      "code": "MJ087",
+      "name": "Butter Naan",
+      "category": "Indian Bread",
+      "price": 360.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ087.jpg"
+    },
+    {
+      "code": "MJ088",
+      "name": "Plain Veechu Parotta",
+      "category": "Indian Bread",
+      "price": 520.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ088.jpg"
+    },
+    {
+      "code": "MJ089",
+      "name": "Egg Veechu Parotta",
+      "category": "Indian Bread",
+      "price": 620.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ089.jpg"
+    },
+    {
+      "code": "MJ090",
+      "name": "Japan Chicken Kothu Parotta",
+      "category": "Indian Bread",
+      "price": 1950.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ090.jpg"
+    },
+    {
+      "code": "MJ091",
+      "name": "Kizhi Thattu Parotta (Egg)",
+      "category": "Indian Bread",
+      "price": 1560.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ091.jpg"
+    },
+    {
+      "code": "MJ092",
+      "name": "Kizhi Thattu Parotta (Chicken)",
+      "category": "Indian Bread",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ092.jpg"
+    },
+    {
+      "code": "MJ093",
+      "name": "Chicken Murthaba Parotta",
+      "category": "Indian Bread",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ093.jpg"
+    },
+    {
+      "code": "MJ094",
+      "name": "Kerala Chicken Kothu Parotta",
+      "category": "Indian Bread",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ094.jpg"
+    },
+    {
+      "code": "MJ095",
+      "name": "Koondu Kulla Kizhi Parotta (Chicken)",
+      "category": "Indian Bread",
+      "price": 1950.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ095.jpg"
+    },
+    {
+      "code": "MJ096",
+      "name": "Japan Seafood Kothu Parotta",
+      "category": "Indian Bread",
+      "price": 2150.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ096.jpg"
+    },
+    {
+      "code": "MJ097",
+      "name": "Kizhi Thattu Parotta (Mutton)",
+      "category": "Indian Bread",
+      "price": 2350.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ097.jpg"
+    },
+    {
+      "code": "MJ098",
+      "name": "Kerala Mutton Kothu Parotta",
+      "category": "Indian Bread",
+      "price": 2450.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ098.jpg"
+    },
+    {
+      "code": "MJ099",
+      "name": "Mutton Murthaba Parotta",
+      "category": "Indian Bread",
+      "price": 2450.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ099.jpg"
+    },
+    {
+      "code": "MJ100",
+      "name": "Chicken Manpaanai (Claypot) Parotta",
+      "category": "Indian Bread",
+      "price": 3500.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ100.jpg"
+    },
+    {
+      "code": "MJ101",
+      "name": "Mutton Manpaanai (Claypot) Parotta",
+      "category": "Indian Bread",
+      "price": 3900.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ101.jpg"
+    },
+    {
+      "code": "MJ102",
+      "name": "Prawn Manpaanai (Claypot) Parotta",
+      "category": "Indian Bread",
+      "price": 4150.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ102.jpg"
+    },
+    {
+      "code": "MJ103",
+      "name": "Paper Roast",
+      "category": "Dosai Varieties",
+      "price": 650.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ103.jpg"
+    },
+    {
+      "code": "MJ104",
+      "name": "Egg Dosai",
+      "category": "Dosai Varieties",
+      "price": 550.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ104.jpg"
+    },
+    {
+      "code": "MJ105",
+      "name": "Ghee Roast Dosai",
+      "category": "Dosai Varieties",
+      "price": 750.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ105.jpg"
+    },
+    {
+      "code": "MJ106",
+      "name": "Chicken Curry Dosai",
+      "category": "Dosai Varieties",
+      "price": 1530.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ106.jpg"
+    },
+    {
+      "code": "MJ107",
+      "name": "Mutton Curry Dosai",
+      "category": "Dosai Varieties",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ107.jpg"
+    },
+    {
+      "code": "MJ108",
+      "name": "Gulab Jamun",
+      "category": "Dessert",
+      "price": 720.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ108.jpg"
+    },
+    {
+      "code": "MJ109",
+      "name": "Fruit Salad",
+      "category": "Dessert",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ109.jpg"
+    },
+    {
+      "code": "MJ110",
+      "name": "Fruit Salad with Ice Cream",
+      "category": "Dessert",
+      "price": 1200.0,
+      "isVeg": 1,
+      "isBeverage": 0,
+      "variations": [],
+      "image": "/menu/manjal/MJ110.jpg"
+    },
+    {
+      "code": "MJ111",
+      "name": "Virgin Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ111.jpg"
+    },
+    {
+      "code": "MJ112",
+      "name": "Mango Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ112.jpg"
+    },
+    {
+      "code": "MJ113",
+      "name": "Kiwi Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ113.jpg"
+    },
+    {
+      "code": "MJ114",
+      "name": "Strawberry Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ114.jpg"
+    },
+    {
+      "code": "MJ115",
+      "name": "Pineapple Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ115.jpg"
+    },
+    {
+      "code": "MJ116",
+      "name": "Blue Curacao (Blueberry) Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ116.jpg"
+    },
+    {
+      "code": "MJ117",
+      "name": "Green Apple Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ117.jpg"
+    },
+    {
+      "code": "MJ118",
+      "name": "Orange Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ118.jpg"
+    },
+    {
+      "code": "MJ119",
+      "name": "Pomegranate Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ119.jpg"
+    },
+    {
+      "code": "MJ120",
+      "name": "Watermelon Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ120.jpg"
+    },
+    {
+      "code": "MJ121",
+      "name": "Peppermint Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ121.jpg"
+    },
+    {
+      "code": "MJ122",
+      "name": "Refreshing Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ122.jpg"
+    },
+    {
+      "code": "MJ123",
+      "name": "Passionfruit Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ123.jpg"
+    },
+    {
+      "code": "MJ124",
+      "name": "Roasted Almond Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ124.jpg"
+    },
+    {
+      "code": "MJ125",
+      "name": "Lychee Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ125.jpg"
+    },
+    {
+      "code": "MJ126",
+      "name": "Blackcurrant Mojito",
+      "category": "Mojito",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ126.jpg"
+    },
+    {
+      "code": "MJ127",
+      "name": "Lemon Juice",
+      "category": "Juice",
+      "price": 750.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ127.jpg"
+    },
+    {
+      "code": "MJ128",
+      "name": "Watermelon Juice",
+      "category": "Juice",
+      "price": 950.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ128.jpg"
+    },
+    {
+      "code": "MJ129",
+      "name": "Pineapple Juice",
+      "category": "Juice",
+      "price": 950.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ129.jpg"
+    },
+    {
+      "code": "MJ130",
+      "name": "Papaya Juice",
+      "category": "Juice",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ130.jpg"
+    },
+    {
+      "code": "MJ131",
+      "name": "Mint Lemon",
+      "category": "Juice",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ131.jpg"
+    },
+    {
+      "code": "MJ132",
+      "name": "Orange Juice",
+      "category": "Juice",
+      "price": 1150.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ132.jpg"
+    },
+    {
+      "code": "MJ133",
+      "name": "Apple Juice",
+      "category": "Juice",
+      "price": 1150.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ133.jpg"
+    },
+    {
+      "code": "MJ134",
+      "name": "Grape Juice",
+      "category": "Juice",
+      "price": 1250.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ134.jpg"
+    },
+    {
+      "code": "MJ135",
+      "name": "Mango Juice",
+      "category": "Juice",
+      "price": 1150.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ135.jpg"
+    },
+    {
+      "code": "MJ136",
+      "name": "Pomegranate Juice",
+      "category": "Juice",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ136.jpg"
+    },
+    {
+      "code": "MJ137",
+      "name": "Mix Fruit Juice",
+      "category": "Juice",
+      "price": 1550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ137.jpg"
+    },
+    {
+      "code": "MJ138",
+      "name": "Lemon Soda",
+      "category": "Soda",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ138.jpg"
+    },
+    {
+      "code": "MJ139",
+      "name": "Mint Lemon Soda",
+      "category": "Soda",
+      "price": 900.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ139.jpg"
+    },
+    {
+      "code": "MJ140",
+      "name": "Jaljeera Soda",
+      "category": "Soda",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ140.jpg"
+    },
+    {
+      "code": "MJ141",
+      "name": "Vanilla Ice Cream",
+      "category": "Ice Cream",
+      "price": 499.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ141.jpg"
+    },
+    {
+      "code": "MJ142",
+      "name": "Chocolate Ice Cream",
+      "category": "Ice Cream",
+      "price": 499.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ142.jpg"
+    },
+    {
+      "code": "MJ143",
+      "name": "Strawberry Ice Cream",
+      "category": "Ice Cream",
+      "price": 499.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ143.jpg"
+    },
+    {
+      "code": "MJ144",
+      "name": "Blackcurrant Ice Cream",
+      "category": "Ice Cream",
+      "price": 550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ144.jpg"
+    },
+    {
+      "code": "MJ145",
+      "name": "Fruit & Nut Ice Cream",
+      "category": "Ice Cream",
+      "price": 550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ145.jpg"
+    },
+    {
+      "code": "MJ146",
+      "name": "Mango Ice Cream",
+      "category": "Ice Cream",
+      "price": 550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ146.jpg"
+    },
+    {
+      "code": "MJ147",
+      "name": "Mexican Brownies Icecream",
+      "category": "Ice Cream",
+      "price": 1550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ147.jpg"
+    },
+    {
+      "code": "MJ148",
+      "name": "Death By Chocolate",
+      "category": "Ice Cream",
+      "price": 1690.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ148.jpg"
+    },
+    {
+      "code": "MJ149",
+      "name": "Nutella Cookies Ice Cream",
+      "category": "Ice Cream",
+      "price": 1690.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ149.jpg"
+    },
+    {
+      "code": "MJ150",
+      "name": "Brownie with Ice Cream",
+      "category": "Ice Cream",
+      "price": 1790.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ150.jpg"
+    },
+    {
+      "code": "MJ151",
+      "name": "Monster Oreo",
+      "category": "Ice Cream",
+      "price": 1960.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ151.jpg"
+    },
+    {
+      "code": "MJ152",
+      "name": "Monster Chocolate",
+      "category": "Ice Cream",
+      "price": 1960.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ152.jpg"
+    },
+    {
+      "code": "MJ153",
+      "name": "Monster Kitkat",
+      "category": "Ice Cream",
+      "price": 1960.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ153.jpg"
+    },
+    {
+      "code": "MJ154",
+      "name": "Nutella Brownies with Ice Cream",
+      "category": "Ice Cream",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ154.jpg"
+    },
+    {
+      "code": "MJ155",
+      "name": "Sizzling Brownie with Ice Cream",
+      "category": "Ice Cream",
+      "price": 1980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ155.jpg"
+    },
+    {
+      "code": "MJ156",
+      "name": "Aqua Fresh Water (1L)",
+      "category": "Soft Drinks",
+      "price": 100.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ156.jpg"
+    },
+    {
+      "code": "MJ157",
+      "name": "Ginger Beer (Single Serve)",
+      "category": "Soft Drinks",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ157.jpg"
+    },
+    {
+      "code": "MJ158",
+      "name": "Coca-Cola (Single Serve)",
+      "category": "Soft Drinks",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ158.jpg"
+    },
+    {
+      "code": "MJ159",
+      "name": "Sprite (Single Serve)",
+      "category": "Soft Drinks",
+      "price": 350.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ159.jpg"
+    },
+    {
+      "code": "MJ160",
+      "name": "Ginger Lemon",
+      "category": "Soft Drinks",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ160.jpg"
+    },
+    {
+      "code": "MJ161",
+      "name": "Plain Lassi",
+      "category": "Lassi",
+      "price": 660.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ161.jpg"
+    },
+    {
+      "code": "MJ162",
+      "name": "Mango Lassi",
+      "category": "Lassi",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ162.jpg"
+    },
+    {
+      "code": "MJ163",
+      "name": "Strawberry Lassi",
+      "category": "Lassi",
+      "price": 850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ163.jpg"
+    },
+    {
+      "code": "MJ164",
+      "name": "Mixed Fruit Lassi",
+      "category": "Lassi",
+      "price": 890.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ164.jpg"
+    },
+    {
+      "code": "MJ165",
+      "name": "Pineapple Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ165.jpg"
+    },
+    {
+      "code": "MJ166",
+      "name": "Orange Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ166.jpg"
+    },
+    {
+      "code": "MJ167",
+      "name": "Green Apple Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ167.jpg"
+    },
+    {
+      "code": "MJ168",
+      "name": "Passion Fruit Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ168.jpg"
+    },
+    {
+      "code": "MJ169",
+      "name": "Mango Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ169.jpg"
+    },
+    {
+      "code": "MJ170",
+      "name": "Kiwi Kulukki",
+      "category": "Kulukki",
+      "price": 980.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ170.jpg"
+    },
+    {
+      "code": "MJ171",
+      "name": "Fancy Falooda",
+      "category": "Falooda",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ171.jpg"
+    },
+    {
+      "code": "MJ172",
+      "name": "Mango Falooda",
+      "category": "Falooda",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ172.jpg"
+    },
+    {
+      "code": "MJ173",
+      "name": "Strawberry Falooda",
+      "category": "Falooda",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ173.jpg"
+    },
+    {
+      "code": "MJ174",
+      "name": "Royal Falooda",
+      "category": "Falooda",
+      "price": 1750.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ174.jpg"
+    },
+    {
+      "code": "MJ175",
+      "name": "Dry Fruit Falooda",
+      "category": "Falooda",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ175.jpg"
+    },
+    {
+      "code": "MJ176",
+      "name": "Vanilla Milkshake",
+      "category": "Milkshake",
+      "price": 1350.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ176.jpg"
+    },
+    {
+      "code": "MJ177",
+      "name": "Chocolate Milkshake",
+      "category": "Milkshake",
+      "price": 1450.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ177.jpg"
+    },
+    {
+      "code": "MJ178",
+      "name": "Mango Milkshake",
+      "category": "Milkshake",
+      "price": 1550.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ178.jpg"
+    },
+    {
+      "code": "MJ179",
+      "name": "Strawberry Milkshake",
+      "category": "Milkshake",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ179.jpg"
+    },
+    {
+      "code": "MJ180",
+      "name": "Fruit & Nut Milkshake",
+      "category": "Milkshake",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ180.jpg"
+    },
+    {
+      "code": "MJ181",
+      "name": "Oreo Milkshake",
+      "category": "Milkshake",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ181.jpg"
+    },
+    {
+      "code": "MJ182",
+      "name": "Kit-Kat Milkshake",
+      "category": "Milkshake",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ182.jpg"
+    },
+    {
+      "code": "MJ183",
+      "name": "Sharjah Fruit Punch",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ183.jpg"
+    },
+    {
+      "code": "MJ184",
+      "name": "Chocolate Sharjah",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ184.jpg"
+    },
+    {
+      "code": "MJ185",
+      "name": "Mango Sharjah",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ185.jpg"
+    },
+    {
+      "code": "MJ186",
+      "name": "Strawberry Sharjah",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ186.jpg"
+    },
+    {
+      "code": "MJ187",
+      "name": "Blackcurrant Sharjah",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ187.jpg"
+    },
+    {
+      "code": "MJ188",
+      "name": "Vanilla Sharjah",
+      "category": "Sharjah",
+      "price": 1650.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ188.jpg"
+    },
+    {
+      "code": "MJ189",
+      "name": "Dryfruit Sharjah",
+      "category": "Sharjah",
+      "price": 1950.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ189.jpg"
+    },
+    {
+      "code": "MJ190",
+      "name": "Oreo Sharjah",
+      "category": "Sharjah",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ190.jpg"
+    },
+    {
+      "code": "MJ191",
+      "name": "Kit-Kat Sharjah",
+      "category": "Sharjah",
+      "price": 1850.0,
+      "isVeg": 1,
+      "isBeverage": 1,
+      "variations": [],
+      "image": "/menu/manjal/MJ191.jpg"
+    },
+    {
+      "code": "MJ192",
+      "name": "Tube Chicken Biryani (2 Pax)",
+      "category": "Biryani Varieties",
+      "price": 3100.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 3100.0
+        }
+      ],
+      "image": "/menu/manjal/MJ192.jpg"
+    },
+    {
+      "code": "MJ193",
+      "name": "Tube Mutton Biryani (2 Pax)",
+      "category": "Biryani Varieties",
+      "price": 4250.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 4250.0
+        }
+      ],
+      "image": "/menu/manjal/MJ193.jpg"
+    },
+    {
+      "code": "MJ194",
+      "name": "Bucket Chicken Biryani (4 Pax)",
+      "category": "Biryani Varieties",
+      "price": 5500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 5500.0
+        }
+      ],
+      "image": "/menu/manjal/MJ194.jpg"
+    },
+    {
+      "code": "MJ195",
+      "name": "Bucket Mutton Biryani (4 Pax)",
+      "category": "Biryani Varieties",
+      "price": 7500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 7500.0
+        }
+      ],
+      "image": "/menu/manjal/MJ195.jpg"
+    },
+    {
+      "code": "MJ196",
+      "name": "Bucket Chicken Biryani (7 Pax)",
+      "category": "Biryani Varieties",
+      "price": 12500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 12500.0
+        }
+      ],
+      "image": "/menu/manjal/MJ196.jpg"
+    },
+    {
+      "code": "MJ197",
+      "name": "Bucket Mutton Biryani (7 Pax)",
+      "category": "Biryani Varieties",
+      "price": 15500.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Standard",
+          "price": 15500.0
+        }
+      ],
+      "image": "/menu/manjal/MJ197.jpg"
+    },
+    {
+      "code": "MJ198",
+      "name": "Grill Chicken",
+      "category": "Arabian Dishes",
+      "price": 3250.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 3250.0
+        },
+        {
+          "name": "Half",
+          "price": 1600.0
+        },
+        {
+          "name": "Quarter",
+          "price": 980.0
+        }
+      ],
+      "image": "/menu/manjal/MJ198.jpg"
+    },
+    {
+      "code": "MJ199",
+      "name": "Alfaham Chicken",
+      "category": "Arabian Dishes",
+      "price": 3250.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 3250.0
+        },
+        {
+          "name": "Half",
+          "price": 1600.0
+        },
+        {
+          "name": "Quarter",
+          "price": 980.0
+        }
+      ],
+      "image": "/menu/manjal/MJ199.jpg"
+    },
+    {
+      "code": "MJ200",
+      "name": "BBQ Chicken",
+      "category": "Arabian Dishes",
+      "price": 3450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 3450.0
+        },
+        {
+          "name": "Half",
+          "price": 1700.0
+        },
+        {
+          "name": "Quarter",
+          "price": 950.0
+        }
+      ],
+      "image": "/menu/manjal/MJ200.jpg"
+    },
+    {
+      "code": "MJ201",
+      "name": "Tandoori Chicken",
+      "category": "Arabian Dishes",
+      "price": 3450.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 3450.0
+        },
+        {
+          "name": "Half",
+          "price": 1700.0
+        },
+        {
+          "name": "Quarter",
+          "price": 950.0
+        }
+      ],
+      "image": "/menu/manjal/MJ201.jpg"
+    },
+    {
+      "code": "MJ202",
+      "name": "Tandoori Chicken Platter",
+      "category": "Arabian Dishes",
+      "price": 6060.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 6060.0
+        },
+        {
+          "name": "Half",
+          "price": 3680.0
+        }
+      ],
+      "image": "/menu/manjal/MJ202.jpg"
+    },
+    {
+      "code": "MJ203",
+      "name": "Halwa Meen (Boneless)",
+      "category": "Arabian Dishes (Fish)",
+      "price": 1850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Half",
+          "price": 1850.0
+        }
+      ],
+      "image": "/menu/manjal/MJ203.jpg"
+    },
+    {
+      "code": "MJ204",
+      "name": "Grilled Fish",
+      "category": "Arabian Dishes (Fish)",
+      "price": 3850.0,
+      "isVeg": 0,
+      "isBeverage": 0,
+      "variations": [
+        {
+          "name": "Full",
+          "price": 3850.0
+        },
+        {
+          "name": "Half",
+          "price": 2750.0
+        }
+      ],
+      "image": "/menu/manjal/MJ204.jpg"
     }
-   ]
-  },
-  {
-   "code": "MJ199",
-   "name": "Alfaham Chicken",
-   "category": "Arabian Dishes",
-   "price": 3250.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 3250.0
-    },
-    {
-     "name": "Half",
-     "price": 1600.0
-    },
-    {
-     "name": "Quarter",
-     "price": 980.0
-    }
-   ]
-  },
-  {
-   "code": "MJ200",
-   "name": "BBQ Chicken",
-   "category": "Arabian Dishes",
-   "price": 3450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 3450.0
-    },
-    {
-     "name": "Half",
-     "price": 1700.0
-    },
-    {
-     "name": "Quarter",
-     "price": 950.0
-    }
-   ]
-  },
-  {
-   "code": "MJ201",
-   "name": "Tandoori Chicken",
-   "category": "Arabian Dishes",
-   "price": 3450.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 3450.0
-    },
-    {
-     "name": "Half",
-     "price": 1700.0
-    },
-    {
-     "name": "Quarter",
-     "price": 950.0
-    }
-   ]
-  },
-  {
-   "code": "MJ202",
-   "name": "Tandoori Chicken Platter",
-   "category": "Arabian Dishes",
-   "price": 6060.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 6060.0
-    },
-    {
-     "name": "Half",
-     "price": 3680.0
-    }
-   ]
-  },
-  {
-   "code": "MJ203",
-   "name": "Halwa Meen (Boneless)",
-   "category": "Arabian Dishes (Fish)",
-   "price": 1850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Half",
-     "price": 1850.0
-    }
-   ]
-  },
-  {
-   "code": "MJ204",
-   "name": "Grilled Fish",
-   "category": "Arabian Dishes (Fish)",
-   "price": 3850.0,
-   "isVeg": 0,
-   "isBeverage": 0,
-   "variations": [
-    {
-     "name": "Full",
-     "price": 3850.0
-    },
-    {
-     "name": "Half",
-     "price": 2750.0
-    }
-   ]
-  }
- ]
+  ]
 }
