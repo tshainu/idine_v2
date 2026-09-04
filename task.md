@@ -342,3 +342,88 @@ dashboard shift banner + profile clock-in will fail until the VPS is deployed:
 ### Known UI bug to fix
 Password eye toggle in app/index.tsx overflows the card's right edge on web — the bare <Ionicons onPress>
 does not respect the flex row. Wrap it in a TouchableOpacity with a fixed width.
+
+---
+
+## Session log — 2026-09-04 (waiter app: UI fixes + backend deploy)
+
+### Done & verified this session
+1. **Login eye-toggle overflow FIXED** (`packages/mobile/app/index.tsx`).
+   Root cause: on RN-Web the TextInput's intrinsic width pushed the trailing
+   `<Ionicons>` outside the card. Fix = `inputWrap` gets
+   `position:relative; overflow:hidden`, `input` gets `minWidth:0`, new
+   `st.inputPw` adds `paddingRight:30`, and the eye is a `TouchableOpacity`
+   absolutely positioned (`right: Space.lg`, `width: 24`) with hitSlop.
+   Verified by screenshot `/tmp/login3.png` — icon now sits inside the field.
+2. **`app/printer-settings.tsx` restyled** off the old dark-navy `C = {...}`
+   palette onto `constants/theme.ts` tokens. Now uses `ScreenHeader`, `Card`,
+   `PrimaryButton variant="dark"`, `Loading`. Dead `transport === "bluetooth"`
+   branch removed (printer.ts coerces saved "bluetooth" -> "server", so it was
+   unreachable); the "how to re-add Bluetooth" comment is kept.
+   Verified by screenshot `/tmp/printer.png`.
+3. `cd packages/mobile && npx tsc --noEmit` → **CLEAN** (filter `analytics.ts`,
+   pre-existing missing `onedollarstats/expo`).
+4. **Committed `5459ecc`** (explicit paths only, `local.db` NOT committed) and
+   **pushed to `origin/master`**.
+5. **BACKEND DEPLOYED TO VPS** — this was the blocker, it is now cleared:
+   `git pull` → `bun install` → `bun run migrate-waiter.ts local.db`
+   (`+ orders.tip_amount`, `+ shifts table + indexes`) → `bun run build:web`
+   → `pm2 restart idine_v2`. pm2 `idine_v2` online. Live `idine` untouched.
+   Fresh DB backup: `/root/idine_v2-local.db.bak.1788521467`.
+6. **Shift endpoints smoke-tested against https://idinev2.69-169-97-195.sslip.io**
+   — all pass: `GET /api/shifts/active?userId=1` → `{"shift":null}`;
+   `POST /api/shifts/clock-in` → shift id 1; second clock-in →
+   `alreadyOpen:true` (idempotent); `active` → open shift; `clock-out` → sets
+   `clockOut`; second clock-out → `{"error":"No open shift"}`; `GET /api/shifts?branchId=2`
+   → list. Smoke-test row then **deleted** from the VPS DB (`shifts` count = 0).
+
+### Known tooling gotcha (cost time — do not repeat)
+- **`mb logs` streams until Ctrl+C** and will blow the bash timeout. Never call
+  it bare. Use `mb shot` + `mb js` for verification instead.
+- **`mb fill` does NOT drive React Native Web TextInputs.** The values appear in
+  the DOM but `onChangeText` never fires, so React state stays empty and the
+  login form rejects the submit with "Enter your User ID, username and
+  password." (screenshot `/tmp/e2e2.png`). This is an mb artifact, **not an app
+  bug**. Use `mb type <x> <y> <text>` (real keystrokes) for RN-Web forms.
+
+### Next steps
+1. Redo the e2e flow with `mb type` instead of `mb fill`:
+   login `PUM9211` / `admin` / `Yellow@sep26` → PIN setup → Tables →
+   order → cart → send to KOT. Backend is ready now.
+2. Root `bun run build` to confirm the monorepo still builds.
+3. `deliver` with `type: mobile`, `path: /home/user/idine_v2`, `port: 4300`.
+4. Tell the user to build the APK from the publish option in the mobile
+   preview dashboard (owner `shainu`, projectId
+   `535f993b-342c-4ea5-a958-22ee26076d4d`). NEVER build the APK in the sandbox.
+
+### Still-open items for the user (unchanged, all unanswered)
+- **Revoke the leaked GitHub PAT** (asked 9x now).
+- SMS pricing: billed 1 LKR per 160-char segment vs user's "LKR 1 per SMS".
+- No SMS ever sent; needs Sender ID + credits in `/idsa`.
+- `businesses.password_plain` stores cleartext passwords.
+- Live idine still uses the default hardcoded `IDSA_SECRET`.
+- Tips: schema + waiter app read/write them, but **no web POS UI captures a tip**.
+
+### E2E verification result (against the live VPS)
+Redone with `mb type` (real keystrokes) — **login worked end to end**:
+`PUM9211`/`admin`/`Yellow@sep26` → `/pin-setup` (greets "Hi Manjal Jaffna Admin",
+name pulled live from the VPS) → PIN 1234 → confirm → `/(tabs)` dashboard.
+Screens verified rendering against live data: Dashboard (Rs. 3,300.00 today's
+sales, tips card, quick actions incl. Reprint KOT), History (real order
+`0904WW-001`, Today/Week/All filters), Reports (Today/Week/Month, sales/orders/
+avg/tips, "Hours worked 0.0h · 0 shifts" — proves the newly deployed
+`/api/shifts` responds from inside the app, no error banner), More (profile row,
+Service/Device/About sections, server `idinev2.69-169-97-195.sslip.io`),
+printer-settings. Root `bun run build` → 2/2 tasks successful.
+
+### BLOCKER for finishing the order-taking flow — needs a user decision
+Data is split across the two businesses:
+- **branch 1** (v2 demo, `IDV2001`): has tables T1–T4 but **0 menu items, 0 categories**.
+- **branch 2** (Manjal, `PUM9211`): has the full **204-item / 30-category menu**
+  but **0 tables** (`GET /api/tables?branchId=2` → `{"tables":[]}`).
+The Tables screen correctly shows its "No tables here — ask your manager to add
+tables for this branch" empty state; **this is not an app bug.**
+Taking a test order therefore needs tables created for Manjal branch 2, which
+means writing to the real restaurant's data and polluting its sales reports.
+**Asked the user** whether to create their real floor plan (and what it is), or
+create throwaway tables for a test order and delete them after.
