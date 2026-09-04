@@ -131,7 +131,27 @@ Perf problems found:
 - Sandbox local.db drift fixed: manual ALTER added orders.placed_by and order_items.note.
   local.db is git-tracked — NEVER commit it, a VPS `git pull` would clobber the server DB.
 
-## IN PROGRESS (2026-09-04, round 2) — day/month picker + Expo QR
+## DONE (2026-09-04, round 2) — day/month picker + Expo QR — deployed & verified
+- Commits a586906 (picker + shared helpers) and a4a1080 (deadlock fix), both pushed and
+  deployed to the VPS (git pull, build:web, pm2 restart idine_v2).
+- BUG FOUND AND FIXED in review: <DayMonth> derived mm/dd straight from the parent value and
+  called onChange("") whenever the pair was incomplete — so picking a Month cleared itself and
+  the Day list could never unlock. Now mm/dd are local state, reported upward only when both
+  are set, with a guarded useEffect resync that ignores our own reported value.
+- Verified live: 5 Month+Day pairs render (birthday, anniversary, 3 children), 0 console
+  errors; saved a customer and confirmed dob="09-04", wedding_anniversary="12-25" in the DB;
+  /api/messaging/occasions returned inDays:0 for the 09-04 birthday on 4 Sep.
+- Legacy format confirmed working: customer "Shainu" dob "1986-04-06" -> monthDay "04-06".
+  NOTE: /occasions caps `days` at 90 (Math.min(90, ...)), so a days=365 query is clamped —
+  April dates correctly fall outside the window. Not a bug.
+- Deleted the junk test customer (id=2, name "0700000001") my test script created on the VPS.
+- Expo Go: @expo/ngrok@4.1.3 added as a devDependency of packages/mobile (expo does NOT see
+  bun's global install). Tunnel started via tmux session `expotun`,
+  `bunx expo start --tunnel`, log /tmp/expo-tunnel.log. Metro on 8081 (this repo has no
+  __ports.cjs). URL exp://kv5kjpu-anonymous-8081.exp.direct — ephemeral, dies with the
+  sandbox/session. QR PNG at waiter-expo-go-qr.png (regenerate if the tunnel restarts).
+
+## Round 2 notes (superseded detail)
 User asks: (a) "customer page is missing — have to develop it?" (b) occasion dates must come
 from a picker with day+month ONLY, no year. (c) Expo Go QR for the waiter app.
 - (a) Page EXISTS and loads (verified live). The old Sales > Customers link was MOVED into the
