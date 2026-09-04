@@ -28,9 +28,12 @@ const C = {
   border: "#DDE1F5",
 };
 
+// Bluetooth is deliberately NOT offered: the APK is built without
+// react-native-bluetooth-escpos-printer, so selecting it would silently fall back to the
+// kitchen queue and look broken. printer.ts still carries the transport, so re-adding the
+// package and this entry is all that a future Bluetooth build needs.
 const TRANSPORTS: { key: Transport; label: string; icon: keyof typeof Ionicons.glyphMap; hint: string }[] = [
   { key: "lan", label: "Wi-Fi / LAN", icon: "wifi-outline", hint: "Network thermal printer on port 9100" },
-  { key: "bluetooth", label: "Bluetooth", icon: "bluetooth-outline", hint: "Paired portable ESC/POS printer" },
   { key: "server", label: "Kitchen queue", icon: "cloud-upload-outline", hint: "Send to the POS print queue" },
 ];
 
@@ -139,8 +142,8 @@ export default function PrinterSettingsScreen() {
             <View style={s.warn}>
               <Ionicons name="alert-circle-outline" size={18} color={C.amber} />
               <Text style={s.warnTxt}>
-                {cfg.transport === "lan" ? "Wi-Fi" : "Bluetooth"} printing needs the installed APK build.
-                In the browser preview or Expo Go, tickets fall back to the kitchen queue automatically.
+                Wi-Fi printing needs the installed APK build. In the browser preview it is
+                unavailable, so tickets fall back to the kitchen queue automatically.
               </Text>
             </View>
           )}

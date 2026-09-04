@@ -47,7 +47,12 @@ export async function loadPrinterConfig(): Promise<PrinterConfig> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return DEFAULT_CONFIG;
-    return { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<PrinterConfig>) };
+    const config = { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<PrinterConfig>) };
+    // This build ships without the Bluetooth module, and the settings screen no longer
+    // offers it. Any config saved earlier with "bluetooth" is coerced to the server queue
+    // so the UI can't show an option that isn't selectable.
+    if (config.transport === "bluetooth") config.transport = "server";
+    return config;
   } catch {
     return DEFAULT_CONFIG;
   }
