@@ -29,7 +29,7 @@ const C = {
 const baseUrl: string =
   Constants.expoConfig?.extra?.apiUrl ??
   process.env.EXPO_PUBLIC_API_URL ??
-  "http://69.169.97.195:6062/";
+  "https://idinev2.69-169-97-195.sslip.io/";
 
 export default function LoginScreen() {
   const router = useRouter();

@@ -9,7 +9,7 @@
       }
     },
     "extra": {
-      "apiUrl": "http://69.169.97.195:6062/",
+      "apiUrl": "https://idinev2.69-169-97-195.sslip.io/",
       "applicationId": "idine-rnsd8e1",
       "router": {},
       "eas": {
