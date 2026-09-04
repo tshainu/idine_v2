@@ -1,45 +1,71 @@
-# iDine POS — Task List (batch of 18 requests) — ALL DONE, deployed to VPS + GitHub
+# iDine v2 — Waiter App + VPS Deploy
 
-Repo: /home/user/idine (github.com/tshainu/idine), latest commit 18fbccd
-VPS: root@69.169.97.195, /var/www/idine, pm2 process "idine", port 6062
+## Environment
+- Repo: /home/user/idine_v2 (github.com/tshainu/idine_v2)
+- VPS: root@69.169.97.195 — /var/www/idine_v2, pm2 process `idine_v2`, **port 6066**
+  (6065 was NOT free — nginx trackup-admin owns it as default_server)
+- Fresh DB at /var/www/idine_v2/local.db — schema cloned from live idine (`sqlite3 .schema`,
+  minus sqlite_sequence), zero rows, then seeded.
+- Seed: business `IDV2001`, admin `admin/admin123`, waiter `waiter1/waiter123`, tables T1-T4.
+- Live idine (port 6062) and its DB were NOT touched.
 
-IMPORTANT LESSONS FOR NEXT TIME:
-- local.db is tracked in git history but is LIVE DATA on VPS — never `git checkout`/`git reset` it.
-- `drizzle-kit push --force` can DROP+RECREATE a table instead of ALTER when adding multiple
-  NOT NULL columns with defaults (happened to menu_items — wiped it). Prefer plain
-  `sqlite3 local.db "ALTER TABLE x ADD COLUMN ..."` for schema changes on the production DB from now on.
-- ALWAYS `git push` right after `git commit` — spent one whole round having committed 5x locally
-  without pushing, user saw nothing live.
-- Always take a fresh local.db backup to /root/ before ANY migration or destructive-looking command.
+## Lessons carried over from v1 task.md
+- local.db on VPS is LIVE DATA — never git checkout/reset it.
+- Don't use `drizzle-kit push --force` on a populated DB (it DROPs+RECREATEs). Use ALTER TABLE.
+- `drizzle-kit push` fails here anyway: turso dialect demands an authToken, file: URL has none.
+- Build on VPS with `bun run build:web` (not `vite build --root`).
+- git push immediately after every commit.
 
-## Status — all 18 done
-1. Modify-order updates in place + KOT choice (All/Updated items, cancel markers)
-2-5. Invoice/Bill: margins, bold header+divider, qty near price, Rs/.00 removed except Total/Cash/Paid/Balance, bigger header image
-6. Darker action buttons
-7. "All" tab sorted by best-sellers
-8. Fixed Finalize Sale 0-payable/empty-cart-details bug (decoupled query)
-9. Redesigned variation picker (image header + aligned grid cards)
-10. CSV export added: Items, Categories, Sales, Purchases, Expenses
-11. Fixed cancelled-orders always-0 bug (backend was hiding cancelled orders by default)
-12. Running-order search includes mobile number
-13. Double-click running order opens details
-14. "Update Order" vs "Place Order" label
-15. Per-item kitchen note field, prints on KOT only
-16. Toast centered in top bar
-17. Combo & Promo management page (2 tabs, CRUD+suspend, sellable from POS) — NEW page /combo-promo
-18. Category sort icon + auto next-sort-order on create
+## Status
+- [x] Clone repo, bun install (local + VPS)
+- [x] VPS deploy on 6066, pm2 saved, health/login/tables verified 200
+- [x] Waiter app: perf pass
+- [x] Waiter app: KOT printing from the phone (ESC/POS)
+- [x] Waiter app: orders reach the billing portal (same DB, status "confirmed")
+- [x] Typecheck clean (only pre-existing hono-stub `never` errors remain)
+- [ ] Commit + push
+- [ ] APK guidance to user
 
-## Bonus fixes discovered along the way
-- Fixed FK constraint crash when ordering items with variations (composite cart key was being
-  sent as the real DB menu_item_id) — split into cartKey (UI identity) vs menuItemId (real FK).
-- Fixed dead "Export CSV" button on Sales page (existed with no onClick).
-- Fixed the "Combo" filter pill in POS that existed with zero matching logic.
+## What changed in the waiter app
+- `app/_layout.tsx` — QueryClient defaults: staleTime 30s, gcTime 5m, retry 2 w/ backoff,
+  networkMode offlineFirst, refetchIntervalInBackground false + AppState -> focusManager so
+  polling actually stops when the app is backgrounded.
+- `app/waiter-order.tsx` — menu fetched once for the branch (was refetching per category tap),
+  staleTime 5m; useMemo for sorted items / search filter / cartList / totals; printer config
+  preloaded on mount; KOT now printed from the phone with a server-queue fallback; header
+  button to the printer screen.
+- `app/tables.tsx` — counts/filter/group collapsed into one useMemo (was recomputed on every
+  30s clock tick), poll 10s -> 20s, placeholderData keeps the grid on screen during refetch.
+- `lib/escpos.ts` — NEW. Pure-TS ESC/POS builder: qty-first double-height item lines, note
+  lines, word wrap, 58mm(32ch)/80mm(48ch), cut. Plus kotPreviewText for the on-screen preview.
+- `lib/printer.ts` — NEW. Config in AsyncStorage + 3 transports: lan (TCP 9100 via
+  react-native-tcp-socket), bluetooth (react-native-bluetooth-escpos-printer), server queue.
+  Native modules loaded via optional require in try/catch -> web preview never crashes.
+  printKot always falls back to the server queue so an order can't end up with no ticket.
+- `app/printer-settings.tsx` — NEW. Transport picker, IP/port or BT MAC, paper width,
+  "also queue on server" toggle, live ticket preview, test print.
+- Installed `react-native-tcp-socket@6.4.2` (via bunx expo install).
 
-## Incident log
-- Aug 1: drizzle-kit push wiped menu_items table when adding isCombo/originalPrice columns.
-  Caught within ~1 min via row-count check, restored from pre-migration backup
-  (/root/idine_local_db_pre_migration_1785557973.db), zero data loss (90 orders/267 menu
-  items/45 categories all intact). Re-applied the 2 columns + combo_items table via manual
-  ALTER TABLE / CREATE TABLE instead. Verified live afterward.
+## Not verifiable in the sandbox
+Real ESC/POS output (LAN + Bluetooth) can only be confirmed on the APK against a physical
+printer. Web preview always reports "sent to kitchen queue" because the native TCP module
+is absent there — that is the designed fallback, not a failure.
+Bluetooth also needs `react-native-bluetooth-escpos-printer` added before the APK build.
 
-All work pushed to GitHub master and deployed+verified live on VPS (200 OK, no new errors).
+## Waiter app findings (packages/mobile)
+Screens: index (login), tables, waiter-order (926 lines), ready-items, history, notifications.
+Perf problems found:
+1. No QueryClient defaults — every screen refetches from scratch; no staleTime/gcTime.
+2. Aggressive polling: tables 10s, ready-items 10s, notifications 15s, history 15s — all
+   running simultaneously and never pausing when the screen is out of focus.
+3. waiter-order: `filteredItems` filter+sort recomputed on EVERY keystroke/render, no useMemo.
+   Same for cartList/totalQty/totalAmt and the tables screen's counts/filtered/grouped.
+4. Menu items refetched per category change (`queryKey: ["menu-items", selectedCat]`) instead of
+   fetching once and filtering client-side.
+5. Nested `.map()` inside FlatList renderItem for table zones (no virtualization).
+6. Login screen does a raw `fetch` + no keepalive; startup waits on AsyncStorage before render.
+
+## Decisions
+- Port 6066 (my choice, 6065 taken).
+- Keep navy/gold palette as-is per user.
+- Billing portal = the iDine v2 web POS itself (same DB, orders land in Running Orders / KDS).

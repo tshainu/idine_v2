@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, StatusBar, Alert,
@@ -86,29 +86,40 @@ export default function TablesScreen() {
       const json = await res.json() as any;
       return json.tables ?? json;
     },
-    refetchInterval: 10000,
+    // 10s was hammering the VPS; 20s is still well inside a table-turn window and
+    // the root QueryClient now pauses polling entirely while the app is backgrounded.
+    refetchInterval: 20000,
     enabled: !!user,
+    // Keep the previous table grid on screen while a refetch runs — no spinner flash.
+    placeholderData: (prev: any) => prev,
   });
 
   const tables: any[] = Array.isArray(tablesData) ? tablesData : [];
 
   const statuses = ["all", "available", "occupied", "reserved", "cleaning"];
-  const counts: Record<string, number> = { all: tables.length };
-  for (const t of tables) {
-    const eff = (t.status === "occupied" || t.activeOrder) ? "occupied" : t.status;
-    counts[eff] = (counts[eff] ?? 0) + 1;
-  }
 
-  const filtered = activeTab === "all"
-    ? tables
-    : tables.filter(t => ((t.status === "occupied" || t.activeOrder) ? "occupied" : t.status) === activeTab);
+  // counts / filtered / grouped were all recomputed on every render (including the
+  // 30s clock tick). One memo keyed on the data + active tab covers all three.
+  const { counts, grouped } = useMemo(() => {
+    const effective = (t: any) => (t.status === "occupied" || t.activeOrder ? "occupied" : t.status);
 
-  const grouped: Record<string, any[]> = {};
-  for (const t of filtered) {
-    const z = t.zone || "Main Hall";
-    if (!grouped[z]) grouped[z] = [];
-    grouped[z].push(t);
-  }
+    const nextCounts: Record<string, number> = { all: tables.length };
+    for (const t of tables) {
+      const eff = effective(t);
+      nextCounts[eff] = (nextCounts[eff] ?? 0) + 1;
+    }
+
+    const visible = activeTab === "all" ? tables : tables.filter((t) => effective(t) === activeTab);
+
+    const nextGrouped: Record<string, any[]> = {};
+    for (const t of visible) {
+      const z = t.zone || "Main Hall";
+      if (!nextGrouped[z]) nextGrouped[z] = [];
+      nextGrouped[z].push(t);
+    }
+
+    return { counts: nextCounts, grouped: nextGrouped };
+  }, [tables, activeTab]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Sign out of your session?", [

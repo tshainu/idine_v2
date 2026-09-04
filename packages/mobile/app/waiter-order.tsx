@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, StatusBar, ScrollView, TextInput,
@@ -10,6 +10,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import { loadUser, WaiterUser } from "../lib/auth";
+import { loadPrinterConfig, printKot, type PrinterConfig } from "../lib/printer";
+import type { KotPayload } from "../lib/escpos";
 
 // ── Design tokens ────────────────────────────────────────────────
 const C = {
@@ -69,8 +71,12 @@ export default function WaiterOrderScreen() {
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerLocation, setNewCustomerLocation] = useState("");
 
+  // Printer config is read once on mount so placing an order never waits on AsyncStorage.
+  const [printerCfg, setPrinterCfg] = useState<PrinterConfig | null>(null);
+
   useEffect(() => {
     loadUser().then(setUser);
+    loadPrinterConfig().then(setPrinterCfg);
     const iv = setInterval(() => setTime(getTime()), 30000);
     return () => clearInterval(iv);
   }, []);
@@ -118,10 +124,10 @@ export default function WaiterOrderScreen() {
   });
   const holdOrders: any[] = holdData ?? [];
 
-  // Cart helpers
-  const cartList = Object.values(cart);
-  const totalQty = cartList.reduce((s, c) => s + c.qty, 0);
-  const totalAmt = cartList.reduce((s, c) => s + c.price * c.qty, 0);
+  // Cart helpers — memoised so the item grid doesn't re-derive totals on every render.
+  const cartList = useMemo(() => Object.values(cart), [cart]);
+  const totalQty = useMemo(() => cartList.reduce((s, c) => s + c.qty, 0), [cartList]);
+  const totalAmt = useMemo(() => cartList.reduce((s, c) => s + c.price * c.qty, 0), [cartList]);
 
   function addItem(item: any, variationId?: number, variationName?: string, variationPrice?: number) {
     const price = variationPrice ?? Number(item.priceDineIn ?? item.price ?? 0);
@@ -189,8 +195,24 @@ export default function WaiterOrderScreen() {
         });
       } catch (_) {}
 
-      // 4. Create KOT print job
-      try {
+      // 4. KOT — print from this phone when a printer is configured, and fall back to
+      //    the server print queue (drained by the kitchen print helper) if that fails.
+      const kot: KotPayload = {
+        orderNumber: order.orderNumber,
+        type: "dine-in",
+        tableName: tableName,
+        waiterName: user?.name,
+        customerName: customerName || `Table ${tableName}`,
+        mode: "new",
+        items: cartList.map(c => ({
+          name: c.name,
+          variationName: c.variationName,
+          qty: c.qty,
+          notes: c.notes,
+        })),
+      };
+
+      const queueOnServer = async () => {
         await api["print-jobs"].$post({
           json: {
             orderId,
@@ -199,11 +221,11 @@ export default function WaiterOrderScreen() {
             status: "pending",
             idempotencyKey: `kot-${orderId}`,
             payload: JSON.stringify({
-              orderNumber: order.orderNumber,
-              type: "dine-in",
-              tableName: tableName,
-              waiterName: user?.name,
-              customerName: customerName || `Table ${tableName}`,
+              orderNumber: kot.orderNumber,
+              type: kot.type,
+              tableName: kot.tableName,
+              waiterName: kot.waiterName,
+              customerName: kot.customerName,
               items: cartList.map(c => ({
                 name: c.variationName ? `${c.name} (${c.variationName})` : c.name,
                 qty: c.qty,
@@ -212,17 +234,25 @@ export default function WaiterOrderScreen() {
             }),
           },
         });
-      } catch (_) {}
+      };
 
-      return orderId;
+      const cfg = printerCfg ?? (await loadPrinterConfig());
+      const printResult = await printKot(kot, cfg, queueOnServer);
+
+      return { orderId, printResult };
     },
-    onSuccess: () => {
+    onSuccess: ({ printResult }) => {
       qc.invalidateQueries({ queryKey: ["tables"], exact: false });
       qc.invalidateQueries({ queryKey: ["kds-orders"] });
-      Alert.alert("Order Placed ✅", "KOT sent to kitchen.", [
-        { text: "New Order", onPress: () => { setCart({}); setCustomerName(""); } },
-        { text: "Back to Tables", onPress: () => { setCart({}); router.back(); } },
-      ]);
+      qc.invalidateQueries({ queryKey: ["orders"], exact: false });
+      Alert.alert(
+        printResult.ok ? "Order Placed ✅" : "Order Placed — KOT failed ⚠️",
+        printResult.message,
+        [
+          { text: "New Order", onPress: () => { setCart({}); setCustomerName(""); } },
+          { text: "Back to Tables", onPress: () => { setCart({}); router.back(); } },
+        ],
+      );
     },
     onError: (e: any) => Alert.alert("Error", e?.message ?? "Failed to place order"),
   });
@@ -306,6 +336,9 @@ export default function WaiterOrderScreen() {
           <Text style={s.headerTitle}>Table {tableName}</Text>
           <Text style={s.headerSub}>{user?.name ?? "Waiter"}  ·  {time}</Text>
         </View>
+        <TouchableOpacity onPress={() => router.push("/printer-settings" as any)} style={s.headerIconBtn}>
+          <Ionicons name="print-outline" size={18} color={C.white} />
+        </TouchableOpacity>
         {/* Cart badge */}
         <TouchableOpacity style={s.cartBadgeBtn} onPress={() => setShowCart(v => !v)}>
           <Ionicons name="cart-outline" size={22} color={C.white} />
