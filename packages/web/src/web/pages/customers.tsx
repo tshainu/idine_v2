@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { getBranchId } from "../lib/store";
+import { MONTHS, daysInMonth, monthDayOf, fmtDayMonth } from "../lib/daymonth";
 import { Sidebar } from "../components/layout/sidebar";
 import {
   Plus, Pencil, Trash2, Search, Phone, User, Star, MapPin, Calendar,
@@ -306,12 +307,12 @@ export default function CustomersPage() {
                   <option value="other">Other</option>
                 </select>
               </Fld>
-              <Fld label="Date of birth">
-                <input type="date" value={form.dob || ""} onChange={e => setForm(p => ({ ...p, dob: e.target.value }))} style={cinp} />
+              <Fld label="Date of birth (day & month)">
+                <DayMonth value={form.dob} onChange={v => setForm(p => ({ ...p, dob: v }))} />
               </Fld>
-              <Fld label="Wedding anniversary">
-                <input type="date" value={form.weddingAnniversary || ""}
-                  onChange={e => setForm(p => ({ ...p, weddingAnniversary: e.target.value }))} style={cinp} />
+              <Fld label="Wedding anniversary (day & month)">
+                <DayMonth value={form.weddingAnniversary}
+                  onChange={v => setForm(p => ({ ...p, weddingAnniversary: v }))} />
               </Fld>
             </div>
 
@@ -326,8 +327,8 @@ export default function CustomersPage() {
                   <input value={form[`child${n}Name`] || ""}
                     onChange={e => setForm(p => ({ ...p, [`child${n}Name`]: e.target.value }))}
                     style={cinp} placeholder={`Child ${n} name`} />
-                  <input type="date" value={form[`child${n}Dob`] || ""}
-                    onChange={e => setForm(p => ({ ...p, [`child${n}Dob`]: e.target.value }))} style={cinp} />
+                  <DayMonth value={form[`child${n}Dob`]}
+                    onChange={v => setForm(p => ({ ...p, [`child${n}Dob`]: v }))} />
                 </div>
               ))}
             </div>
@@ -479,10 +480,10 @@ function CustomerDashboard({ customer, onClose, onSms }: any) {
 
             {/* Occasions on file */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Occ icon={Cake} label="Birthday" value={cust.dob} />
-              <Occ icon={Gift} label="Anniversary" value={cust.weddingAnniversary} />
-              <Occ icon={Baby} label={cust.child1Name || "Child 1"} value={cust.child1Dob} />
-              <Occ icon={Baby} label={cust.child2Name || "Child 2"} value={cust.child2Dob} />
+              <Occ icon={Cake} label="Birthday" value={fmtDayMonth(cust.dob)} />
+              <Occ icon={Gift} label="Anniversary" value={fmtDayMonth(cust.weddingAnniversary)} />
+              <Occ icon={Baby} label={cust.child1Name || "Child 1"} value={fmtDayMonth(cust.child1Dob)} />
+              <Occ icon={Baby} label={cust.child2Name || "Child 2"} value={fmtDayMonth(cust.child2Dob)} />
             </div>
 
             {cust.notes && (
@@ -579,6 +580,35 @@ function Occ({ icon: Icon, label, value }: any) {
         <div className="text-[9px] uppercase truncate" style={{ color: DIM }}>{label}</div>
         <div className="text-[11px] font-semibold" style={{ color: value ? TEXT : DIM }}>{value || "not set"}</div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Day + month picker — no year, because wishes only ever need the day and month.
+ * Stores "MM-DD"; also reads legacy "YYYY-MM-DD" values so old rows still show.
+ */
+function DayMonth({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+  const md = monthDayOf(value);
+  const [mm, dd] = md ? md.split("-") : ["", ""];
+  const set = (nextMm: string, nextDd: string) => {
+    if (!nextMm || !nextDd) { onChange(""); return; }
+    const capped = Math.min(Number(nextDd), daysInMonth(nextMm));
+    onChange(`${nextMm}-${String(capped).padStart(2, "0")}`);
+  };
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <select value={mm} onChange={e => set(e.target.value, dd)} style={cinp}>
+        <option value="">Month</option>
+        {MONTHS.map((name, i) => (
+          <option key={name} value={String(i + 1).padStart(2, "0")}>{name}</option>
+        ))}
+      </select>
+      <select value={dd} onChange={e => set(mm, e.target.value)} style={cinp} disabled={!mm}>
+        <option value="">Day</option>
+        {Array.from({ length: daysInMonth(mm) }, (_, i) => String(i + 1).padStart(2, "0"))
+          .map(d => <option key={d} value={d}>{Number(d)}</option>)}
+      </select>
     </div>
   );
 }

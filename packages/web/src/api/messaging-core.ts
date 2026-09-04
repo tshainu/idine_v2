@@ -99,11 +99,18 @@ export function renderTemplate(
     .trim();
 }
 
-/** MM-DD of a YYYY-MM-DD string, or "" — used for birthday matching. */
+/**
+ * MM-DD of a date string, or "" — used for birthday/anniversary matching.
+ * Accepts both "MM-DD" (what the customer form now stores — day and month only,
+ * no year) and legacy "YYYY-MM-DD" rows.
+ */
 export function monthDay(date: string | null | undefined): string {
   if (!date) return "";
-  const m = String(date).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[2]}-${m[3]}` : "";
+  const s = String(date).trim();
+  const full = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (full) return `${full[2]}-${full[3]}`;
+  const short = s.match(/^(\d{2})-(\d{2})$/);
+  return short ? `${short[1]}-${short[2]}` : "";
 }
 
 // ── Business / credit resolution ────────────────────────────────────────────

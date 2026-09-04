@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { getBranchId } from "../../lib/store";
+import { fmtDayMonth } from "../../lib/daymonth";
 import { Sidebar } from "../../components/layout/sidebar";
 import {
   Settings as SettingsIcon, Clock, FileText, Plus, Pencil, Trash2, Save,
@@ -398,9 +399,9 @@ function AutomatedCustomers({ branchId, qc }: any) {
             <tbody>
               {filtered.map(c => {
                 const children = [
-                  c.child1Name && c.child1Dob ? `${c.child1Name} (${c.child1Dob})` : null,
-                  c.child2Name && c.child2Dob ? `${c.child2Name} (${c.child2Dob})` : null,
-                  c.child3Name && c.child3Dob ? `${c.child3Name} (${c.child3Dob})` : null,
+                  c.child1Name && c.child1Dob ? `${c.child1Name} (${fmtDayMonth(c.child1Dob)})` : null,
+                  c.child2Name && c.child2Dob ? `${c.child2Name} (${fmtDayMonth(c.child2Dob)})` : null,
+                  c.child3Name && c.child3Dob ? `${c.child3Name} (${fmtDayMonth(c.child3Dob)})` : null,
                 ].filter(Boolean);
                 return (
                   <tr key={c.id} className="border-t" style={{ borderColor: BORD }}>
@@ -408,8 +409,8 @@ function AutomatedCustomers({ branchId, qc }: any) {
                       <div className="font-semibold" style={{ color: TEXT }}>{c.name}</div>
                       <div className="text-[10px]" style={{ color: DIM }}>{c.phone || "no phone"}</div>
                     </td>
-                    <td className="px-3 py-2.5" style={{ color: MUTED }}>{c.dob || "—"}</td>
-                    <td className="px-3 py-2.5" style={{ color: MUTED }}>{c.weddingAnniversary || "—"}</td>
+                    <td className="px-3 py-2.5" style={{ color: MUTED }}>{fmtDayMonth(c.dob) || "—"}</td>
+                    <td className="px-3 py-2.5" style={{ color: MUTED }}>{fmtDayMonth(c.weddingAnniversary) || "—"}</td>
                     <td className="px-3 py-2.5 text-[11px]" style={{ color: MUTED }}>
                       {children.length ? children.join(", ") : "—"}
                     </td>

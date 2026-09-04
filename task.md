@@ -131,6 +131,22 @@ Perf problems found:
 - Sandbox local.db drift fixed: manual ALTER added orders.placed_by and order_items.note.
   local.db is git-tracked — NEVER commit it, a VPS `git pull` would clobber the server DB.
 
+## IN PROGRESS (2026-09-04, round 2) — day/month picker + Expo QR
+User asks: (a) "customer page is missing — have to develop it?" (b) occasion dates must come
+from a picker with day+month ONLY, no year. (c) Expo Go QR for the waiter app.
+- (a) Page EXISTS and loads (verified live). The old Sales > Customers link was MOVED into the
+  Message Platform group — that is why it looked missing. Likely also a stale cached bundle.
+- (b) Storage format changed to "MM-DD". monthDay() in messaging-core.ts now accepts BOTH
+  "MM-DD" and legacy "YYYY-MM-DD". New shared helper web/lib/daymonth.ts
+  (MONTHS, daysInMonth, monthDayOf, fmtDayMonth). New <DayMonth> Month+Day select pair in
+  customers.tsx replaces all 5 <input type="date"> (dob, anniversary, child1-3 dob).
+  Occasions tab needs no change — it renders inDays, not the raw date.
+  STILL TO DO: import helpers in customers.tsx (remove local copies), format the 5 raw dob
+  displays in message-platform/settings.tsx, then tsc + build + deploy.
+- (c) Expo Go needs `--tunnel` (sandbox LAN is unreachable from a phone). NOTE: the waiter app
+  uses react-native-tcp-socket (native) which does NOT exist in Expo Go — LAN printing will
+  fall back to the server queue there. Real LAN/Bluetooth printing needs the APK.
+
 ## Still TODO
 1. Super admin (/idsa): set a Sender ID + recharge credits for IDV2001. Until then /send
    returns `skipped` without touching the gateway (safe demo mode).
