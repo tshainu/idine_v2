@@ -69,3 +69,66 @@ Perf problems found:
 - Port 6066 (my choice, 6065 taken).
 - Keep navy/gold palette as-is per user.
 - Billing portal = the iDine v2 web POS itself (same DB, orders land in Running Orders / KDS).
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MESSAGE PLATFORM (Customers CRM + SMS/WhatsApp) — in progress
+# ─────────────────────────────────────────────────────────────────────────────
+
+## Decisions
+- Built in idine_v2 only (staging, port 6066). Promote to live idine later.
+- SMS gateway: POST https://urbanpos.lk/demo/notification/users/sms_bk.php
+  params exactly: message, phone_no, sender_id. Falls back to GET if POST 4xx/5xx
+  (some builds of sms_bk.php only read $_GET).
+- WhatsApp: Meta WhatsApp Cloud API v21.0, credentials per business (iDSA panel).
+- Pricing: SMS_RATE_LKR = 1 LKR per 160-char SEGMENT (a 300-char msg = 2 LKR).
+  WhatsApp logged at cost 0 (Meta bills the account directly).
+- Phone normalisation: SL numbers -> 94XXXXXXXXX.
+- Sidebar: "Customers" MOVED out of the Sales group into the new "Message Platform"
+  group (placed directly under Expenses). Same /customers route, now enhanced.
+  Message Platform group = Customers, Send Messages, Message Settings.
+- Delivery reports / opt-out / cost tracking: user said "no preference" -> implemented
+  all three (message_log is the delivery report + cost ledger, customers.sms_opt_out,
+  per-customer customers.auto_wishes to stop automated wishes individually).
+
+## Schema (additive; applied with migrate-messaging.ts, NOT drizzle push)
+- customers +: email, gender, dob, wedding_anniversary, child1/2/3_name+_dob,
+  loyalty_points, notes, tags, sms_opt_out, auto_wishes
+- businesses +: sms_execution_link, sender_ids, sms_credits, whatsapp_phone_id, whatsapp_token
+- NEW tables: message_templates, message_campaigns, message_log, credit_transactions
+- `migrate-messaging.ts` is idempotent (skips duplicate columns) and also
+  CREATEs the `businesses` table if missing — the sandbox local.db predated it.
+  Run: `bun run migrate-messaging.ts <path-to-db>`
+
+## Files done
+- packages/web/src/api/database/schema.ts        — extended + 4 new tables
+- packages/web/src/api/messaging-core.ts         — NEW. sendMessage() is the single
+  send path: business/credit resolution, opt-out + balance guards, gateway transports,
+  message_log write, credit debit. Also renderTemplate/normalizePhone/resolveAudience.
+- packages/web/src/api/routes/messaging.ts       — NEW. balance, send, log, stats,
+  templates CRUD, tags, audience preview, occasions, automation get/post, campaigns CRUD + send.
+- packages/web/src/api/routes/customers.ts       — + GET /:id/dashboard (visits by date,
+  orders, favourites, loyalty, message history)
+- packages/web/src/api/routes/idsa.ts            — + PATCH /businesses/:id/sms-config,
+  POST/GET /businesses/:id/credits
+- packages/web/src/api/messaging-worker.ts       — NEW. 60s tick: fires due scheduled
+  campaigns; once daily at configured time sends birthday/anniversary/child-birthday
+  wishes. Double-send guard via message_log same-day check + msgAutoLastRunDate setting.
+- packages/web/src/api/index.ts                  — registered /messaging
+- packages/web/src/server.ts                     — runMessagingWorker()
+- packages/web/src/web/components/layout/sidebar.tsx — Message Platform group
+- packages/web/src/web/pages/message-platform.tsx    — NEW. Channel toggle (default SMS),
+  credit balance, tabs: Compose & Send / Campaigns / Occasions / History.
+
+## Still TODO
+1. pages/message-platform/settings.tsx — templates CRUD, automation on/off + send time,
+   branding signature, automated-customer list with per-customer stop switch.
+2. Enhance pages/customers.tsx — new CRM fields in the form, mini dashboard panel, Send SMS.
+3. app.tsx — register /message-platform and /message-platform/settings.
+4. pages/idsa.tsx — per-business SMS link + Sender IDs + credit recharge UI.
+5. bun run build:web, then deploy to VPS (git pull, bun install, build, migrate, pm2 restart).
+6. Test on https://idinev2.69-169-97-195.sslip.io. DO NOT fire a real SMS without asking user.
+7. Commit + push.
+
+## Automation settings keys (branch_settings)
+msgAutoEnabled, msgAutoSendTime, msgAutoChannel, msgAutoBirthday, msgAutoAnniversary,
+msgAutoChildBirthday, msgAutoSenderId, msgSignature, msgAutoLastRunDate (worker-owned)

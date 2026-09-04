@@ -34,6 +34,12 @@ export const businesses = sqliteTable("businesses", {
   passwordPlain: text("password_plain").notNull(),   // kept for super admin reference, like other apps in this fleet
   status: text("status").notNull().default("active"), // active | suspended
   branchId: integer("branch_id").references(() => branches.id),
+  // ── Messaging platform (managed from /idsa, consumed by the messaging pages) ──
+  smsExecutionLink: text("sms_execution_link"),   // gateway URL this business posts SMS to
+  senderIds: text("sender_ids"),                  // comma separated approved sender IDs
+  smsCredits: real("sms_credits").notNull().default(0), // LKR balance, 1 LKR per SMS
+  whatsappPhoneId: text("whatsapp_phone_id"),     // Meta WhatsApp Cloud API phone number id
+  whatsappToken: text("whatsapp_token"),          // Meta permanent access token
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
@@ -123,6 +129,21 @@ export const customers = sqliteTable("customers", {
   name: text("name").notNull(),
   phone: text("phone"),
   address: text("address"),
+  email: text("email"),
+  gender: text("gender"),                       // male | female | other
+  dob: text("dob"),                             // YYYY-MM-DD — birthday wishes
+  weddingAnniversary: text("wedding_anniversary"), // YYYY-MM-DD
+  child1Name: text("child1_name"),
+  child1Dob: text("child1_dob"),
+  child2Name: text("child2_name"),
+  child2Dob: text("child2_dob"),
+  child3Name: text("child3_name"),
+  child3Dob: text("child3_dob"),
+  loyaltyPoints: real("loyalty_points").notNull().default(0),
+  notes: text("notes"),                         // preferences / private notes
+  tags: text("tags"),                           // comma separated groups e.g. "vip,regular"
+  smsOptOut: integer("sms_opt_out", { mode: "boolean" }).notNull().default(false),
+  autoWishes: integer("auto_wishes", { mode: "boolean" }).notNull().default(true), // per-customer automation switch
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
@@ -313,5 +334,74 @@ export const outbox = sqliteTable("outbox", {
   syncedAt: integer("synced_at", { mode: "timestamp" }),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ── Messaging Platform ──────────────────────────────────────────────────────
+
+// Reusable SMS / WhatsApp templates. `body` supports {name} {points} {child} tokens.
+export const messageTemplates = sqliteTable("message_templates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  name: text("name").notNull(),
+  channel: text("channel").notNull().default("sms"), // sms | whatsapp
+  // birthday | anniversary | child_birthday | festival | event | promo | custom
+  kind: text("kind").notNull().default("custom"),
+  body: text("body").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// A bulk / group / promotional / festival send.
+export const messageCampaigns = sqliteTable("message_campaigns", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  name: text("name").notNull(),
+  channel: text("channel").notNull().default("sms"), // sms | whatsapp
+  kind: text("kind").notNull().default("promo"),     // promo | festival | event | custom
+  body: text("body").notNull(),
+  senderId: text("sender_id"),
+  audience: text("audience").notNull().default("all"), // all | tag | selection
+  audienceValue: text("audience_value"),               // tag name, or JSON array of customer ids
+  scheduledAt: integer("scheduled_at", { mode: "timestamp" }), // null = send now
+  status: text("status").notNull().default("draft"), // draft | scheduled | sending | sent | failed
+  totalCount: integer("total_count").notNull().default(0),
+  sentCount: integer("sent_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+});
+
+// Every individual message attempt — the delivery report / cost ledger.
+export const messageLog = sqliteTable("message_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  campaignId: integer("campaign_id").references(() => messageCampaigns.id),
+  channel: text("channel").notNull().default("sms"), // sms | whatsapp
+  // manual | campaign | birthday | anniversary | child_birthday | festival | event
+  kind: text("kind").notNull().default("manual"),
+  phone: text("phone").notNull(),
+  senderId: text("sender_id"),
+  body: text("body").notNull(),
+  segments: integer("segments").notNull().default(1), // 160-char SMS parts
+  cost: real("cost").notNull().default(0),            // LKR charged
+  status: text("status").notNull().default("pending"), // pending | sent | failed | skipped
+  error: text("error"),
+  gatewayResponse: text("gateway_response"),
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// Credit recharges (from /idsa) and debits (from sends).
+export const creditTransactions = sqliteTable("credit_transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  businessId: integer("business_id").references(() => businesses.id).notNull(),
+  branchId: integer("branch_id").references(() => branches.id),
+  type: text("type").notNull(), // recharge | debit | adjustment
+  amount: real("amount").notNull(),        // positive for recharge, negative for debit
+  balanceAfter: real("balance_after").notNull().default(0),
+  note: text("note"),
+  createdBy: text("created_by").default("system"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });

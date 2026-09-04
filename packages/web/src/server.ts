@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { mkdirSync } from "fs";
 import { runPrintWorker } from "./api/print-worker";
 import { runSyncWorker } from "./api/sync-worker";
+import { runMessagingWorker } from "./api/messaging-worker";
 
 const port = Number(process.env.PORT ?? 3000);
 const distDir = `${import.meta.dir}/../dist`;
@@ -72,6 +73,7 @@ console.log(`Web server listening on http://localhost:${server.port}`);
 
 runPrintWorker();
 runSyncWorker();
+runMessagingWorker();
 
 function getStaticFilePath(pathname: string) {
   const cleanPath = decodeURIComponent(pathname)

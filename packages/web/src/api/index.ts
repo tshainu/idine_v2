@@ -26,6 +26,7 @@ import { auth } from "./routes/auth";
 import { idsa } from "./routes/idsa";
 import { menuExtract } from "./routes/menu-extract";
 import { comboItems } from "./routes/combo-items";
+import { messaging } from "./routes/messaging";
 
 const app = new Hono()
   .basePath("api")
@@ -57,7 +58,8 @@ const app = new Hono()
   .route("/auth", auth)
   .route("/idsa", idsa)
   .route("/menu-extract", menuExtract)
-  .route("/combo-items", comboItems);
+  .route("/combo-items", comboItems)
+  .route("/messaging", messaging);
 
 export type AppType = typeof app;
 export default app;

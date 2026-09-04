@@ -25,6 +25,8 @@ import Kitchen from "./pages/kitchen";
 import Settings from "./pages/settings";
 import Users from "./pages/users";
 import Customers from "./pages/customers";
+import MessagePlatform from "./pages/message-platform";
+import MessageSettings from "./pages/message-platform/settings";
 import Tables from "./pages/tables";
 import Categories from "./pages/categories";
 import Ingredients from "./pages/ingredients";
@@ -63,6 +65,8 @@ function App() {
         <Route path="/settings" component={Settings} />
         <Route path="/users" component={Users} />
         <Route path="/customers" component={Customers} />
+        <Route path="/message-platform" component={MessagePlatform} />
+        <Route path="/message-platform/settings" component={MessageSettings} />
         <Route path="/tables" component={Tables} />
         <Route path="/categories" component={Categories} />
         <Route path="/ingredients" component={Ingredients} />

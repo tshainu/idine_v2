@@ -74,6 +74,8 @@ function IdsaDashboard({ token, onLogout }: { token: string; onLogout: () => voi
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const [editingPw, setEditingPw] = useState<any | null>(null);
+  const [editingSms, setEditingSms] = useState<any | null>(null);
+  const [recharging, setRecharging] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -133,6 +135,42 @@ function IdsaDashboard({ token, onLogout }: { token: string; onLogout: () => voi
                   <div>👤 Username: <strong>{b.username}</strong></div>
                   <div>🔑 Password: <strong>{b.passwordPlain}</strong></div>
                 </div>
+                {/* Messaging platform config + credit balance */}
+                <div style={{ background: C.surf2, borderRadius: 8, padding: 10, fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: C.muted }}>SMS Credits</span>
+                    <strong style={{ color: Number(b.smsCredits ?? 0) > 0 ? C.success : C.danger }}>
+                      LKR {Number(b.smsCredits ?? 0).toFixed(2)}
+                    </strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: C.muted }}>Sender IDs</span>
+                    <strong style={{ color: b.senderIds ? C.text : C.danger }}>{b.senderIds || "not set"}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: C.muted }}>SMS link</span>
+                    <strong style={{ color: b.smsExecutionLink ? C.success : C.muted, fontSize: 11 }}>
+                      {b.smsExecutionLink ? "custom" : "default"}
+                    </strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: C.muted }}>WhatsApp</span>
+                    <strong style={{ color: b.whatsappPhoneId && b.whatsappToken ? C.success : C.muted, fontSize: 11 }}>
+                      {b.whatsappPhoneId && b.whatsappToken ? "configured" : "not set"}
+                    </strong>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <button onClick={() => setRecharging(b)}
+                      style={{ flex: 1, background: C.gold, color: "#1a1200", border: "none", borderRadius: 6, padding: "6px 0", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                      Recharge Credits
+                    </button>
+                    <button onClick={() => setEditingSms(b)}
+                      style={{ flex: 1, background: "transparent", color: C.muted, border: `1px solid ${C.bord}`, borderRadius: 6, padding: "6px 0", fontSize: 11, cursor: "pointer" }}>
+                      SMS Settings
+                    </button>
+                  </div>
+                </div>
+
                 <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
                   {b.status === "active" ? (
                     <button onClick={() => suspend(b.id)} style={{ flex: 1, background: "transparent", color: C.danger, border: `1px solid ${C.danger}`, borderRadius: 6, padding: "6px 0", fontSize: 12, cursor: "pointer" }}>Suspend</button>
@@ -150,6 +188,8 @@ function IdsaDashboard({ token, onLogout }: { token: string; onLogout: () => voi
 
       {creating && <CreateBusinessModal token={token} C={C} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load(); }} />}
       {editingPw && <EditPasswordModal token={token} C={C} business={editingPw} onClose={() => setEditingPw(null)} onSaved={() => { setEditingPw(null); load(); }} />}
+      {editingSms && <SmsConfigModal token={token} C={C} business={editingSms} onClose={() => setEditingSms(null)} onSaved={() => { setEditingSms(null); load(); }} />}
+      {recharging && <RechargeModal token={token} C={C} business={recharging} onClose={() => setRecharging(null)} onSaved={() => { setRecharging(null); load(); }} />}
     </div>
   );
 }
@@ -225,6 +265,155 @@ function EditPasswordModal({ token, C, business, onClose, onSaved }: any) {
             {loading ? "Saving…" : "Save"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SmsConfigModal({ token, C, business, onClose, onSaved }: any) {
+  const [smsExecutionLink, setSmsExecutionLink] = useState(business.smsExecutionLink || "");
+  const [senderIds, setSenderIds] = useState(business.senderIds || "");
+  const [whatsappPhoneId, setWhatsappPhoneId] = useState(business.whatsappPhoneId || "");
+  const [whatsappToken, setWhatsappToken] = useState(business.whatsappToken || "");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    setLoading(true); setError("");
+    try {
+      await idsaReq(token, `/businesses/${business.id}/sms-config`, "PATCH", {
+        smsExecutionLink, senderIds, whatsappPhoneId, whatsappToken,
+      });
+      onSaved();
+    } catch (e: any) { setError(e.message); } finally { setLoading(false); }
+  };
+
+  const inp = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.bord}`, background: C.bg, color: C.text, fontSize: 13, outline: "none", boxSizing: "border-box" as const, marginTop: 6 };
+  const lbl = { fontSize: 12, color: C.muted, display: "block", marginTop: 12 };
+  const hint = { fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 4 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000aa", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+      <div style={{ width: 520, maxHeight: "90vh", overflow: "auto", background: C.surf, border: `1px solid ${C.bord}`, borderRadius: 16, padding: 24 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Messaging Settings</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>{business.businessName} — {business.userId}</div>
+
+        <label style={{ ...lbl, marginTop: 0 }}>SMS Execution Link</label>
+        <input style={inp} value={smsExecutionLink} onChange={e => setSmsExecutionLink(e.target.value)}
+          placeholder="https://urbanpos.lk/demo/notification/users/sms_bk.php" />
+        <div style={hint}>Leave blank to use the platform default. Called with message, phone_no, sender_id.</div>
+
+        <label style={lbl}>Sender IDs</label>
+        <input style={inp} value={senderIds} onChange={e => setSenderIds(e.target.value)}
+          placeholder="IDINE, CHAVA" />
+        <div style={hint}>Comma separated. The first one is this business's default sender.</div>
+
+        <div style={{ borderTop: `1px solid ${C.bord}`, marginTop: 18, paddingTop: 6 }} />
+        <label style={lbl}>WhatsApp Phone Number ID</label>
+        <input style={inp} value={whatsappPhoneId} onChange={e => setWhatsappPhoneId(e.target.value)}
+          placeholder="Meta Cloud API phone number id" />
+
+        <label style={lbl}>WhatsApp Access Token</label>
+        <input style={inp} value={whatsappToken} onChange={e => setWhatsappToken(e.target.value)}
+          placeholder="Permanent access token" />
+        <div style={hint}>Both fields are required before this business can send on WhatsApp.</div>
+
+        {error && <div style={{ color: C.danger, fontSize: 13, marginTop: 10 }}>{error}</div>}
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} style={{ flex: 1, background: "transparent", border: `1px solid ${C.bord}`, color: C.muted, borderRadius: 8, padding: 10, cursor: "pointer" }}>Cancel</button>
+          <button onClick={submit} disabled={loading} style={{ flex: 1, background: C.gold, border: "none", color: "#1a1200", borderRadius: 8, padding: 10, fontWeight: 700, cursor: "pointer" }}>
+            {loading ? "Saving…" : "Save Settings"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RechargeModal({ token, C, business, onClose, onSaved }: any) {
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    idsaReq(token, `/businesses/${business.id}/credits`)
+      .then(d => setTransactions(d.transactions || []))
+      .catch(() => {});
+  }, [business.id]);
+
+  const submit = async () => {
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value === 0) { setError("Enter a non-zero amount"); return; }
+    setLoading(true); setError("");
+    try {
+      await idsaReq(token, `/businesses/${business.id}/credits`, "POST", { amount: value, note });
+      onSaved();
+    } catch (e: any) { setError(e.message); } finally { setLoading(false); }
+  };
+
+  const inp = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.bord}`, background: C.bg, color: C.text, fontSize: 13, outline: "none", boxSizing: "border-box" as const, marginTop: 6 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000aa", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+      <div style={{ width: 460, maxHeight: "90vh", overflow: "auto", background: C.surf, border: `1px solid ${C.bord}`, borderRadius: 16, padding: 24 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Recharge SMS Credits</div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>{business.businessName} — {business.userId}</div>
+
+        <div style={{ background: C.surf2, borderRadius: 8, padding: 12, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: C.muted }}>Current balance</span>
+          <strong style={{ fontSize: 18, color: C.gold }}>LKR {Number(business.smsCredits ?? 0).toFixed(2)}</strong>
+        </div>
+
+        <label style={{ fontSize: 12, color: C.muted }}>Amount (LKR)</label>
+        <input style={inp} value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. 5000" type="number" autoFocus />
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          {[1000, 2500, 5000, 10000].map(v => (
+            <button key={v} onClick={() => setAmount(String(v))}
+              style={{ flex: 1, background: "transparent", border: `1px solid ${C.bord}`, color: C.muted, borderRadius: 6, padding: "6px 0", fontSize: 11, cursor: "pointer" }}>
+              {v.toLocaleString()}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, opacity: 0.7, marginTop: 6 }}>
+          1 LKR = 1 SMS segment. Use a negative amount to deduct. The balance appears in the
+          restaurant's Message Platform immediately.
+        </div>
+
+        <label style={{ fontSize: 12, color: C.muted, display: "block", marginTop: 12 }}>Note (optional)</label>
+        <input style={inp} value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Paid via bank transfer" />
+
+        {error && <div style={{ color: C.danger, fontSize: 13, marginTop: 10 }}>{error}</div>}
+
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} style={{ flex: 1, background: "transparent", border: `1px solid ${C.bord}`, color: C.muted, borderRadius: 8, padding: 10, cursor: "pointer" }}>Cancel</button>
+          <button onClick={submit} disabled={loading} style={{ flex: 1, background: C.gold, border: "none", color: "#1a1200", borderRadius: 8, padding: 10, fontWeight: 700, cursor: "pointer" }}>
+            {loading ? "Saving…" : "Add Credits"}
+          </button>
+        </div>
+
+        {transactions.length > 0 && (
+          <div style={{ marginTop: 20, borderTop: `1px solid ${C.bord}`, paddingTop: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Recent transactions</div>
+            <div style={{ maxHeight: 180, overflow: "auto" }}>
+              {transactions.map(t => (
+                <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.bord}33`, fontSize: 11 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: C.text }}>{t.note || t.type}</div>
+                    <div style={{ color: C.muted, opacity: 0.7 }}>{new Date(t.createdAt).toLocaleString("en-GB")}</div>
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap", marginLeft: 10 }}>
+                    <div style={{ color: t.amount > 0 ? C.success : C.danger, fontWeight: 700 }}>
+                      {t.amount > 0 ? "+" : ""}{Number(t.amount).toFixed(2)}
+                    </div>
+                    <div style={{ color: C.muted, opacity: 0.7 }}>bal {Number(t.balanceAfter).toFixed(2)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

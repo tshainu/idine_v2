@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, SlidersHorizontal,
   TrendingUp, Users, Percent, Monitor, ChefHat, Table2,
   Settings, BarChart3, LogOut, ChevronDown, ChevronRight, Sun, Moon,
-  ShoppingBag, Package, Building2, Receipt,
+  ShoppingBag, Package, Building2, Receipt, MessageSquare, Send,
 } from "lucide-react";
 import { useTheme } from "../../lib/useTheme";
 import { api } from "../../lib/api";
@@ -39,7 +39,6 @@ const NAV: NavSection[] = [
     id: "sales", type: "group", label: "Sales", icon: TrendingUp,
     items: [
       { path: "/sales",       label: "List of Sales", icon: TrendingUp },
-      { path: "/customers",   label: "Customers",     icon: Users },
       { path: "/promotions",  label: "Promotions",    icon: Percent },
     ],
   },
@@ -60,6 +59,14 @@ const NAV: NavSection[] = [
     ],
   },
   { id: "expenses", type: "link", label: "Expenses", icon: Receipt, path: "/expenses" },
+  {
+    id: "messaging", type: "group", label: "Message Platform", icon: MessageSquare,
+    items: [
+      { path: "/customers",        label: "Customers",     icon: Users },
+      { path: "/message-platform", label: "Send Messages", icon: Send },
+      { path: "/message-platform/settings", label: "Message Settings", icon: Settings },
+    ],
+  },
   {
     id: "users", type: "group", label: "Users", icon: Users,
     items: [
@@ -87,7 +94,7 @@ export function Sidebar() {
 
   // Only collapsible groups need open state; default all open
   const [open, setOpen] = useState<Record<string, boolean>>({
-    item: true, sales: false, panel: false, purchases: true, users: true, reports: true,
+    item: true, sales: false, panel: false, purchases: true, users: true, reports: true, messaging: true,
   });
 
   const { data: branchData } = useQuery({
