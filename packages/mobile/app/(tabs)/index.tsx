@@ -19,7 +19,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { session, branchId, waiterId } = useSession();
   const tables = useTables(branchId);
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
   const shift = useActiveShift(waiterId);
 
   const stats = useMemo(() => {
@@ -168,7 +168,7 @@ function QuickAction({ icon, label, onPress, badge }: {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.background },
-  scroll: { padding: Space.lg, paddingBottom: Space.xxl },
+  scroll: { padding: Space.lg, paddingBottom: 150 },
   top: { flexDirection: "row", alignItems: "center", marginBottom: Space.lg },
   hello: { fontFamily: Fonts.bold, fontSize: 22, color: c.foreground },
   role: { fontFamily: Fonts.regular, fontSize: 13, color: c.muted, marginTop: 2 },

@@ -3,8 +3,9 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "lk.idine.waiter",
+      "versionCode": 3,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
@@ -25,12 +26,17 @@
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
-    "name": "Axis Waiter",
+    "name": "iDine Waiter",
     "slug": "idine",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "scheme": "idine",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "androidStatusBar": {
+      "backgroundColor": "#10253D",
+      "barStyle": "light-content",
+      "translucent": false
+    },
     "newArchEnabled": false,
     "web": {
       "favicon": "./assets/favicon.png",

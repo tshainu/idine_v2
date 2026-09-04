@@ -20,7 +20,7 @@ export default function ProfileScreen() {
 
   const active = useActiveShift(waiterId);
   const shifts = useMyShifts(waiterId, branchId);
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
   const clockIn = useClockIn();
   const clockOut = useClockOut();
   const [busy, setBusy] = useState(false);

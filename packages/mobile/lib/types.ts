@@ -125,6 +125,7 @@ export type Shift = {
 // A line in the waiter's cart before it becomes an order item.
 export type CartLine = {
   key: string;             // menuItemId + variation + modifiers, so identical lines merge
+  orderItemId?: number;    // present when editing an already-sent running order
   menuItemId: number;
   name: string;            // display name incl. variation, e.g. "Chicken Biryani (Full)"
   unitPrice: number;

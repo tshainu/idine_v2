@@ -28,7 +28,17 @@ export const orderItems = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
-    const [item] = await db.update(schema.orderItems).set(body).where(eq(schema.orderItems.id, id)).returning();
+    const [existing] = await db.select().from(schema.orderItems).where(eq(schema.orderItems.id, id));
+    if (!existing) return c.json({ error: "Order item not found" }, 404);
+
+    const nextPrice = body.price ?? existing.price;
+    const nextQty = body.qty ?? existing.qty;
+    const patch = {
+      ...body,
+      // `total` is persisted separately, so it must change with quantity or price.
+      total: nextPrice * nextQty,
+    };
+    const [item] = await db.update(schema.orderItems).set(patch).where(eq(schema.orderItems.id, id)).returning();
     pushOutbox("order_items", "update", item.id, item);
     return c.json({ orderItem: item }, 200);
   })

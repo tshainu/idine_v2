@@ -19,7 +19,7 @@ export default function MoreScreen() {
   const { signOut } = useSessionActions();
   const shift = useActiveShift(waiterId);
   const jobs = usePendingPrintJobs(branchId);
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
 
   const readyCount = (orders.data ?? []).filter((o) => o.status === "ready").length;
 
@@ -175,7 +175,7 @@ function Row({ icon, label, hint, onPress, badge, badgeTone = "danger", divider 
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.background },
-  scroll: { padding: Space.lg, paddingBottom: Space.xxl },
+  scroll: { padding: Space.lg, paddingBottom: 150 },
   title: { fontFamily: Fonts.bold, fontSize: 22, color: c.foreground },
   who: { flexDirection: "row", alignItems: "center", gap: Space.md },
   avatar: {

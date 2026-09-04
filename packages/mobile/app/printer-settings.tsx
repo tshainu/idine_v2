@@ -35,6 +35,7 @@ const SAMPLE = kotPreviewText({
     { name: "Lime Juice", qty: 1 },
   ],
 });
+const SAMPLE_BODY = SAMPLE.split("\n").slice(1).join("\n");
 
 export default function PrinterSettingsScreen() {
   const router = useRouter();
@@ -205,9 +206,19 @@ export default function PrinterSettingsScreen() {
 
           {/* Preview */}
           <Card style={s.gap}>
-            <Text style={s.cardTitle}>Ticket preview</Text>
+            <View style={s.previewTitleRow}>
+              <View>
+                <Text style={s.cardTitle}>Modern KOT preview</Text>
+                <Text style={s.previewHint}>Kitchen-readable layout</Text>
+              </View>
+              <View style={s.kotBadge}><Text style={s.kotBadgeText}>KOT</Text></View>
+            </View>
             <View style={s.preview}>
-              <Text style={s.previewTxt}>{SAMPLE}</Text>
+              <View style={s.previewTopRule} />
+              <Text style={s.previewKot}>KOT</Text>
+              <Text style={s.previewTable}>TABLE T1  ·  TEST-0001</Text>
+              <View style={s.previewRule} />
+              <Text style={s.previewTxt}>{SAMPLE_BODY}</Text>
             </View>
           </Card>
 
@@ -273,12 +284,20 @@ const s = StyleSheet.create({
   },
   warnTxt: { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: "#8A5206", lineHeight: 17 },
 
+  previewTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  previewHint: { fontFamily: Fonts.regular, fontSize: 11, color: c.muted, marginTop: 2 },
+  kotBadge: { backgroundColor: c.primarySoft, borderRadius: Radius.pill, paddingHorizontal: 12, paddingVertical: 6 },
+  kotBadgeText: { fontFamily: Fonts.bold, fontSize: 13, color: c.primaryDark, letterSpacing: 1 },
   preview: {
-    backgroundColor: "#15161A", borderRadius: Radius.md, padding: Space.md,
-    ...Shadow.card,
+    backgroundColor: c.chrome, borderRadius: Radius.lg, padding: Space.lg,
+    marginTop: Space.sm, ...Shadow.card,
   },
+  previewTopRule: { height: 3, borderRadius: Radius.pill, backgroundColor: c.primary, marginBottom: Space.md },
+  previewKot: { color: c.onChrome, fontFamily: Fonts.bold, fontSize: 32, letterSpacing: 2, textAlign: "center" },
+  previewTable: { color: c.primary, fontFamily: Fonts.semibold, fontSize: 12, letterSpacing: 0.6, textAlign: "center", marginTop: 2 },
+  previewRule: { height: 1, backgroundColor: c.chromeSoft, marginVertical: Space.md },
   previewTxt: {
-    color: "#E9EAEE", fontSize: 11, lineHeight: 15,
+    color: "#E8F1FA", fontSize: 11, lineHeight: 17,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

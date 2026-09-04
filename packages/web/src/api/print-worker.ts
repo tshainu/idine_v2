@@ -67,6 +67,7 @@ function buildKOT(job: any): Buffer {
   if (tableInfo) parts.push(text(tableInfo));
   if (waiter) parts.push(text(waiter));
   if (payload.customerName) parts.push(text(`Customer: ${payload.customerName}`));
+  if (payload.customerPhone) parts.push(text(`Phone: ${payload.customerPhone}`));
   parts.push(text(`Time: ${new Date().toLocaleTimeString("en-GB")}`));
   parts.push(divider());
 

@@ -6,10 +6,10 @@ import type { CartLine, Order, OrderItem } from "../lib/types";
 
 export function useOrders(
   branchId: number | undefined,
-  opts?: { status?: string; poll?: number | false },
+  opts?: { status?: string; poll?: number | false; waiterId?: number },
 ) {
   return useQuery({
-    queryKey: ["orders", branchId, opts?.status ?? "all"],
+    queryKey: ["orders", branchId, opts?.status ?? "all", opts?.waiterId ?? "all-waiters"],
     enabled: !!branchId,
     refetchInterval: opts?.poll === false ? false : (opts?.poll ?? 30_000),
     queryFn: async () => {
@@ -17,7 +17,8 @@ export function useOrders(
         branchId,
         status: opts?.status,
       });
-      return data.orders ?? [];
+      const orders = data.orders ?? [];
+      return opts?.waiterId ? orders.filter((order) => order.waiterId === opts.waiterId) : orders;
     },
   });
 }
@@ -34,8 +35,12 @@ export function useOrder(id: number | undefined) {
 }
 
 /** The open order for a table, if any — a waiter adding a round must append, not duplicate. */
-export function useOpenOrderForTable(branchId: number | undefined, tableId: number | undefined) {
-  const q = useOrders(branchId, { poll: 30_000 });
+export function useOpenOrderForTable(
+  branchId: number | undefined,
+  tableId: number | undefined,
+  waiterId: number | undefined,
+) {
+  const q = useOrders(branchId, { poll: 30_000, waiterId });
   const OPEN = ["pending", "confirmed", "served", "ready", "hold"];
   const order = tableId
     ? (q.data ?? []).find((o) => o.tableId === tableId && OPEN.includes(o.status))
@@ -96,7 +101,11 @@ export function useSendToKitchen(branchId: number | undefined) {
         const res = await http.patch<{ order: Order }>(`/orders/${orderId}`, {
           subtotal: (prev.order.subtotal ?? 0) + subtotal,
           total: (prev.order.total ?? 0) + subtotal,
-          status: prev.order.status === "hold" ? "pending" : prev.order.status,
+          // Any added round must return to the KDS cooking queue, even when the
+          // earlier round was already marked ready or served.
+          status: "confirmed",
+          customerId: input.customerId ?? prev.order.customerId ?? null,
+          customerName: input.customerName?.trim() || prev.order.customerName || null,
         });
         order = res.order;
       } else {
@@ -104,7 +113,9 @@ export function useSendToKitchen(branchId: number | undefined) {
           branchId,
           orderNumber: "TEMP",
           type: input.type ?? "dine-in",
-          status: "pending",
+          // KDS polls confirmed orders, so a waiter submission must enter that
+          // state immediately after it is accepted by the API.
+          status: "confirmed",
           tableId: input.tableId,
           waiterId: input.waiterId,
           customerId: input.customerId ?? null,
@@ -139,6 +150,66 @@ export function useSendToKitchen(branchId: number | undefined) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["tables"] });
+    },
+  });
+}
+
+export function useUpdateRunningOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      orderId: number;
+      customerId?: number | null;
+      customerName?: string | null;
+      updates: { id: number; qty: number; note?: string | null }[];
+      removeIds: number[];
+      additions: CartLine[];
+    }) => {
+      const current = await http.get<{ order: Order; items: OrderItem[] }>(`/orders/${input.orderId}`);
+      const removed = new Set(input.removeIds);
+      const changed = new Map(input.updates.map((item) => [item.id, item]));
+      const keptTotal = (current.items ?? []).reduce((sum, item) => {
+        if (removed.has(item.id)) return sum;
+        const next = changed.get(item.id);
+        return sum + item.price * (next?.qty ?? item.qty);
+      }, 0);
+      const additionsTotal = input.additions.reduce(
+        (sum, line) => sum + (line.unitPrice + line.modifiers.reduce((m, x) => m + x.price, 0)) * line.qty,
+        0,
+      );
+      const nextTotal = keptTotal + additionsTotal;
+
+      const orderRes = await http.patch<{ order: Order }>(`/orders/${input.orderId}`, {
+        subtotal: nextTotal,
+        total: nextTotal,
+        customerId: input.customerId ?? null,
+        customerName: input.customerName?.trim() || null,
+        // Edited items need kitchen confirmation again.
+        status: "confirmed",
+      });
+
+      await Promise.all([
+        ...input.updates.map((item) =>
+          http.patch(`/order-items/${item.id}`, { qty: item.qty, note: item.note ?? null }),
+        ),
+        ...input.removeIds.map((id) => http.del(`/order-items/${id}`)),
+      ]);
+
+      if (input.additions.length) {
+        await http.post("/order-items/bulk", {
+          items: input.additions.map((line) => lineToItem(line, input.orderId)),
+        });
+      }
+
+      const final = await http.get<{ order: Order; items: OrderItem[] }>(`/orders/${input.orderId}`);
+      // Return the fully reloaded order so the UI and KOT use the exact final item
+      // set and totals rather than an earlier patch response.
+      return { order: final.order, items: final.items ?? [] };
+    },
+    onSuccess: (_d, input) => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["order", input.orderId] });
       qc.invalidateQueries({ queryKey: ["tables"] });
     },
   });

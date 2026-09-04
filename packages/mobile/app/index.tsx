@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { Colors, Fonts, Radius, Shadow, Space } from "../constants/theme";
 import { PrimaryButton, ErrorBanner } from "../components/ui";
 import { http, ApiError } from "../lib/http";
@@ -101,7 +102,7 @@ export default function LoginScreen() {
         >
           <View style={st.logoWrap}>
             <View style={st.logo}>
-              <Ionicons name="restaurant" size={30} color={c.onPrimary} />
+              <Image source={require("../assets/login-icon.png")} style={st.logoImage} contentFit="contain" />
             </View>
             <Text style={st.brand}>iDine Waiter</Text>
             <Text style={st.tagline}>Sign in once — then unlock with a PIN.</Text>
@@ -110,13 +111,13 @@ export default function LoginScreen() {
           <View style={st.card}>
             {error ? <ErrorBanner message={error} /> : null}
 
-            <Text style={st.label}>Restaurant User ID</Text>
+            <Text style={st.label}>Shop ID</Text>
             <View style={st.inputWrap}>
               <Ionicons name="business-outline" size={18} color={c.mutedSoft} />
               <TextInput
                 value={userId}
                 onChangeText={setUserId}
-                placeholder="e.g. PUM9211"
+                placeholder="Enter shop ID"
                 placeholderTextColor={c.mutedSoft}
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -190,9 +191,10 @@ const st = StyleSheet.create({
   scroll: { padding: Space.xl, paddingTop: Space.xxl, flexGrow: 1, justifyContent: "center" },
   logoWrap: { alignItems: "center", marginBottom: Space.xxl },
   logo: {
-    width: 64, height: 64, borderRadius: Radius.xl, backgroundColor: c.primary,
-    alignItems: "center", justifyContent: "center", ...Shadow.raised,
+    width: 84, height: 84, borderRadius: Radius.xl, backgroundColor: "#FFFFFF",
+    alignItems: "center", justifyContent: "center", overflow: "hidden", ...Shadow.raised,
   },
+  logoImage: { width: 78, height: 78 },
   brand: { fontFamily: Fonts.bold, fontSize: 24, color: c.foreground, marginTop: Space.lg },
   tagline: { fontFamily: Fonts.regular, fontSize: 13.5, color: c.muted, marginTop: 4, textAlign: "center" },
   card: {

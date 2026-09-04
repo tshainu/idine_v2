@@ -14,9 +14,9 @@ const c = Colors.light;
 
 export default function ReadyItemsScreen() {
   const router = useRouter();
-  const { branchId } = useSession();
+  const { branchId, waiterId } = useSession();
   // Kitchen marks orders ready — poll faster here, this is a live pickup queue.
-  const orders = useOrders(branchId, { poll: 15_000 });
+  const orders = useOrders(branchId, { poll: 15_000, waiterId });
   const tables = useTables(branchId);
   const update = useUpdateOrder();
   const [busyId, setBusyId] = useState<number | null>(null);

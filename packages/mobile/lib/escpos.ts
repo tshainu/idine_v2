@@ -17,6 +17,7 @@ export type KotPayload = {
   tableName?: string | null;
   waiterName?: string | null;
   customerName?: string | null;
+  customerPhone?: string | null;
   type?: string | null;
   items: KotItem[];
   /** "new" prints a fresh KOT, "update" marks it as an amended ticket. */
@@ -130,7 +131,7 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
 
   b.init().align("center");
 
-  b.bold(true).size(2, 2);
+  b.bold(true).size(3, 2);
   b.line(isUpdate ? "*UPDATED KOT*" : "KOT");
   b.size(1, 1).bold(false);
 
@@ -145,6 +146,9 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   if (payload.waiterName) b.line(`Waiter: ${payload.waiterName}`);
   if (payload.customerName) {
     for (const l of wrap(`Cust  : ${payload.customerName}`, width)) b.line(l);
+  }
+  if (payload.customerPhone) {
+    for (const l of wrap(`Phone : ${payload.customerPhone}`, width)) b.line(l);
   }
   b.line(`Time  : ${stamp(printedAt)}`);
   b.line(rule(width));
@@ -192,6 +196,7 @@ export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): str
   lines.push(`Order : ${payload.orderNumber}`);
   if (payload.waiterName) lines.push(`Waiter: ${payload.waiterName}`);
   if (payload.customerName) lines.push(...wrap(`Cust  : ${payload.customerName}`, width));
+  if (payload.customerPhone) lines.push(...wrap(`Phone : ${payload.customerPhone}`, width));
   lines.push(`Time  : ${stamp(printedAt)}`);
   lines.push(rule(width));
   for (const item of payload.items) {

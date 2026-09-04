@@ -342,8 +342,12 @@ function ModifierPicker({
 }
 
 /** Order Details modal */
-function OrderDetailsModal({ order, items, onClose, onCreateInvoice }: {
-  order: any; items: any[]; onClose: () => void; onCreateInvoice: () => void;
+function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill }: {
+  order: any;
+  items: any[];
+  onClose: () => void;
+  onCreateInvoice: () => void;
+  onPrintBill: () => void;
 }) {
   const subtotal = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
   const tax      = 0;
@@ -434,6 +438,11 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice }: {
             className="flex-1 py-2 rounded text-xs font-semibold transition-all hover:brightness-110"
             style={{ background: GOLD, color: "var(--color-surface)" }}>
             Create Invoice & Close
+          </button>
+          <button onClick={onPrintBill}
+            className="flex-1 py-2 rounded border text-xs font-semibold transition-all hover:brightness-110 flex items-center justify-center gap-1.5"
+            style={{ borderColor: GOLD, color: GOLD, background: `${GOLD}18` }}>
+            <Printer size={13} /> Print Bill
           </button>
           <button onClick={onClose}
             className="flex-1 py-2 rounded border text-xs font-medium"
@@ -1713,6 +1722,7 @@ export default function POSPage() {
   const modalOrderData  = (orderDetailData as any) ?? {};
   const modalOrder      = modalOrderData.order  ?? {};
   const modalItems      = modalOrderData.items  ?? [];
+  const modalWaiterName = modalOrder.placedBy || waiters.find((waiter: any) => waiter.id === modalOrder.waiterId)?.name || null;
   const finalizeOrderData = (finalizeDetailData as any) ?? {};
   const finalizeOrder     = finalizeOrderData.order ?? {};
   const finalizeItems     = finalizeOrderData.items ?? [];
@@ -1943,9 +1953,14 @@ export default function POSPage() {
                       background:  selectedOrderId === order.id ? SURF2 : "transparent",
                       border:      `1px solid ${selectedOrderId === order.id ? GOLD : BORD}`,
                     }}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs font-mono" style={{ color: GOLD }}>{order.orderNumber}</span>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <span className="font-bold text-xs font-mono shrink-0" style={{ color: GOLD }}>{order.orderNumber}</span>
+                        <span className="text-[10px] truncate" style={{ color: MUTED }}>
+                          · {order.placedBy || waiters.find((waiter: any) => waiter.id === order.waiterId)?.name || "Unassigned"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
                         {order.source === "qr" && (
                           <span className="text-[9px] px-1 py-0.5 rounded font-bold text-white" style={{ background: "#8B5CF6" }}>QR</span>
                         )}
@@ -2357,9 +2372,10 @@ export default function POSPage() {
       {/* Order Details modal */}
       {detailsOrderId && modalOrder.id && (
         <OrderDetailsModal
-          order={modalOrder} items={modalItems}
+          order={{ ...modalOrder, waiterName: modalWaiterName }} items={modalItems}
           onClose={() => setDetailsOrderId(null)}
-          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }} />
+          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }}
+          onPrintBill={() => { setDetailsOrderId(null); setInvoicePreviewMode("bill"); setInvoicePreviewId(detailsOrderId); }} />
       )}
 
       {/* ── Toolbar modals ── */}

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Alert, Modal,
+  KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -48,14 +48,19 @@ export default function CustomerLookupScreen() {
           <Ionicons name="search" size={17} color={c.mutedSoft} />
           <TextInput
             value={term}
-            onChangeText={setTerm}
+            onChangeText={(value) => {
+              setTerm(value);
+              setSelected(null);
+            }}
             placeholder="Name or phone number…"
             placeholderTextColor={c.mutedSoft}
             style={s.searchInput}
             autoCorrect={false}
             returnKeyType="search"
           />
-          {term ? (
+          {results.isFetching && term.trim() ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : term ? (
             <Ionicons
               name="close-circle"
               size={17}
@@ -75,11 +80,11 @@ export default function CustomerLookupScreen() {
             <ErrorBanner message={(results.error as Error).message} onRetry={() => results.refetch()} />
           ) : null}
 
-          {term.trim().length < 2 ? (
+          {term.trim().length < 1 ? (
             <EmptyState
               icon="people-outline"
               title="Search for a guest"
-              hint="Type at least 2 characters of their name or phone number."
+              hint="Start typing a name or phone number for live results."
             />
           ) : results.isLoading ? (
             <Loading label="Searching…" />
@@ -211,6 +216,13 @@ function AddCustomerSheet({ visible, branchId, prefill, onClose, onCreated }: {
   const [name, setName] = useState(isPhone ? "" : prefill);
   const [phone, setPhone] = useState(isPhone ? prefill.trim() : "");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    const phoneLike = /^[\d+][\d\s-]{5,}$/.test(prefill.trim());
+    setName(phoneLike ? "" : prefill);
+    setPhone(phoneLike ? prefill.trim() : "");
+  }, [visible, prefill]);
 
   async function submit() {
     if (!name.trim()) {

@@ -1,31 +1,36 @@
-// iDine Waiter — light & clean theme, Manjal yellow accent.
-// Every screen reads from here, so one edit restyles the whole app.
+// Axis Waiter — modern service-floor theme.
+// Deep navy chrome keeps the top and bottom navigation readable in busy dining rooms,
+// while teal actions and warm surfaces keep the order flow fast to scan.
 
 export const Colors = {
   light: {
-    background: "#F7F7F8",
+    background: "#F3F6FA",
     card: "#FFFFFF",
-    cardAlt: "#FBFBFC",
-    foreground: "#15161A",
-    muted: "#6B7280",
-    mutedSoft: "#9CA3AF",
-    border: "#E8E9ED",
-    primary: "#F2B705", // Manjal yellow
-    primaryDark: "#C99400",
-    primarySoft: "#FEF6DC",
-    onPrimary: "#1A1400",
-    success: "#129D6B",
-    successSoft: "#E4F7EF",
-    warning: "#E8890C",
-    warningSoft: "#FDF0DC",
-    destructive: "#DC3545",
-    destructiveSoft: "#FCE8EA",
-    info: "#2B6CB0",
-    infoSoft: "#E6EFF9",
+    cardAlt: "#F8FAFC",
+    foreground: "#122033",
+    muted: "#607087",
+    mutedSoft: "#93A0B2",
+    border: "#DCE4EE",
+    primary: "#19B796",
+    primaryDark: "#087F6C",
+    primarySoft: "#DDF8F1",
+    onPrimary: "#062A23",
+    success: "#159A63",
+    successSoft: "#E2F7EC",
+    warning: "#D98218",
+    warningSoft: "#FFF1DA",
+    destructive: "#D64550",
+    destructiveSoft: "#FCE9EC",
+    info: "#3579C7",
+    infoSoft: "#E7F0FB",
+    chrome: "#122033",
+    chromeSoft: "#1D3048",
+    onChrome: "#F7FBFF",
+    chromeMuted: "#AFC0D4",
   },
 };
 
-export const Colors_dark = Colors.light; // app is light-only by design (bright dining rooms)
+export const Colors_dark = Colors.light;
 
 export const Fonts = {
   regular: "Poppins_400Regular",
@@ -35,33 +40,30 @@ export const Fonts = {
 };
 
 export const Radius = { sm: 8, md: 12, lg: 16, xl: 22, pill: 999 };
-
 export const Space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 
-// Soft shadow used on every card. Cross-platform (elevation on Android, shadow* on iOS/web).
 export const Shadow = {
   card: {
-    shadowColor: "#0B1020",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowColor: "#122033",
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
   raised: {
-    shadowColor: "#0B1020",
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    shadowColor: "#122033",
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 6,
   },
 };
 
-// Table status → colour token mapping, shared by the floor view and dashboard.
 export const TableStatus = {
-  available: { label: "Free", fg: "#129D6B", bg: "#E4F7EF", border: "#BCEBD8" },
-  occupied: { label: "Occupied", fg: "#C99400", bg: "#FEF6DC", border: "#F5DFA0" },
-  billed: { label: "Billed", fg: "#2B6CB0", bg: "#E6EFF9", border: "#C2D9F0" },
-  reserved: { label: "Reserved", fg: "#6B7280", bg: "#F1F2F4", border: "#DEE0E5" },
+  available: { label: "Free", fg: "#159A63", bg: "#E2F7EC", border: "#BEEBD2" },
+  occupied: { label: "Occupied", fg: "#087F6C", bg: "#DDF8F1", border: "#A9E8D8" },
+  billed: { label: "Billed", fg: "#3579C7", bg: "#E7F0FB", border: "#C6DCF6" },
+  reserved: { label: "Reserved", fg: "#607087", bg: "#EEF2F6", border: "#D8E0EA" },
 } as const;
 
 export type TableStatusKey = keyof typeof TableStatus;

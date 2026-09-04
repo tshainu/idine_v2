@@ -36,7 +36,7 @@ const STATUS_TONE: Record<string, { fg: string; bg: string }> = {
 
 export default function HistoryScreen() {
   const { branchId, waiterId, waiterName } = useSession();
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
   const tables = useTables(branchId);
   const reprint = useReprintKot();
 
@@ -251,7 +251,7 @@ const s = StyleSheet.create({
     backgroundColor: c.card, borderWidth: 1, borderColor: c.border,
   },
   rangeText: { fontFamily: Fonts.medium, fontSize: 12.5, color: c.muted },
-  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: Space.xxl },
+  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: 150 },
   row: { flexDirection: "row", alignItems: "center" },
   orderNo: { fontFamily: Fonts.semibold, fontSize: 15, color: c.foreground },
   meta: { fontFamily: Fonts.regular, fontSize: 12.5, color: c.muted, marginTop: 2 },
