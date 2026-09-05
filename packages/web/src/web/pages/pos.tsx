@@ -1589,7 +1589,7 @@ export default function POSPage() {
     const { order, items } = res;
     setOrderType(order.type as OrderType);
     setSelectedWaiterId(order.waiterId ?? null);
-    setSelectedWaiterName(order.waiterName ?? null);
+    setSelectedWaiterName(order.waiterName ?? waiters.find((w: any) => w.id === order.waiterId)?.name ?? null);
     setCustomerId(order.customerId ?? null);
     setCustomerName(order.customerName || "Walk-in Customer");
     setSelectedTableId(order.tableId ?? null);
@@ -1722,7 +1722,7 @@ export default function POSPage() {
   const modalOrderData  = (orderDetailData as any) ?? {};
   const modalOrder      = modalOrderData.order  ?? {};
   const modalItems      = modalOrderData.items  ?? [];
-  const modalWaiterName = modalOrder.placedBy || waiters.find((waiter: any) => waiter.id === modalOrder.waiterId)?.name || null;
+  const modalWaiterName = modalOrder.waiterName || modalOrder.placedBy || waiters.find((waiter: any) => waiter.id === modalOrder.waiterId)?.name || "Unassigned";
   const finalizeOrderData = (finalizeDetailData as any) ?? {};
   const finalizeOrder     = finalizeOrderData.order ?? {};
   const finalizeItems     = finalizeOrderData.items ?? [];
@@ -1957,7 +1957,7 @@ export default function POSPage() {
                       <div className="min-w-0 flex items-center gap-1.5">
                         <span className="font-bold text-xs font-mono shrink-0" style={{ color: GOLD }}>{order.orderNumber}</span>
                         <span className="text-[10px] truncate" style={{ color: MUTED }}>
-                          ({order.placedBy || waiters.find((waiter: any) => waiter.id === order.waiterId)?.name || "Unassigned"})
+                          ({order.waiterName || order.placedBy || waiters.find((waiter: any) => waiter.id === order.waiterId)?.name || "Unassigned"})
                         </span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
