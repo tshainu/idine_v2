@@ -850,9 +850,41 @@ function triggerPrint(printableId: string) {
   if (!document.getElementById(styleId)) {
     const s = document.createElement("style");
     s.id = styleId;
-    s.innerHTML = `@media print {
+    s.innerHTML = `@page {
+      size: 3in auto;
+      margin: 0;
+    }
+    @media print {
+      html, body {
+        width: 3in !important;
+        min-width: 3in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       body > * { display: none !important; }
-      #idine-invoice-print-root { display: block !important; position: static !important; background: #fff !important; }
+      #idine-invoice-print-root {
+        display: block !important;
+        position: static !important;
+        width: 3in !important;
+        min-width: 3in !important;
+        max-width: 3in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+      #idine-invoice-print-root > #idine-invoice-printable,
+      #idine-invoice-print-root > #idine-kot-printable {
+        width: 3in !important;
+        min-width: 3in !important;
+        max-width: 3in !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
+      #idine-invoice-print-root img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+      }
     }`;
     document.head.appendChild(s);
   }
@@ -884,7 +916,7 @@ function ReceiptHeader({ settings, label }: { settings: Record<string, string>; 
   if (headerImg) {
     return (
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <img src={headerImg} alt="Header" style={{ maxWidth: "100%", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
+        <img src={headerImg} alt="Header" style={{ width: "100%", maxWidth: "100%", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
         <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#000" }}>{label}</div>
       </div>
     );
@@ -966,6 +998,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
               ? <div className="text-center py-16 text-sm" style={{ color: "var(--color-danger)" }}>Failed to load order</div>
               : (
                 <div id={printId} style={{
+                  width: "3in",
+                  minWidth: "3in",
+                  maxWidth: "3in",
+                  boxSizing: "border-box",
+                  margin: "0 auto",
                   fontFamily: "'Roboto', Arial, sans-serif",
                   background: "#fff",
                   color: "#000",
