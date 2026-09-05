@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { directPrint, isNetworkPrinter, parsePrinterSetup, resolvePrinter, routeKotItems, type PrinterRow } from "../lib/direct-print";
+import { directPrint, isNetworkPrinter, parsePrinterSetup, resolvePrinter, type PrinterRow } from "../lib/direct-print";
 import { getBranchId, getUser } from "../lib/store";
 import { Spinner } from "../components/ui/spinner";
 import {
@@ -1241,71 +1241,11 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
   const printId = "idine-kot-printable";
   const typeLabel = kot.type === "dine-in" ? "DINE IN" : kot.type === "takeaway" ? "TAKEAWAY" : kot.type === "delivery" ? "DELIVERY" : (kot.type || "").toUpperCase();
   const now = new Date();
-  const branchId = getBranchId();
-  const [printing, setPrinting] = useState(false);
-  const [printMsg, setPrintMsg] = useState<string | null>(null);
 
-  const { data: printersRaw } = useQuery({
-    queryKey: ["printers", branchId],
-    queryFn: async () => (await api.printers.$get({ query: { branchId: String(branchId) } })).json() as any,
-  });
-  const { data: settingsRaw } = useQuery({
-    queryKey: ["settings", branchId],
-    queryFn: async () => (await api.settings.$get({ query: { branchId: String(branchId) } })).json() as any,
-  });
-  const printers: PrinterRow[] = (printersRaw as any)?.printers || [];
-  const printerSetup = parsePrinterSetup((settingsRaw as any)?.settings || {});
-
-  /**
-   * Send the KOT straight to the kitchen. Items are split across the KOT printers
-   * using the category -> printer mapping from Printer Setup, so each station only
-   * gets what it cooks. Falls back to the browser dialog when no network KOT
-   * printer is configured.
-   */
-  async function handlePrintKot() {
-    const groups = routeKotItems(kot.items || [], printerSetup, printers)
-      .filter(g => isNetworkPrinter(g.printer.connection));
-
-    if (groups.length === 0) {
-      triggerPrint(printId);
-      onPrinted();
-      return;
-    }
-
-    setPrinting(true);
-    setPrintMsg(null);
-    const stamp = Date.now();
-    const results = await Promise.all(
-      groups.map(g =>
-        directPrint({
-          branchId,
-          orderId: kot.orderId ?? null,
-          printerId: g.printer.id,
-          type: "kot",
-          idempotencyKey: `kot-${kot.orderId}-${g.printer.id}-${stamp}`,
-          payload: {
-            orderNumber: kot.orderNumber,
-            type: kot.type,
-            tableName: kot.tableId ? String(kot.tableId) : "",
-            waiterName: kot.waiterName || "",
-            customerName: kot.customerName || "",
-            items: g.items.map((it: any) => ({
-              name: it.name, qty: it.qty, notes: it.note, modifiers: (it.modifiers || []).map((m: string) => ({ name: m })),
-            })),
-          },
-        }),
-      ),
-    );
-    setPrinting(false);
-
-    const failed = results.filter(r => !r.ok);
-    if (failed.length === 0) {
-      setPrintMsg(`Sent to ${groups.map(g => g.printer.name).join(", ")}.`);
-      onPrinted();
-      setTimeout(() => onClose(), 900);
-    } else {
-      setPrintMsg(failed.map(f => f.message).join(" "));
-    }
+  /** Open the normal Windows/browser print dialog for the rendered KOT ticket. */
+  function handlePrintKot() {
+    triggerPrint(printId);
+    onPrinted();
   }
 
   return (
@@ -1372,19 +1312,16 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
         </div>
 
         {/* Action bar */}
-        {printMsg && (
-          <div className="px-5 pt-2 text-xs font-semibold" style={{ color: "#000" }}>{printMsg}</div>
-        )}
         <div className="flex gap-2 px-5 py-3 border-t rounded-b-xl" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
           <button onClick={onClose}
             className="flex-1 py-2 rounded-lg text-xs font-bold border"
             style={{ color: "#000", borderColor: "#d1d5db", background: "#fff" }}>
             Skip
           </button>
-          <button onClick={handlePrintKot} disabled={printing}
-            className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-60"
+          <button onClick={handlePrintKot}
+            className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
             style={{ background: "#111", color: "#fff" }}>
-            <Printer size={13} /> {printing ? "Printing…" : "Print KOT"}
+            <Printer size={13} /> Print KOT
           </button>
         </div>
       </div>
