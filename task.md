@@ -488,3 +488,38 @@ Then push to git AND deploy to VPS.
    on the kotPreview items (CartItem already carries `categoryId`+`printerId`).
 3. `bun run build:web` + `npx tsc` clean.
 4. Commit, push, deploy to VPS (pull, build:web, pm2 restart idine_v2).
+
+### Deployed & smoke-tested on the VPS (2026-09-05)
+Merged with 4 commits that had been pushed in the meantime (`3b6b80e`, `4f06754`,
+`9b5ca19`, `793b239` — waiter/KDS/POS wiring + receipt width). **No conflicts.**
+The VPS also had **uncommitted** hand-tuning of the receipt header image width in
+`pos.tsx` (`calc(100% + 20px)` / negative margins) — stashed, pulled, popped, and
+**preserved**. Backup of that file: `/root/pos.tsx.vpslocal.<ts>`.
+Deployed: `bun install` → `bun run build:web` → `pm2 restart idine_v2` (online).
+Fresh DB backup taken before the pull.
+
+`POST /api/print-jobs/direct` verified live:
+- no printerId → 400 `printerId is required`
+- unknown printer → 404 `Printer 99999 not found`
+- real printer id 1 → `{ok:false, queued:true, error:"Kitchen: TCP timeout — queued for retry."}`
+Smoke-test print_jobs rows deleted afterwards.
+
+### ⚠️ ARCHITECTURAL BLOCKER FOUND — direct print cannot work from the cloud VPS
+The two configured printers are:
+  id 1 "Kitchen"   192.168.1.61:9100  (branch 2)
+  id 2 "Juice bar" 192.168.1.62:9100  (branch 2)
+`192.168.x.x` is a **private LAN address inside the restaurant**. The app server
+runs on a public cloud VPS (69.169.97.195), which has **no route** to that
+network — hence the TCP timeout above. Server-side direct printing therefore
+**can never reach these printers** while the POS is cloud-hosted.
+
+Options to actually get silent printing (needs a user decision):
+1. **Local print agent** (recommended): a tiny helper on a PC in the restaurant
+   polls `GET /api/print-jobs?status=pending` and sends the bytes to the printer
+   over the LAN. The `print_jobs` table + poll endpoint already exist for exactly
+   this. Silent, no dialog, works through NAT.
+2. **Run the POS server on a PC inside the restaurant** (or add a VPN/tunnel
+   between the VPS and the shop LAN) so TCP 9100 is reachable.
+3. **Port-forward** each printer to a public IP — works but exposes the printers
+   to the internet; not recommended.
+Until one of these is in place, printing falls back to the browser dialog.
