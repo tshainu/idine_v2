@@ -2,8 +2,66 @@ import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, and, asc } from "drizzle-orm";
+import { buildKOT, buildBill, sendToThermal, isNetworkPrinter } from "../print-worker";
 
 export const printJobs = new Hono()
+  /**
+   * Direct print — build ESC/POS and push it to the printer over TCP right now,
+   * then report the result. The POS calls this so a network printer prints with
+   * no Windows print wizard at all; the browser dialog is only used for printers
+   * attached to a Windows PC, which the server cannot reach.
+   *
+   * Body: { branchId, orderId?, printerId, type: kot|bill|reprint, payload }
+   */
+  .post("/direct", async (c) => {
+    const body = await c.req.json();
+    const printerId = Number(body.printerId);
+    if (!printerId) return c.json({ ok: false, error: "printerId is required" }, 400);
+
+    const [printer] = await db.select().from(schema.printers).where(eq(schema.printers.id, printerId));
+    if (!printer) return c.json({ ok: false, error: `Printer ${printerId} not found` }, 404);
+    if (!isNetworkPrinter(printer.connection) || !printer.ipAddress) {
+      return c.json(
+        { ok: false, fallback: "windows", error: `"${printer.name}" is a Windows printer — print it from the browser.` },
+        409,
+      );
+    }
+
+    const payload = typeof body.payload === "string" ? body.payload : JSON.stringify(body.payload ?? {});
+    const type = body.type || "kot";
+
+    // Log the job so failures are visible in the print queue like any other job.
+    const [job] = await db
+      .insert(schema.printJobs)
+      .values({
+        branchId: body.branchId ?? printer.branchId ?? null,
+        orderId: body.orderId ?? null,
+        printerId,
+        idempotencyKey: body.idempotencyKey || `direct-${printerId}-${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type,
+        status: "printing",
+        payload,
+        attempts: 1,
+        lastAttemptAt: new Date(),
+      })
+      .returning();
+
+    try {
+      const bytes = type === "bill" || type === "invoice" ? buildBill(job) : buildKOT(job);
+      await sendToThermal(printer.ipAddress, printer.port ?? 9100, bytes);
+      await db.update(schema.printJobs)
+        .set({ status: "done", completedAt: new Date() })
+        .where(eq(schema.printJobs.id, job.id));
+      return c.json({ ok: true, printJob: { ...job, status: "done" }, printer: printer.name }, 200);
+    } catch (err: any) {
+      // Leave it "pending" so the background worker retries on its own.
+      await db.update(schema.printJobs).set({ status: "pending" }).where(eq(schema.printJobs.id, job.id));
+      return c.json(
+        { ok: false, queued: true, printJob: job, error: `${printer.name}: ${err?.message || "print failed"} — queued for retry.` },
+        200,
+      );
+    }
+  })
   // Poll endpoint for Windows print helper
   .get("/", async (c) => {
     const status = c.req.query("status") || "pending";

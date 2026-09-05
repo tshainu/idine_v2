@@ -366,22 +366,31 @@ function PaymentMethods({ onBack }: { onBack: () => void }) {
   );
 }
 
+// A printer is "network" when the server prints to it directly over TCP.
+// Legacy rows were saved as "lan"/"usb" before the Windows-vs-Network choice existed.
+function isNet(connection?: string | null): boolean {
+  return connection === "network" || connection === "lan";
+}
+
 // Sub-page: Printer Setup
 function PrinterSetup({ onBack }: { onBack: () => void }) {
-  const [tab, setTab] = useState<"invoice" | "bill" | "kot" | "manage">("invoice");
+  const [tab, setTab] = useState<"invoice" | "bill" | "kot" | "kot2" | "kot3" | "kot4" | "manage">("invoice");
   const branchId = getBranchId();
   const qc = useQueryClient();
   const [saved, setSaved] = useState(false);
   const [cfg, setCfg] = useState<Record<string, { printerId: string; paper: string }>>({
     invoice: { printerId: "", paper: "80mm" },
     bill:    { printerId: "", paper: "80mm" },
-    kot:     { printerId: "", paper: "80mm" },
+    kot:     { printerId: "", paper: "80mm" }, // KOT 1 (legacy key — kept so old saved setups still load)
+    kot2:    { printerId: "", paper: "80mm" },
+    kot3:    { printerId: "", paper: "80mm" },
+    kot4:    { printerId: "", paper: "80mm" },
   });
   // printerCategories: { [printerId: string]: number[] }
   const [printerCategories, setPrinterCategories] = useState<Record<string, number[]>>({});
 
   // Manage Printers state
-  const emptyPrinter = { name: "", type: "kot", connection: "lan", ipAddress: "", port: 9100 };
+  const emptyPrinter = { name: "", type: "kot", connection: "network", ipAddress: "", port: 9100 };
   const [showAdd, setShowAdd] = useState(false);
   const [newPrinter, setNewPrinter] = useState<typeof emptyPrinter>({ ...emptyPrinter });
   const [newPrinterCats, setNewPrinterCats] = useState<number[]>([]);
@@ -468,7 +477,10 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
   const tabs = [
     { id: "invoice" as const, label: "Invoice Printer" },
     { id: "bill" as const, label: "Bill Printer" },
-    { id: "kot" as const, label: "KOT Printer" },
+    { id: "kot" as const, label: "KOT Printer 1" },
+    { id: "kot2" as const, label: "KOT Printer 2" },
+    { id: "kot3" as const, label: "KOT Printer 3" },
+    { id: "kot4" as const, label: "KOT Printer 4" },
     { id: "manage" as const, label: "Manage Printers" },
   ];
 
@@ -538,11 +550,11 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
                       <div>
                         <div className="text-xs mb-1" style={{ color: DIM }}>Connection</div>
                         <select className={inputCls} style={inputStyle} value={editData.connection} onChange={e => setEditData(d => ({ ...d, connection: e.target.value }))}>
-                          <option value="lan">LAN / TCP</option>
-                          <option value="usb">USB</option>
+                          <option value="network">Network print (direct, no dialog)</option>
+                          <option value="windows">Windows print (via browser)</option>
                         </select>
                       </div>
-                      {editData.connection === "lan" && (
+                      {isNet(editData.connection) && (
                         <>
                           <div>
                             <div className="text-xs mb-1" style={{ color: DIM }}>IP Address</div>
@@ -597,11 +609,11 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
                       <div>
                         <div className="text-sm font-semibold" style={{ color: TEXT }}>{p.name}</div>
                         <div className="text-xs mt-0.5" style={{ color: DIM }}>
-                          {p.type?.toUpperCase()} · {p.connection === "lan" ? `${p.ipAddress}:${p.port}` : "USB"}
+                          {p.type?.toUpperCase()} · {isNet(p.connection) ? `Network ${p.ipAddress}:${p.port}` : "Windows printer"}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => { setEditId(p.id); setEditData({ name: p.name, type: p.type, connection: p.connection, ipAddress: p.ipAddress || "", port: p.port || 9100 }); setEditCats(printerCategories[String(p.id)] || []); }}
+                        <button onClick={() => { setEditId(p.id); setEditData({ name: p.name, type: p.type, connection: isNet(p.connection) ? "network" : "windows", ipAddress: p.ipAddress || "", port: p.port || 9100 }); setEditCats(printerCategories[String(p.id)] || []); }}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: PURPLE + "33", color: PURPLE }}>Edit</button>
                         <button onClick={() => { if (confirm(`Delete printer "${p.name}"?`)) deletePrinter.mutate(p.id); }}
                           disabled={deletePrinter.isPending}
@@ -648,11 +660,11 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
                   <div>
                     <div className="text-xs mb-1" style={{ color: DIM }}>Connection</div>
                     <select className={inputCls} style={inputStyle} value={newPrinter.connection} onChange={e => setNewPrinter(d => ({ ...d, connection: e.target.value }))}>
-                      <option value="lan">LAN / TCP</option>
-                      <option value="usb">USB</option>
+                      <option value="network">Network print (direct, no dialog)</option>
+                      <option value="windows">Windows print (via browser)</option>
                     </select>
                   </div>
-                  {newPrinter.connection === "lan" && (
+                  {isNet(newPrinter.connection) && (
                     <>
                       <div>
                         <div className="text-xs mb-1" style={{ color: DIM }}>IP Address</div>

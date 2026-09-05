@@ -18,6 +18,13 @@ import { eq, and, lte, or } from "drizzle-orm";
 
 // ── ESC/POS byte helpers ────────────────────────────────────────────────────
 
+// A printer is "network" when the server can reach it over TCP itself.
+// Legacy rows stored "lan"; the UI now writes "network". "windows"/"usb" mean the
+// printer is attached to a Windows PC, so the browser must drive it instead.
+export function isNetworkPrinter(connection?: string | null): boolean {
+  return connection === "network" || connection === "lan";
+}
+
 const ESC = 0x1b;
 const GS  = 0x1d;
 
@@ -35,7 +42,7 @@ function doubleSize(on: boolean): Buffer { return Buffer.from([GS, 0x21, on ? 0x
 
 // ── ESC/POS document builders ───────────────────────────────────────────────
 
-function buildKOT(job: any): Buffer {
+export function buildKOT(job: any): Buffer {
   const payload: any = typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload;
   const parts: Buffer[] = [];
 
@@ -95,7 +102,7 @@ function buildKOT(job: any): Buffer {
   return Buffer.concat(parts);
 }
 
-function buildBill(job: any): Buffer {
+export function buildBill(job: any): Buffer {
   const payload: any = typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload;
   const parts: Buffer[] = [];
 
@@ -149,8 +156,15 @@ function buildBill(job: any): Buffer {
   const tax  = Number(payload.tax || 0).toFixed(2);
   const tot  = Number(payload.total || 0).toFixed(2);
 
+  const svc  = Number(payload.serviceCharge || 0).toFixed(2);
+
   parts.push(text(`${"Subtotal:".padEnd(30)}${sub.padStart(10)}`));
   if (Number(disc) > 0) parts.push(text(`${"Discount:".padEnd(30)}-${disc.padStart(9)}`));
+  // Service charge must print on the bill — it is part of what the guest pays.
+  if (Number(svc) > 0) {
+    const label = payload.serviceChargeLabel || "Service Charge:";
+    parts.push(text(`${label.padEnd(30)}${svc.padStart(10)}`));
+  }
   if (Number(tax) > 0)  parts.push(text(`${"Tax:".padEnd(30)}${tax.padStart(10)}`));
   parts.push(bold(true));
   parts.push(text(`${"TOTAL:".padEnd(30)}${tot.padStart(10)}`));
@@ -168,7 +182,7 @@ function buildBill(job: any): Buffer {
 
 // ── TCP sender ──────────────────────────────────────────────────────────────
 
-function sendToThermal(ip: string, port: number, data: Buffer): Promise<void> {
+export function sendToThermal(ip: string, port: number, data: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     const timeout = 6000;
@@ -224,7 +238,7 @@ export async function runPrintWorker(): Promise<void> {
             : [];
 
           if (!printer) throw new Error(`Printer ${job.printerId} not found`);
-          if (printer.connection !== "lan" || !printer.ipAddress) {
+          if (!isNetworkPrinter(printer.connection) || !printer.ipAddress) {
             // USB / unknown — skip TCP, just mark done (USB handled by local agent)
             await db.update(schema.printJobs)
               .set({ status: "done", completedAt: new Date() })

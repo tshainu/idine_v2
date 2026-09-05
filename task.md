@@ -427,3 +427,64 @@ Taking a test order therefore needs tables created for Manjal branch 2, which
 means writing to the real restaurant's data and polluting its sales reports.
 **Asked the user** whether to create their real floor plan (and what it is), or
 create throwaway tables for a test order and delete them after.
+
+---
+
+## Round N+2: POS (:6066) DIRECT PRINTING — in progress
+
+User's 5 requirements (message of 2026-09-05):
+1. POS direct print — no Windows print wizard; Print Bill / Print Invoice in the
+   preview modal must print straight to the configured printer.
+2. Printer Setup: per printer, choose **Windows print** or **Network print**;
+   settings shown depend on the choice.
+3. "Print KOT" in the KOT preview modal must print directly to the *respective*
+   printer, using the existing menu-category -> printer mapping.
+4. Printer Setup: add 3 more KOT printer tabs (was only 1).
+5. Bill print: service charge is missing — add it.
+Then push to git AND deploy to VPS.
+
+### Design decision (important)
+- **Network printer** = server reaches it over TCP 9100 itself (`print-worker.ts`
+  already does this). So direct print = server builds ESC/POS + sends. **No
+  browser dialog at all.**
+- **Windows printer** = attached to a PC the server cannot reach, so the browser
+  dialog (`window.print()`) is the only possible route. Kept as the fallback.
+- Legacy `connection` values `lan`/`usb` are still honoured: `lan` -> network,
+  `usb` -> windows. Helper `isNetworkPrinter()` in both API and web.
+
+### Done so far
+- `packages/web/src/api/print-worker.ts`
+  - exported `buildKOT`, `buildBill`, `sendToThermal`, new `isNetworkPrinter()`.
+  - **buildBill now prints the Service Charge line** (req 5, thermal side).
+  - worker's connection check uses `isNetworkPrinter()`.
+- `packages/web/src/api/routes/print-jobs.ts`
+  - **new `POST /print-jobs/direct`** — looks up the printer, logs a print job,
+    builds ESC/POS, sends over TCP *immediately*, returns `{ok, printer}`.
+    Returns 409 + `fallback:"windows"` for Windows printers. On TCP failure it
+    leaves the job `pending` so the background worker retries.
+- `packages/web/src/web/pages/settings.tsx` (Printer Setup)
+  - tabs now: Invoice, Bill, **KOT Printer 1..4**, Manage Printers (req 4).
+    cfg keys `kot`(=slot 1, legacy), `kot2`, `kot3`, `kot4`.
+  - connection dropdown is now **Network print (direct, no dialog)** vs
+    **Windows print (via browser)** (req 2); IP/Port only shown for network.
+    Legacy rows coerced on edit. List row shows "Network ip:port" / "Windows printer".
+- **new** `packages/web/src/web/lib/direct-print.ts` — `isNetworkPrinter`,
+  `parsePrinterSetup`, `KOT_SLOTS`, `directPrint()`, `resolvePrinter()`,
+  `routeKotItems()` (item.printerId > category mapping > KOT slot 1).
+- `packages/web/src/web/pages/pos.tsx`
+  - imported the helpers.
+  - **Service charge fix (req 5, screen side):** a BILL is previewed *before*
+    payment, so `orders.service_charge` is still 0 (it is only written when the
+    sale is finalised). Now falls back to the branch's configured
+    `settings.serviceCharge` rate applied to (subtotal - discount), and `total`
+    falls back to subtotal - discount + serviceCharge. **This was the actual bug.**
+
+### Next steps
+1. pos.tsx `InvoiceOverlay`: Print button -> `directPrint()` when the configured
+   invoice/bill printer is network, else `window.print()`. Needs printers query
+   + `parsePrinterSetup(settings)`.
+2. pos.tsx `KotOverlay`: Print KOT -> `routeKotItems()` then one `directPrint()`
+   per printer; fall back to the dialog if none are network. Needs `categoryId`
+   on the kotPreview items (CartItem already carries `categoryId`+`printerId`).
+3. `bun run build:web` + `npx tsc` clean.
+4. Commit, push, deploy to VPS (pull, build:web, pm2 restart idine_v2).

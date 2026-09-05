@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { directPrint, isNetworkPrinter, parsePrinterSetup, resolvePrinter, routeKotItems, type PrinterRow } from "../lib/direct-print";
 import { getBranchId, getUser } from "../lib/store";
 import { Spinner } from "../components/ui/spinner";
 import {
@@ -905,6 +906,14 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
     queryFn: async () => (await api.settings.$get({ query: { branchId: String(branchId) } })).json() as any,
   });
   const settings: Record<string, string> = (settingsRaw as any)?.settings || {};
+  const { data: printersRaw } = useQuery({
+    queryKey: ["printers", branchId],
+    queryFn: async () => (await api.printers.$get({ query: { branchId: String(branchId) } })).json() as any,
+  });
+  const printers: PrinterRow[] = (printersRaw as any)?.printers || [];
+  const printerSetup = parsePrinterSetup(settings);
+  const [printMsg, setPrintMsg] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
   const order = (data as any)?.order;
   const items: any[] = (data as any)?.items || [];
   // Plain number, no currency symbol, no trailing ".00" on whole numbers
@@ -925,8 +934,16 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
 
   const subtotal      = items.reduce((s, it) => s + Number(it.total || 0), 0);
   const discount      = Number(order?.discount || 0);
-  const serviceCharge = Number(order?.serviceCharge || 0);
-  const total         = Number(order?.total || subtotal);
+  // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
+  // written when the sale is finalised. Fall back to the branch's configured rate so the
+  // guest sees what they will actually be charged.
+  const svcRate       = parseFloat(String(settings?.serviceCharge || "0").replace("%", "")) / 100 || 0;
+  const storedSvc     = Number(order?.serviceCharge || 0);
+  const serviceCharge = storedSvc > 0
+    ? storedSvc
+    : parseFloat(((subtotal - discount) * svcRate).toFixed(2));
+  const storedTotal   = Number(order?.total || 0);
+  const total         = storedTotal > 0 ? storedTotal : parseFloat((subtotal - discount + serviceCharge).toFixed(2));
   const amountPaid    = Number(order?.amountPaid || 0);
   const cashGiven     = Number(order?.cashGiven || 0);
   const balance       = Number(order?.balance || 0);
@@ -934,6 +951,44 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   let payments: PaymentEntry[] = [];
   try { payments = JSON.parse(order?.paymentsJson || "[]"); } catch {}
   const tax = 0;
+
+  /**
+   * Print the bill/invoice. If the configured printer is a network printer the
+   * server prints it over TCP and nothing opens in the browser. Only a Windows
+   * printer (or no configured printer) falls back to the print dialog.
+   */
+  async function handlePrint() {
+    const printer = resolvePrinter(printerSetup, printers, isInvoice ? "invoice" : "bill");
+    if (!printer || !isNetworkPrinter(printer.connection)) {
+      triggerPrint(printId);
+      return;
+    }
+    setPrinting(true);
+    setPrintMsg(null);
+    const res = await directPrint({
+      branchId,
+      orderId,
+      printerId: printer.id,
+      type: isInvoice ? "invoice" : "bill",
+      payload: {
+        restaurantName: settings?.restaurantName || settings?.outletName || "iDine",
+        address: settings?.outletAddress || "",
+        phone: settings?.outletPhone || "",
+        orderNumber: order?.orderNumber,
+        type: order?.type,
+        tableName: order?.tableName || (order?.tableId ? `T${order.tableId}` : ""),
+        waiterName: order?.waiterName || "",
+        items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price })),
+        subtotal, discount, serviceCharge, total,
+        serviceChargeLabel: "Service Charge:",
+        paymentMethod: isInvoice ? paymentMethod : "",
+      },
+    });
+    setPrinting(false);
+    if (res.fallback) { triggerPrint(printId); return; }
+    setPrintMsg(res.message);
+    if (res.ok) setTimeout(() => onClose(), 900);
+  }
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center" style={{ background: "#00000099" }}>
@@ -1113,6 +1168,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         </div>
 
         {/* ── Action bar ── */}
+        {printMsg && (
+          <div className="px-5 pt-2 text-xs font-semibold" style={{ color: "#000" }}>{printMsg}</div>
+        )}
         {order && (
           <div className="flex gap-2 px-5 py-3 border-t rounded-b-xl" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
             <button onClick={onClose}
@@ -1120,10 +1178,10 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
               style={{ color: "#000", borderColor: "#d1d5db", background: "#fff" }}>
               Close
             </button>
-            <button onClick={() => triggerPrint(printId)}
-              className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+            <button onClick={handlePrint} disabled={printing}
+              className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-60"
               style={{ background: "#111", color: "#fff" }}>
-              <Printer size={13} /> Print {label}
+              <Printer size={13} /> {printing ? "Printing…" : `Print ${label}`}
             </button>
           </div>
         )}
@@ -1137,6 +1195,72 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
   const printId = "idine-kot-printable";
   const typeLabel = kot.type === "dine-in" ? "DINE IN" : kot.type === "takeaway" ? "TAKEAWAY" : kot.type === "delivery" ? "DELIVERY" : (kot.type || "").toUpperCase();
   const now = new Date();
+  const branchId = getBranchId();
+  const [printing, setPrinting] = useState(false);
+  const [printMsg, setPrintMsg] = useState<string | null>(null);
+
+  const { data: printersRaw } = useQuery({
+    queryKey: ["printers", branchId],
+    queryFn: async () => (await api.printers.$get({ query: { branchId: String(branchId) } })).json() as any,
+  });
+  const { data: settingsRaw } = useQuery({
+    queryKey: ["settings", branchId],
+    queryFn: async () => (await api.settings.$get({ query: { branchId: String(branchId) } })).json() as any,
+  });
+  const printers: PrinterRow[] = (printersRaw as any)?.printers || [];
+  const printerSetup = parsePrinterSetup((settingsRaw as any)?.settings || {});
+
+  /**
+   * Send the KOT straight to the kitchen. Items are split across the KOT printers
+   * using the category -> printer mapping from Printer Setup, so each station only
+   * gets what it cooks. Falls back to the browser dialog when no network KOT
+   * printer is configured.
+   */
+  async function handlePrintKot() {
+    const groups = routeKotItems(kot.items || [], printerSetup, printers)
+      .filter(g => isNetworkPrinter(g.printer.connection));
+
+    if (groups.length === 0) {
+      triggerPrint(printId);
+      onPrinted();
+      return;
+    }
+
+    setPrinting(true);
+    setPrintMsg(null);
+    const stamp = Date.now();
+    const results = await Promise.all(
+      groups.map(g =>
+        directPrint({
+          branchId,
+          orderId: kot.orderId ?? null,
+          printerId: g.printer.id,
+          type: "kot",
+          idempotencyKey: `kot-${kot.orderId}-${g.printer.id}-${stamp}`,
+          payload: {
+            orderNumber: kot.orderNumber,
+            type: kot.type,
+            tableName: kot.tableId ? String(kot.tableId) : "",
+            waiterName: kot.waiterName || "",
+            customerName: kot.customerName || "",
+            items: g.items.map((it: any) => ({
+              name: it.name, qty: it.qty, notes: it.note, modifiers: (it.modifiers || []).map((m: string) => ({ name: m })),
+            })),
+          },
+        }),
+      ),
+    );
+    setPrinting(false);
+
+    const failed = results.filter(r => !r.ok);
+    if (failed.length === 0) {
+      setPrintMsg(`Sent to ${groups.map(g => g.printer.name).join(", ")}.`);
+      onPrinted();
+      setTimeout(() => onClose(), 900);
+    } else {
+      setPrintMsg(failed.map(f => f.message).join(" "));
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center" style={{ background: "#00000099" }}>
@@ -1202,16 +1326,19 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
         </div>
 
         {/* Action bar */}
+        {printMsg && (
+          <div className="px-5 pt-2 text-xs font-semibold" style={{ color: "#000" }}>{printMsg}</div>
+        )}
         <div className="flex gap-2 px-5 py-3 border-t rounded-b-xl" style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}>
           <button onClick={onClose}
             className="flex-1 py-2 rounded-lg text-xs font-bold border"
             style={{ color: "#000", borderColor: "#d1d5db", background: "#fff" }}>
             Skip
           </button>
-          <button onClick={() => { triggerPrint(printId); onPrinted(); }}
-            className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+          <button onClick={handlePrintKot} disabled={printing}
+            className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-60"
             style={{ background: "#111", color: "#fff" }}>
-            <Printer size={13} /> Print KOT
+            <Printer size={13} /> {printing ? "Printing…" : "Print KOT"}
           </button>
         </div>
       </div>
@@ -1491,6 +1618,7 @@ export default function POSPage() {
           customerName: customerName !== "Walk-in Customer" ? customerName : null,
           items: cartItems.map(i => ({
             name: i.name, qty: i.qty, note: i.note,
+            categoryId: i.categoryId, printerId: i.printerId,
             modifiers: i.modifiers.map(m => m.name),
           })),
         };
