@@ -28,6 +28,10 @@ export function useSessionActions() {
   const qc = useQueryClient();
   return {
     signIn: async (s: WaiterSession) => {
+      // A device can be handed directly to another waiter. Clear every cached
+      // restaurant read before installing the new identity so no prior order
+      // briefly appears under the new account.
+      qc.clear();
       await saveSession(s);
       qc.setQueryData(KEY, s);
     },

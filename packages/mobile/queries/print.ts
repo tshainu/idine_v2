@@ -32,6 +32,7 @@ async function queueJobs(input: {
   type: "kot" | "reprint";
   tableName?: string | null;
   waiterName?: string | null;
+  customerPhone?: string | null;
   nonce?: string;
 }) {
   const groups = groupByPrinter(input.items);
@@ -41,6 +42,7 @@ async function queueJobs(input: {
       tableName: input.tableName ?? null,
       waiterName: input.waiterName ?? null,
       customerName: input.order.customerName,
+      customerPhone: input.customerPhone ?? null,
       type: input.order.type,
       items: toKotItems(items),
       mode: input.type === "reprint" ? "update" : "new",
@@ -78,6 +80,7 @@ export function useSendKot() {
       branchId: number | null;
       tableName?: string | null;
       waiterName?: string | null;
+      customerPhone?: string | null;
     }) => {
       const config = await loadPrinterConfig();
       const groups = groupByPrinter(input.items);
@@ -87,6 +90,7 @@ export function useSendKot() {
         tableName: input.tableName ?? null,
         waiterName: input.waiterName ?? null,
         customerName: input.order.customerName,
+        customerPhone: input.customerPhone ?? null,
         type: input.order.type,
         items: toKotItems(input.items),
         mode: "new",
@@ -127,6 +131,7 @@ export function useReprintKot() {
       branchId: number | null;
       tableName?: string | null;
       waiterName?: string | null;
+      customerPhone?: string | null;
     }) => {
       const config = await loadPrinterConfig();
       const nonce = String(Date.now());
@@ -135,6 +140,7 @@ export function useReprintKot() {
         tableName: input.tableName ?? null,
         waiterName: input.waiterName ?? null,
         customerName: input.order.customerName,
+        customerPhone: input.customerPhone ?? null,
         type: input.order.type,
         items: toKotItems(input.items),
         mode: "update",
@@ -154,6 +160,7 @@ export function kotPreview(
   items: OrderItem[],
   tableName: string | null | undefined,
   waiterName: string | null | undefined,
+  customerPhone: string | null | undefined,
   width: 32 | 48 = 32,
 ) {
   return kotPreviewText(
@@ -162,6 +169,7 @@ export function kotPreview(
       tableName: tableName ?? null,
       waiterName: waiterName ?? null,
       customerName: order.customerName,
+      customerPhone: customerPhone ?? null,
       type: order.type,
       items: toKotItems(items),
       mode: "new",

@@ -25,7 +25,8 @@ export const orders = new Hono()
       ? await db.select().from(schema.orders).where(and(...conditions)).orderBy(desc(schema.orders.createdAt))
       : await db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt));
 
-    // Always include items
+    // Always include items and the resolved waiter name. The raw order only stores waiterId;
+    // resolving it here keeps every consumer (POS, KDS, reports) consistent.
     let ordersWithItems: any[] = all;
     if (all.length > 0) {
       const orderIds = all.map((o) => o.id);
@@ -35,7 +36,22 @@ export const orders = new Hono()
         if (!itemsByOrder[item.orderId!]) itemsByOrder[item.orderId!] = [];
         itemsByOrder[item.orderId!].push(item);
       }
-      ordersWithItems = all.map((o) => ({ ...o, items: itemsByOrder[o.id] || [] }));
+
+      const waiterIds = [...new Set(all.map((o) => o.waiterId).filter((id): id is number => typeof id === "number"))];
+      const waiterNames = new Map<number, string>();
+      if (waiterIds.length > 0) {
+        const waiterRows = await db
+          .select({ id: schema.users.id, name: schema.users.name })
+          .from(schema.users)
+          .where(inArray(schema.users.id, waiterIds));
+        waiterRows.forEach((waiter) => waiterNames.set(waiter.id, waiter.name));
+      }
+
+      ordersWithItems = all.map((o) => ({
+        ...o,
+        waiterName: (o.waiterId ? waiterNames.get(o.waiterId) : null) || o.placedBy || null,
+        items: itemsByOrder[o.id] || [],
+      }));
     }
     return c.json({ orders: ordersWithItems }, 200);
   })
@@ -65,7 +81,15 @@ export const orders = new Hono()
     const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
     if (!order) return c.json({ error: "Not found" }, 404);
     const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, id));
-    return c.json({ order, items }, 200);
+    let waiterName = order.placedBy || null;
+    if (order.waiterId) {
+      const [waiter] = await db
+        .select({ name: schema.users.name })
+        .from(schema.users)
+        .where(eq(schema.users.id, order.waiterId));
+      waiterName = waiter?.name || waiterName;
+    }
+    return c.json({ order: { ...order, waiterName }, items }, 200);
   })
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));

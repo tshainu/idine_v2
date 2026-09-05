@@ -1,4 +1,4 @@
-// Shared UI kit for the waiter app: white cards, soft shadows, Manjal yellow accent.
+// Shared UI kit for the waiter app: navy chrome, teal actions, and fast-scanning cards.
 import React from "react";
 import {
   View, Text, TouchableOpacity, ActivityIndicator, StyleSheet,
@@ -7,7 +7,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Radius, Shadow, Space, Fonts } from "../constants/theme";
 
-const c = Colors.light;
+  const c = Colors.light;
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 export function Card({ children, style, padded = true }: {
@@ -185,7 +185,7 @@ export function ScreenHeader({ title, subtitle, onBack, right }: {
     <View style={s.header}>
       {onBack ? (
         <TouchableOpacity onPress={onBack} style={s.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={22} color={c.foreground} />
+          <Ionicons name="chevron-back" size={22} color={c.onChrome} />
         </TouchableOpacity>
       ) : null}
       <View style={{ flex: 1 }}>
@@ -210,7 +210,7 @@ const s = StyleSheet.create({
     marginBottom: Space.md, marginTop: Space.xl,
   },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: c.foreground, letterSpacing: -0.2 },
-  sectionAction: { fontSize: 13, fontWeight: "600", color: c.primaryDark },
+  sectionAction: { fontSize: 13, fontWeight: "700", color: c.primaryDark },
 
   stat: { padding: Space.lg, flex: 1, minHeight: 108, justifyContent: "space-between" },
   statIcon: {
@@ -227,6 +227,8 @@ const s = StyleSheet.create({
   btn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     height: 50, borderRadius: Radius.md, borderWidth: 1, paddingHorizontal: 16,
+    shadowColor: c.foreground, shadowOpacity: 0.1, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
   btnText: { fontSize: 15, fontWeight: "700", letterSpacing: -0.1 },
 
@@ -258,14 +260,14 @@ const s = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", gap: Space.sm,
     paddingHorizontal: Space.lg, paddingTop: Space.md, paddingBottom: Space.md,
-    backgroundColor: c.card, borderBottomWidth: 1, borderBottomColor: c.border,
+    backgroundColor: c.chrome, borderBottomWidth: 1, borderBottomColor: c.chromeSoft,
   },
   backBtn: {
-    width: 38, height: 38, borderRadius: Radius.sm, backgroundColor: c.background,
+    width: 38, height: 38, borderRadius: Radius.sm, backgroundColor: c.chromeSoft,
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: c.foreground, letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: c.muted, marginTop: 1 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: c.onChrome, letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: c.chromeMuted, marginTop: 1 },
 });
 
 export { Fonts };

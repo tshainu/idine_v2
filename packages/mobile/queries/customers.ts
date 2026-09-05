@@ -6,13 +6,17 @@ import type { Customer, Order } from "../lib/types";
 export function useCustomerSearch(search: string, branchId: number | undefined) {
   const term = search.trim();
   return useQuery({
-    queryKey: ["customers", term, branchId],
-    // Don't hammer the VPS on the first keystroke.
-    enabled: term.length >= 2,
-    staleTime: 60_000,
+    queryKey: ["customers", branchId, term],
+    enabled: !!branchId && term.length >= 1,
+    staleTime: 10_000,
     queryFn: async () => {
-      const data = await http.get<{ customers: Customer[] }>("/customers", { search: term });
-      return data.customers ?? [];
+      const data = await http.get<{ customers: Customer[] }>("/customers", {
+        branchId,
+        search: term,
+      });
+      // The current VPS search endpoint may return cross-branch matches when a
+      // search term is present, so enforce branch isolation on the device too.
+      return (data.customers ?? []).filter((customer) => customer.branchId === branchId);
     },
   });
 }

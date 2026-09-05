@@ -157,10 +157,25 @@ export default function KDSPage() {
                 {/* Items */}
                 <div className="px-4 py-3 space-y-2">
                   <div className="text-xs font-semibold mb-2" style={{ color: "var(--color-text-dim)" }}>ITEMS</div>
-                  {/* We'd normally load items per order — showing placeholder */}
-                  <div className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
-                    {order.customerName}
-                  </div>
+                  {(order.items || []).map((item: any) => (
+                    <div key={item.id} className="flex gap-2 text-sm" style={{ color: "var(--color-text)" }}>
+                      <span className="font-bold" style={{ color: "var(--color-gold)" }}>{item.qty}×</span>
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        {item.note && <div className="text-xs" style={{ color: "var(--color-warning)" }}>{item.note}</div>}
+                      </div>
+                    </div>
+                  ))}
+                  {order.customerName && (
+                    <div className="text-xs pt-2 mt-2 border-t" style={{ color: "var(--color-text-muted)", borderColor: "var(--color-border)" }}>
+                      Customer: {order.customerName}
+                    </div>
+                  )}
+                  {order.placedBy && (
+                    <div className="text-xs" style={{ color: "var(--color-text-dim)" }}>
+                      Waiter: {order.placedBy}
+                    </div>
+                  )}
                   {order.notes && (
                     <div className="text-xs p-2 rounded" style={{ background: "var(--color-warning)" + "22", color: "var(--color-warning)", border: "1px solid var(--color-warning)" }}>
                       ⚠ {order.notes}
@@ -171,11 +186,11 @@ export default function KDSPage() {
                 {/* Action */}
                 <div className="px-4 pb-4">
                   <button
-                    onClick={() => updateStatus.mutate({ id: order.id, status: "served" })}
+                    onClick={() => updateStatus.mutate({ id: order.id, status: "ready" })}
                     disabled={updateStatus.isPending}
                     className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-60"
                     style={{ background: "var(--color-success)", color: "#fff" }}>
-                    {updateStatus.isPending ? <Spinner size={16} /> : <><CheckCircle size={16} /> Mark as Done</>}
+                    {updateStatus.isPending ? <Spinner size={16} /> : <><CheckCircle size={16} /> Cooked · Alert Waiter</>}
                   </button>
                 </div>
               </div>

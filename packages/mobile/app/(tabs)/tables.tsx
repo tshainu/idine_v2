@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -24,9 +24,9 @@ function statusKey(s: string): TableStatusKey {
 
 export default function TablesScreen() {
   const router = useRouter();
-  const { branchId } = useSession();
+  const { branchId, waiterId } = useSession();
   const tables = useTables(branchId);
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
   const [zone, setZone] = useState<string>("all");
 
   // Attach each table's open order so the tile can show the running total.
@@ -87,9 +87,9 @@ export default function TablesScreen() {
                 key={z}
                 onPress={() => setZone(z)}
                 activeOpacity={0.8}
-                style={[s.zone, on && { backgroundColor: c.foreground, borderColor: c.foreground }]}
+                style={[s.zone, on && { backgroundColor: c.chrome, borderColor: c.chrome }]}
               >
-                <Text style={[s.zoneText, on && { color: "#fff" }]}>
+                <Text style={[s.zoneText, on && { color: c.onChrome }]}>
                   {z === "all" ? "All areas" : z}
                 </Text>
               </TouchableOpacity>
@@ -128,7 +128,13 @@ export default function TablesScreen() {
                 total={order?.total ?? null}
                 itemCount={order?.items?.length ?? 0}
                 since={order?.createdAt ?? null}
-                onPress={() => router.push(`/order/${table.id}`)}
+                onPress={() => {
+                  if (!order && ["occupied", "billed"].includes(table.status)) {
+                    Alert.alert("Table already assigned", "This table has a running order assigned to another waiter.");
+                    return;
+                  }
+                  router.push(`/order/${table.id}`);
+                }}
               />
             ))}
           </View>
@@ -203,7 +209,7 @@ const s = StyleSheet.create({
     backgroundColor: c.card, borderWidth: 1, borderColor: c.border,
   },
   zoneText: { fontFamily: Fonts.medium, fontSize: 12.5, color: c.muted },
-  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: Space.xxl },
+  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: 150 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.md },
   tile: {
     width: "48%", flexGrow: 1, minHeight: 108, borderRadius: Radius.lg,

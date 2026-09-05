@@ -343,8 +343,12 @@ function ModifierPicker({
 }
 
 /** Order Details modal */
-function OrderDetailsModal({ order, items, onClose, onCreateInvoice }: {
-  order: any; items: any[]; onClose: () => void; onCreateInvoice: () => void;
+function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill }: {
+  order: any;
+  items: any[];
+  onClose: () => void;
+  onCreateInvoice: () => void;
+  onPrintBill: () => void;
 }) {
   const subtotal = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
   const tax      = 0;
@@ -435,6 +439,11 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice }: {
             className="flex-1 py-2 rounded text-xs font-semibold transition-all hover:brightness-110"
             style={{ background: GOLD, color: "var(--color-surface)" }}>
             Create Invoice & Close
+          </button>
+          <button onClick={onPrintBill}
+            className="flex-1 py-2 rounded border text-xs font-semibold transition-all hover:brightness-110 flex items-center justify-center gap-1.5"
+            style={{ borderColor: GOLD, color: GOLD, background: `${GOLD}18` }}>
+            <Printer size={13} /> Print Bill
           </button>
           <button onClick={onClose}
             className="flex-1 py-2 rounded border text-xs font-medium"
@@ -842,9 +851,41 @@ function triggerPrint(printableId: string) {
   if (!document.getElementById(styleId)) {
     const s = document.createElement("style");
     s.id = styleId;
-    s.innerHTML = `@media print {
+    s.innerHTML = `@page {
+      size: 3in auto;
+      margin: 0;
+    }
+    @media print {
+      html, body {
+        width: 3in !important;
+        min-width: 3in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       body > * { display: none !important; }
-      #idine-invoice-print-root { display: block !important; position: static !important; background: #fff !important; }
+      #idine-invoice-print-root {
+        display: block !important;
+        position: static !important;
+        width: 3in !important;
+        min-width: 3in !important;
+        max-width: 3in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+      }
+      #idine-invoice-print-root > #idine-invoice-printable,
+      #idine-invoice-print-root > #idine-kot-printable {
+        width: 3in !important;
+        min-width: 3in !important;
+        max-width: 3in !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
+      #idine-invoice-print-root img {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+      }
     }`;
     document.head.appendChild(s);
   }
@@ -876,7 +917,7 @@ function ReceiptHeader({ settings, label }: { settings: Record<string, string>; 
   if (headerImg) {
     return (
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <img src={headerImg} alt="Header" style={{ maxWidth: "100%", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
+        <img src={headerImg} alt="Header" style={{ width: "100%", maxWidth: "100%", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
         <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#000" }}>{label}</div>
       </div>
     );
@@ -1012,6 +1053,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
               ? <div className="text-center py-16 text-sm" style={{ color: "var(--color-danger)" }}>Failed to load order</div>
               : (
                 <div id={printId} style={{
+                  width: "3in",
+                  minWidth: "3in",
+                  maxWidth: "3in",
+                  boxSizing: "border-box",
+                  margin: "0 auto",
                   fontFamily: "'Roboto', Arial, sans-serif",
                   background: "#fff",
                   color: "#000",
@@ -1708,7 +1754,7 @@ export default function POSPage() {
     const { order, items } = res;
     setOrderType(order.type as OrderType);
     setSelectedWaiterId(order.waiterId ?? null);
-    setSelectedWaiterName(order.waiterName ?? null);
+    setSelectedWaiterName(order.waiterName ?? waiters.find((w: any) => w.id === order.waiterId)?.name ?? null);
     setCustomerId(order.customerId ?? null);
     setCustomerName(order.customerName || "Walk-in Customer");
     setSelectedTableId(order.tableId ?? null);
@@ -1841,6 +1887,7 @@ export default function POSPage() {
   const modalOrderData  = (orderDetailData as any) ?? {};
   const modalOrder      = modalOrderData.order  ?? {};
   const modalItems      = modalOrderData.items  ?? [];
+  const modalWaiterName = modalOrder.waiterName || modalOrder.placedBy || waiters.find((waiter: any) => waiter.id === modalOrder.waiterId)?.name || "Unassigned";
   const finalizeOrderData = (finalizeDetailData as any) ?? {};
   const finalizeOrder     = finalizeOrderData.order ?? {};
   const finalizeItems     = finalizeOrderData.items ?? [];
@@ -2071,9 +2118,14 @@ export default function POSPage() {
                       background:  selectedOrderId === order.id ? SURF2 : "transparent",
                       border:      `1px solid ${selectedOrderId === order.id ? GOLD : BORD}`,
                     }}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs font-mono" style={{ color: GOLD }}>{order.orderNumber}</span>
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <span className="font-bold text-xs font-mono shrink-0" style={{ color: GOLD }}>{order.orderNumber}</span>
+                        <span className="text-[10px] truncate" style={{ color: MUTED }}>
+                          ({order.waiterName || order.placedBy || waiters.find((waiter: any) => waiter.id === order.waiterId)?.name || "Unassigned"})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
                         {order.source === "qr" && (
                           <span className="text-[9px] px-1 py-0.5 rounded font-bold text-white" style={{ background: "#8B5CF6" }}>QR</span>
                         )}
@@ -2485,9 +2537,10 @@ export default function POSPage() {
       {/* Order Details modal */}
       {detailsOrderId && modalOrder.id && (
         <OrderDetailsModal
-          order={modalOrder} items={modalItems}
+          order={{ ...modalOrder, waiterName: modalWaiterName }} items={modalItems}
           onClose={() => setDetailsOrderId(null)}
-          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }} />
+          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }}
+          onPrintBill={() => { setDetailsOrderId(null); setInvoicePreviewMode("bill"); setInvoicePreviewId(detailsOrderId); }} />
       )}
 
       {/* ── Toolbar modals ── */}

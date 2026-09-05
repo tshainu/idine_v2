@@ -22,7 +22,7 @@ const VOID = ["cancelled", "refunded"];
 
 export default function ReportsScreen() {
   const { branchId, waiterId } = useSession();
-  const orders = useOrders(branchId);
+  const orders = useOrders(branchId, { waiterId });
   const shifts = useMyShifts(waiterId, branchId);
   const [period, setPeriod] = useState<PeriodKey>("today");
   const [mineOnly, setMineOnly] = useState(true);
@@ -99,10 +99,10 @@ export default function ReportsScreen() {
         <TouchableOpacity
           onPress={() => setMineOnly((v) => !v)}
           activeOpacity={0.8}
-          style={[s.toggle, mineOnly && { backgroundColor: c.foreground, borderColor: c.foreground }]}
+          style={[s.toggle, mineOnly && { backgroundColor: c.chrome, borderColor: c.chrome }]}
         >
-          <Ionicons name="person" size={13} color={mineOnly ? "#fff" : c.muted} />
-          <Text style={[s.toggleText, mineOnly && { color: "#fff" }]}>Mine</Text>
+          <Ionicons name="person" size={13} color={mineOnly ? c.onChrome : c.muted} />
+          <Text style={[s.toggleText, mineOnly && { color: c.onChrome }]}>Mine</Text>
         </TouchableOpacity>
       </View>
 
@@ -227,7 +227,7 @@ const s = StyleSheet.create({
     backgroundColor: c.card, borderWidth: 1, borderColor: c.border,
   },
   periodText: { fontFamily: Fonts.medium, fontSize: 12.5, color: c.muted },
-  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: Space.xxl },
+  scroll: { padding: Space.lg, paddingTop: 0, paddingBottom: 150 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.md },
   gridItem: { width: "48%", flexGrow: 1, padding: Space.lg },
   line: { flexDirection: "row", alignItems: "center", gap: Space.md },

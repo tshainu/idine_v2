@@ -35,8 +35,8 @@ const SLOW_MS = 20 * 60_000;
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { branchId } = useSession();
-  const orders = useOrders(branchId, { poll: 20_000 });
+  const { branchId, waiterId } = useSession();
+  const orders = useOrders(branchId, { poll: 20_000, waiterId });
   const tables = useTables(branchId);
   const jobs = usePendingPrintJobs(branchId);
 
