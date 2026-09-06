@@ -551,3 +551,23 @@ Deploy: VPS pulled (pos.tsx local receipt-CSS edits stashed/popped, backed up to
 `bun run build:web`, `pm2 restart idine_v2`. Verified live on :6066 — POST /orders
 with tableId 1 → T1 occupied; PATCH status paid → T1 available; test row deleted.
 Mobile `npx tsc --noEmit` clean.
+
+## Round N+4: COOKED-ORDER RINGING ALERT (2026-09-06) — DONE, PUSHED (71328ca)
+
+Old behaviour: `ReadyOrderWatcher` in `app/_layout.tsx` fired one `Alert.alert`
+and a 250ms buzz — easy to miss on a noisy floor.
+
+New: `packages/mobile/components/ready-alert.tsx` — `ReadyAlertProvider`
+(mounted in `_layout.tsx` around the `<Stack>`) polls branch orders every 5s and,
+on any order entering `ready`, plays `assets/ready-alert.mp3` on loop at volume 1
+through `expo-audio` (`playsInSilentMode`, `shouldPlayInBackground`,
+`interruptionMode: doNotMix`) plus a repeating `Vibration.vibrate(pattern, true)`,
+behind a full-screen modal that cannot be dismissed by tapping away. Ring stops
+only on "Open pickup list" or "Silence", or when the screens that show the queue
+mount (`ready-items.tsx`, `notifications.tsx` call `useReadyAlert().acknowledge()`).
+Alerts for the waiter's own orders and unassigned (POS-raised) ones. Re-arms if
+an order leaves and re-enters `ready`. Restarts the ring on app foreground.
+Ring tone generated with the `sound-effects` CLI (4s seamless loop, 64 KB).
+`expo-audio@1.1.1` added via `npx expo install` (config plugin auto-added to app.json).
+Web is guarded (`Platform.OS !== "web"`). tsc clean, Metro bundles the provider.
+Needs a fresh APK — expo-audio is a native module.
