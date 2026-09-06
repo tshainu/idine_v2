@@ -523,3 +523,31 @@ Options to actually get silent printing (needs a user decision):
 3. **Port-forward** each printer to a public IP — works but exposes the printers
    to the internet; not recommended.
 Until one of these is in place, printing falls back to the browser dialog.
+
+## Round N+3: WAITER APP TABLE-STATUS FIX (2026-09-06) — DONE, DEPLOYED
+
+Bugs: (1) waiter app showed tables occupied with no running order; (2) alert
+"Table already assigned" blocked adding a round to another waiter's order.
+
+Root causes:
+- `packages/web/src/api/routes/orders.ts` never touched `tables.status`, so a
+  settled order left the table stuck `occupied` forever (Manjal T1-T4 were stale).
+- `app/(tabs)/tables.tsx` called `useOrders(branchId, { waiterId })`, so another
+  waiter's order was invisible → tile had no order but a stale occupied status →
+  the ownership guard fired.
+
+Fixes (commit 82c878b, pushed):
+- orders.ts: new `syncTableStatus(tableId)` helper, called after order create and
+  after PATCH — table becomes occupied while any open order references it and
+  returns to available (or keeps reserved/billed) otherwise.
+- tables.tsx: fetch all branch orders; derive tile status from live open orders,
+  not `tables.status`; ownership guard removed; tile shows "Opened by <name>"
+  when the running order is another waiter's.
+- order/[tableId].tsx + queries/orders.ts: `useOpenOrderForTable` no longer
+  filtered by waiterId, so a new round appends to whatever order is running.
+
+Deploy: VPS pulled (pos.tsx local receipt-CSS edits stashed/popped, backed up to
+/root/pos.tsx.bak.*), DB backed up, stale table statuses reconciled with SQL,
+`bun run build:web`, `pm2 restart idine_v2`. Verified live on :6066 — POST /orders
+with tableId 1 → T1 occupied; PATCH status paid → T1 available; test row deleted.
+Mobile `npx tsc --noEmit` clean.
