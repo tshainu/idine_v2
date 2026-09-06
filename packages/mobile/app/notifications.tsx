@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts, Radius, Space } from "../constants/theme";
 import { Card, ScreenHeader, Loading, EmptyState, ErrorBanner } from "../components/ui";
 import { useSession } from "../hooks/use-session";
+import { useReadyAlert } from "../components/ready-alert";
 import { useOrders } from "../queries/orders";
 import { useTables } from "../queries/tables";
 import { usePendingPrintJobs } from "../queries/print";
@@ -39,6 +40,9 @@ export default function NotificationsScreen() {
   const orders = useOrders(branchId, { poll: 20_000, waiterId });
   const tables = useTables(branchId);
   const jobs = usePendingPrintJobs(branchId);
+  // Reading the notification list silences the cooked-order ring.
+  const { acknowledge } = useReadyAlert();
+  useEffect(() => { acknowledge(); }, [acknowledge]);
 
   const alerts = useMemo<Alert[]>(() => {
     const out: Alert[] = [];

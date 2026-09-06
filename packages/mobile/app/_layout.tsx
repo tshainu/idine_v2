@@ -2,7 +2,7 @@ import { Stack, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, AppState, Platform, Vibration, View } from "react-native";
+import { ActivityIndicator, AppState, Platform, View } from "react-native";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -13,8 +13,7 @@ import {
 } from "@expo-google-fonts/poppins";
 import { Colors } from "../constants/theme";
 import { hasPin } from "../lib/session";
-import { useSession } from "../hooks/use-session";
-import { useOrders } from "../queries/orders";
+import { ReadyAlertProvider } from "../components/ready-alert";
 
 // Shared cache tuning for the whole waiter app.
 // Before: every screen used raw defaults, so each mount refired its request and
@@ -45,30 +44,6 @@ const queryClient = new QueryClient({
 // Re-lock after this long in the background, so a phone left on a table is safe
 // but stepping out to the kitchen for a minute doesn't force a PIN re-entry.
 const LOCK_AFTER_MS = 2 * 60_000;
-
-function ReadyOrderWatcher() {
-  const { branchId, waiterId } = useSession();
-  const orders = useOrders(branchId, { poll: 5_000, waiterId });
-  const seenReady = useRef<Set<number>>(new Set());
-
-  useEffect(() => {
-    const ready = (orders.data ?? []).filter((order) => order.status === "ready");
-    const fresh = ready.filter((order) => !seenReady.current.has(order.id));
-    if (!fresh.length) return;
-
-    for (const order of fresh) seenReady.current.add(order.id);
-    if (Platform.OS !== "web") Vibration.vibrate([0, 250, 120, 250]);
-    const first = fresh[0];
-    Alert.alert(
-      fresh.length === 1 ? "Order cooked" : `${fresh.length} orders cooked`,
-      fresh.length === 1
-        ? `${first.orderNumber}${first.tableId ? ` · Table ${first.tableId}` : ""} is ready for pickup.`
-        : `${fresh.map((order) => order.orderNumber).join(", ")} are ready for pickup.`,
-    );
-  }, [orders.data]);
-
-  return null;
-}
 
 function useAutoLock() {
   const router = useRouter();
@@ -124,8 +99,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" backgroundColor={Colors.light.chrome} translucent={false} />
-        <ReadyOrderWatcher />
-        <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+        <ReadyAlertProvider>
+          <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
+        </ReadyAlertProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );

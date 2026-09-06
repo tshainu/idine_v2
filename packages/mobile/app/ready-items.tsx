@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts, Radius, Space } from "../constants/theme";
 import { Card, ScreenHeader, Loading, EmptyState, ErrorBanner, PrimaryButton, Pill } from "../components/ui";
 import { useSession } from "../hooks/use-session";
+import { useReadyAlert } from "../components/ready-alert";
 import { useOrders, useUpdateOrder } from "../queries/orders";
 import { useTables } from "../queries/tables";
 import { lkr, elapsed } from "../lib/format";
@@ -20,6 +21,9 @@ export default function ReadyItemsScreen() {
   const tables = useTables(branchId);
   const update = useUpdateOrder();
   const [busyId, setBusyId] = useState<number | null>(null);
+  // Opening the pickup list is the acknowledgement — the ring stops here.
+  const { acknowledge } = useReadyAlert();
+  useEffect(() => { acknowledge(); }, [acknowledge]);
 
   const ready = useMemo(
     () =>
