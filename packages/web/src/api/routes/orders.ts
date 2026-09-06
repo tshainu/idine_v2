@@ -4,6 +4,28 @@ import * as schema from "../database/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 
+// Table occupancy must follow the live orders: the POS never reset it, so tables
+// stayed "occupied" long after their order was settled and waiters were blocked.
+const OPEN_ORDER_STATUSES = ["pending", "confirmed", "preparing", "ready", "served", "hold"];
+
+async function syncTableStatus(tableId: number | null | undefined) {
+  if (!tableId) return;
+  const open = await db.select({ id: schema.orders.id })
+    .from(schema.orders)
+    .where(and(
+      eq(schema.orders.tableId, tableId),
+      inArray(schema.orders.status, OPEN_ORDER_STATUSES),
+    ));
+  const [table] = await db.select().from(schema.tables).where(eq(schema.tables.id, tableId));
+  if (!table) return;
+  const next = open.length > 0
+    ? (table.status === "billed" ? "billed" : "occupied")
+    : (table.status === "reserved" ? "reserved" : "available");
+  if (next !== table.status) {
+    await db.update(schema.tables).set({ status: next }).where(eq(schema.tables.id, tableId));
+  }
+}
+
 function generateOrderNumber(id: number): string {
   return `ORD-${String(id).padStart(4, "0")}`;
 }
@@ -60,7 +82,8 @@ export const orders = new Hono()
     // Use client-provided orderNumber if present, else generate from ID
     if (body.orderNumber && body.orderNumber !== "TEMP") {
       const [order] = await db.insert(schema.orders).values(body).returning();
-      pushOutbox("orders", "insert", order.id, order, order.branchId ?? undefined);
+        await syncTableStatus(order.tableId);
+    pushOutbox("orders", "insert", order.id, order, order.branchId ?? undefined);
       return c.json({ order }, 201);
     }
     // Fallback: insert with TEMP then update
@@ -73,6 +96,7 @@ export const orders = new Hono()
       .set({ orderNumber })
       .where(eq(schema.orders.id, order.id))
       .returning();
+    await syncTableStatus(updated.tableId);
     pushOutbox("orders", "insert", updated.id, updated, updated.branchId ?? undefined);
     return c.json({ order: updated }, 201);
   })
@@ -98,6 +122,7 @@ export const orders = new Hono()
       .set({ ...body, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
       .returning();
+    await syncTableStatus(order.tableId);
     pushOutbox("orders", "update", order.id, order, order.branchId ?? undefined);
     return c.json({ order }, 200);
   })

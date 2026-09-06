@@ -43,7 +43,9 @@ export default function TakeOrderScreen() {
   const categories = useCategories(branchId);
   const menu = useMenuItems(branchId);
   const modifiers = useModifiers(branchId);
-  const { order: openOrder, isLoading: orderLoading } = useOpenOrderForTable(branchId, tableId, waiterId);
+  // Not scoped to this waiter: a new round must append to whatever order is
+  // running on the table, even one another waiter opened.
+  const { order: openOrder, isLoading: orderLoading } = useOpenOrderForTable(branchId, tableId);
   const sendToKitchen = useSendToKitchen(branchId);
   const updateRunningOrder = useUpdateRunningOrder();
   const sendKot = useSendKot();

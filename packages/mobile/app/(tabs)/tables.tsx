@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -26,16 +26,23 @@ export default function TablesScreen() {
   const router = useRouter();
   const { branchId, waiterId } = useSession();
   const tables = useTables(branchId);
-  const orders = useOrders(branchId, { waiterId });
+  // Every waiter must see the whole floor: occupancy is derived from the branch's
+  // live open orders, never from a single waiter's slice.
+  const orders = useOrders(branchId);
   const [zone, setZone] = useState<string>("all");
 
   // Attach each table's open order so the tile can show the running total.
+  // `tables.status` goes stale whenever the POS settles an order without resetting
+  // the table, so the live order list is the source of truth for occupancy.
   const enriched = useMemo(() => {
     const open = (orders.data ?? []).filter((o) => OPEN_STATUSES.includes(o.status));
-    return (tables.data ?? []).map((t) => ({
-      table: t,
-      order: open.find((o) => o.tableId === t.id) ?? null,
-    }));
+    return (tables.data ?? []).map((t) => {
+      const order = open.find((o) => o.tableId === t.id) ?? null;
+      const status = order
+        ? (t.status === "billed" ? "billed" : "occupied")
+        : (t.status === "reserved" ? "reserved" : "available");
+      return { table: { ...t, status }, order };
+    });
   }, [tables.data, orders.data]);
 
   const zones = useMemo(() => {
@@ -128,13 +135,10 @@ export default function TablesScreen() {
                 total={order?.total ?? null}
                 itemCount={order?.items?.length ?? 0}
                 since={order?.createdAt ?? null}
-                onPress={() => {
-                  if (!order && ["occupied", "billed"].includes(table.status)) {
-                    Alert.alert("Table already assigned", "This table has a running order assigned to another waiter.");
-                    return;
-                  }
-                  router.push(`/order/${table.id}`);
-                }}
+                mine={!!order && !!waiterId && order.waiterId === waiterId}
+                owner={order?.placedBy ?? null}
+                // Any waiter may add a round to a running order, whoever opened it.
+                onPress={() => router.push(`/order/${table.id}`)}
               />
             ))}
           </View>
@@ -153,9 +157,9 @@ export default function TablesScreen() {
   );
 }
 
-function TableTile({ table, total, itemCount, since, onPress }: {
+function TableTile({ table, total, itemCount, since, mine, owner, onPress }: {
   table: Table; total: number | null; itemCount: number;
-  since: number | null; onPress: () => void;
+  since: number | null; mine: boolean; owner: string | null; onPress: () => void;
 }) {
   const key = statusKey(table.status);
   const tone = TableStatus[key];
@@ -181,6 +185,7 @@ function TableTile({ table, total, itemCount, since, onPress }: {
         <View style={s.tileFoot}>
           <Text style={[s.tileTotal, { color: tone.fg }]}>{lkr(total)}</Text>
           <Text style={s.tileMeta}>{itemCount} items · {elapsed(since)}</Text>
+          {!mine && owner ? <Text style={s.tileMeta} numberOfLines={1}>Opened by {owner}</Text> : null}
         </View>
       ) : (
         <View style={s.tileFoot}>

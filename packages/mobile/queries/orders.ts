@@ -38,7 +38,7 @@ export function useOrder(id: number | undefined) {
 export function useOpenOrderForTable(
   branchId: number | undefined,
   tableId: number | undefined,
-  waiterId: number | undefined,
+  waiterId?: number | undefined,
 ) {
   const q = useOrders(branchId, { poll: 30_000, waiterId });
   const OPEN = ["pending", "confirmed", "served", "ready", "hold"];
