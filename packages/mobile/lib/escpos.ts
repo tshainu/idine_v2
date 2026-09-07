@@ -15,6 +15,7 @@ export type KotItem = {
 export type KotPayload = {
   orderNumber: string;
   tableName?: string | null;
+  placedBy?: string | null;
   waiterName?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
@@ -125,56 +126,37 @@ function stamp(date: Date) {
 export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Array {
   const b = new Builder();
   const printedAt = payload.printedAt ?? new Date();
-  const isUpdate = payload.mode === "update";
   const qtyCol = 4; // "12x "
   const nameWidth = width - qtyCol;
+  const typeLabel = (payload.type || "DINE IN").replace(/[-_]/g, " ").toUpperCase();
+  const boxWidth = Math.min(width - 4, typeLabel.length + 4);
 
   b.init().align("center");
-
-  b.bold(true).size(3, 2);
-  b.line(isUpdate ? "*UPDATED KOT*" : "KOT");
-  b.size(1, 1).bold(false);
-
-  if (payload.tableName) {
-    b.bold(true).size(2, 2).line(`TABLE ${payload.tableName}`).size(1, 1).bold(false);
-  } else if (payload.type) {
-    b.bold(true).size(2, 1).line(payload.type.toUpperCase()).size(1, 1).bold(false);
-  }
+  b.bold(true).size(2, 1).line("***KOT***").size(1, 1).bold(false);
+  b.bold(true).line(`+${"-".repeat(boxWidth)}+`);
+  b.line(`| ${typeLabel.padEnd(boxWidth - 2, " ")} |`);
+  b.line(`+${"-".repeat(boxWidth)}+`).bold(false);
 
   b.align("left").line(rule(width));
-  b.line(`Order : ${payload.orderNumber}`);
-  if (payload.waiterName) b.line(`Waiter: ${payload.waiterName}`);
-  if (payload.customerName) {
-    for (const l of wrap(`Cust  : ${payload.customerName}`, width)) b.line(l);
-  }
-  if (payload.customerPhone) {
-    for (const l of wrap(`Phone : ${payload.customerPhone}`, width)) b.line(l);
-  }
-  b.line(`Time  : ${stamp(printedAt)}`);
+  b.line(`Order #: ${payload.orderNumber}`);
+  b.line(`Time: ${two(printedAt.getHours())}:${two(printedAt.getMinutes())}:${two(printedAt.getSeconds())}`);
+  b.line(`Placed By: ${payload.placedBy || payload.waiterName || "—"}`);
+  b.line(`Waiter: ${payload.waiterName || "—"}`);
   b.line(rule(width));
 
   for (const item of payload.items) {
     const label = item.variationName ? `${item.name} (${item.variationName})` : item.name;
-    const qty = `${item.qty}x`.padEnd(qtyCol, " ");
     const wrapped = wrap(label, nameWidth);
-
-    b.bold(true).size(1, 2);
-    b.line(`${qty}${wrapped[0]}`);
-    for (const extra of wrapped.slice(1)) {
-      b.line(`${" ".repeat(qtyCol)}${extra}`);
-    }
-    b.size(1, 1).bold(false);
-
+    b.bold(true).size(1, 1);
+    b.line(`${`${item.qty}x`.padEnd(qtyCol, " ")}${wrapped[0]}`);
+    for (const extra of wrapped.slice(1)) b.line(`${" ".repeat(qtyCol)}${extra}`);
+    b.bold(false);
     if (item.notes) {
-      for (const l of wrap(`>> ${item.notes}`, nameWidth)) {
-        b.line(`${" ".repeat(qtyCol)}${l}`);
-      }
+      for (const l of wrap(`** ${item.notes} **`, nameWidth)) b.line(`${" ".repeat(qtyCol)}${l}`);
     }
+    b.line(rule(width));
   }
 
-  b.line(rule(width));
-  const totalQty = payload.items.reduce((sum, i) => sum + i.qty, 0);
-  b.bold(true).line(`TOTAL ITEMS: ${totalQty}`).bold(false);
   b.feed(3).cut();
 
   return b.bytes();
@@ -189,24 +171,25 @@ export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): str
     return " ".repeat(pad) + v;
   };
 
-  lines.push(center(payload.mode === "update" ? "*UPDATED KOT*" : "KOT"));
-  if (payload.tableName) lines.push(center(`TABLE ${payload.tableName}`));
-  else if (payload.type) lines.push(center(payload.type.toUpperCase()));
+  const typeLabel = (payload.type || "DINE IN").replace(/[-_]/g, " ").toUpperCase();
+  const boxWidth = Math.min(width - 4, typeLabel.length + 4);
+  lines.push(center("***KOT***"));
+  lines.push(center(`+${"-".repeat(boxWidth)}+`));
+  lines.push(center(`| ${typeLabel.padEnd(boxWidth - 2, " ")} |`));
+  lines.push(center(`+${"-".repeat(boxWidth)}+`));
   lines.push(rule(width));
-  lines.push(`Order : ${payload.orderNumber}`);
-  if (payload.waiterName) lines.push(`Waiter: ${payload.waiterName}`);
-  if (payload.customerName) lines.push(...wrap(`Cust  : ${payload.customerName}`, width));
-  if (payload.customerPhone) lines.push(...wrap(`Phone : ${payload.customerPhone}`, width));
-  lines.push(`Time  : ${stamp(printedAt)}`);
+  lines.push(`Order #: ${payload.orderNumber}`);
+  lines.push(`Time: ${two(printedAt.getHours())}:${two(printedAt.getMinutes())}:${two(printedAt.getSeconds())}`);
+  lines.push(`Placed By: ${payload.placedBy || payload.waiterName || "—"}`);
+  lines.push(`Waiter: ${payload.waiterName || "—"}`);
   lines.push(rule(width));
   for (const item of payload.items) {
     const label = item.variationName ? `${item.name} (${item.variationName})` : item.name;
     const wrapped = wrap(label, width - 4);
     lines.push(`${`${item.qty}x`.padEnd(4, " ")}${wrapped[0]}`);
     for (const extra of wrapped.slice(1)) lines.push(`    ${extra}`);
-    if (item.notes) for (const l of wrap(`>> ${item.notes}`, width - 4)) lines.push(`    ${l}`);
+    if (item.notes) for (const l of wrap(`** ${item.notes} **`, width - 4)) lines.push(`    ${l}`);
+    lines.push(rule(width));
   }
-  lines.push(rule(width));
-  lines.push(`TOTAL ITEMS: ${payload.items.reduce((s, i) => s + i.qty, 0)}`);
   return lines.join("\n");
 }

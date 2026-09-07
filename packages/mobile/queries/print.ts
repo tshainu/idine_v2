@@ -40,6 +40,7 @@ async function queueJobs(input: {
     const payload: KotPayload = {
       orderNumber: input.order.orderNumber,
       tableName: input.tableName ?? null,
+      placedBy: input.order.placedBy ?? input.waiterName ?? null,
       waiterName: input.waiterName ?? null,
       customerName: input.order.customerName,
       customerPhone: input.customerPhone ?? null,
@@ -88,6 +89,7 @@ export function useSendKot() {
       const payload: KotPayload = {
         orderNumber: input.order.orderNumber,
         tableName: input.tableName ?? null,
+        placedBy: input.order.placedBy ?? input.waiterName ?? null,
         waiterName: input.waiterName ?? null,
         customerName: input.order.customerName,
         customerPhone: input.customerPhone ?? null,
@@ -138,6 +140,7 @@ export function useReprintKot() {
       const payload: KotPayload = {
         orderNumber: input.order.orderNumber,
         tableName: input.tableName ?? null,
+        placedBy: input.order.placedBy ?? input.waiterName ?? null,
         waiterName: input.waiterName ?? null,
         customerName: input.order.customerName,
         customerPhone: input.customerPhone ?? null,
