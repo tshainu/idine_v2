@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "../lib/http";
 import type { Order, OrderItem } from "../lib/types";
 import { kotPreviewText, type KotItem, type KotPayload } from "../lib/escpos";
-import { loadPrinterConfig, printKot } from "../lib/printer";
+import { loadPrinterConfig, printKotToConfiguredPrinters } from "../lib/printer";
 
 // Items are grouped per kitchen station (printerId) so the hot kitchen, bar and
 // dessert counter each get only their own lines.
@@ -17,7 +17,7 @@ function groupByPrinter(items: OrderItem[]): Map<number | null, OrderItem[]> {
 }
 
 function toKotItems(items: OrderItem[]): KotItem[] {
-  return items.map((i) => ({ name: i.name, qty: i.qty, notes: i.note }));
+  return items.map((i) => ({ name: i.name, qty: i.qty, notes: i.note, printerId: i.printerId }));
 }
 
 /**
@@ -99,7 +99,7 @@ export function useSendKot() {
         printedAt: new Date(),
       };
 
-      const result = await printKot(payload, config, async () => {
+      const result = await printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async () => {
         await queueJobs({ ...input, type: "kot" });
       });
 
@@ -149,7 +149,7 @@ export function useReprintKot() {
         mode: "update",
         printedAt: new Date(),
       };
-      return printKot(payload, config, async () => {
+      return printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async () => {
         await queueJobs({ ...input, type: "reprint", nonce });
       });
     },

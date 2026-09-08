@@ -29,6 +29,19 @@ export type PrinterConfig = {
   paperWidth: PaperWidth;
   /** Also queue a server-side job so the kitchen station prints its own copy. */
   alsoQueueOnServer: boolean;
+  /** Network KOT printers configured on this waiter device. */
+  kotPrinters: KotPrinter[];
+};
+
+export type KotPrinter = {
+  /** Local stable key; POS printerId is used when the entry came from Printer Setup. */
+  id: string;
+  printerId?: number | null;
+  name: string;
+  host: string;
+  port: number;
+  categoryIds?: number[];
+  enabled: boolean;
 };
 
 export const DEFAULT_CONFIG: PrinterConfig = {
@@ -39,6 +52,7 @@ export const DEFAULT_CONFIG: PrinterConfig = {
   btName: "",
   paperWidth: 32,
   alsoQueueOnServer: true,
+  kotPrinters: [],
 };
 
 const KEY = "waiter_printer_config";
@@ -48,6 +62,29 @@ export async function loadPrinterConfig(): Promise<PrinterConfig> {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return DEFAULT_CONFIG;
     const config = { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as Partial<PrinterConfig>) };
+    if (!Array.isArray(config.kotPrinters)) config.kotPrinters = [];
+    config.kotPrinters = config.kotPrinters
+      .filter((p): p is KotPrinter => !!p && typeof p === "object")
+      .map((p, index) => ({
+        id: String(p.id || `kot-${index + 1}`),
+        printerId: p.printerId == null ? null : Number(p.printerId),
+        name: String(p.name || `KOT Printer ${index + 1}`),
+        host: String(p.host || ""),
+        port: Number(p.port) || 9100,
+        categoryIds: Array.isArray(p.categoryIds) ? p.categoryIds.map(Number) : [],
+        enabled: p.enabled !== false,
+      }));
+    // Upgrade the previous single-LAN configuration without making the waiter re-enter it.
+    if (!config.kotPrinters.length && config.host) {
+      config.kotPrinters = [{
+        id: "legacy",
+        name: "KOT Printer 1",
+        host: config.host,
+        port: config.port || 9100,
+        categoryIds: [],
+        enabled: true,
+      }];
+    }
     // This build ships without the Bluetooth module, and the settings screen no longer
     // offers it. Any config saved earlier with "bluetooth" is coerced to the server queue
     // so the UI can't show an option that isn't selectable.
@@ -265,6 +302,44 @@ export async function printKot(
   }
 
   return { ok: false, via: "none", message: directError ?? "No printer configured" };
+}
+
+/** Print one KOT per configured network printer, grouped by POS printer ID. */
+export async function printKotToConfiguredPrinters(
+  payload: KotPayload,
+  config: PrinterConfig,
+  printerIdByItem: (item: KotPayload["items"][number]) => number | null | undefined,
+  queueOnServer?: () => Promise<void>,
+): Promise<PrintResult> {
+  const printers = config.kotPrinters.filter((p) => p.enabled && p.host);
+  if (config.transport !== "lan" || !printers.length) {
+    return printKot(payload, config, queueOnServer);
+  }
+
+  const defaultPrinter = printers[0];
+  const byPrinter = new Map<string, { printer: KotPrinter; items: KotPayload["items"] }>();
+  for (const item of payload.items) {
+    const requestedId = printerIdByItem(item);
+    const printer = printers.find((p) => p.printerId === requestedId) || defaultPrinter;
+    const current = byPrinter.get(printer.id);
+    if (current) current.items.push(item);
+    else byPrinter.set(printer.id, { printer, items: [item] });
+  }
+
+  const results = await Promise.all([...byPrinter.values()].map(({ printer, items }) =>
+    printKot({ ...payload, items }, { ...config, host: printer.host, port: printer.port, alsoQueueOnServer: false }),
+  ));
+  const failed = results.find((r) => !r.ok);
+  if (failed) {
+    if (queueOnServer) await queueOnServer();
+    return { ...failed, message: `${failed.message} Sent to the kitchen queue instead.` };
+  }
+  if (config.alsoQueueOnServer && queueOnServer) await queueOnServer().catch(() => undefined);
+  return {
+    ok: true,
+    via: "lan",
+    message: `Printed to ${results.length} KOT printer${results.length === 1 ? "" : "s"}.`,
+  };
 }
 
 /** Sends a short self-test ticket so staff can verify a printer without an order. */

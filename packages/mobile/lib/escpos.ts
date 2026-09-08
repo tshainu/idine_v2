@@ -10,6 +10,7 @@ export type KotItem = {
   qty: number;
   notes?: string | null;
   variationName?: string | null;
+  printerId?: number | null;
 };
 
 export type KotPayload = {
@@ -157,7 +158,9 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
     b.line(rule(width));
   }
 
-  b.feed(3).cut();
+  // Leave a little extra blank paper below the last item so the tear line clears
+  // the print head and staff can tear the KOT without cutting into the footer.
+  b.feed(5).cut();
 
   return b.bytes();
 }

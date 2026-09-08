@@ -64,6 +64,7 @@ export default function TakeOrderScreen() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [sending, setSending] = useState(false);
+  const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
 
   const table = (tables.data ?? []).find((t) => t.id === tableId);
   const customerSearch = useCustomerSearch(customerName, branchId);
@@ -81,6 +82,28 @@ export default function TakeOrderScreen() {
     const match = (customerSearch.data ?? []).find((customer) => customer.id === customerId);
     if (match?.phone) setCustomerPhone(match.phone);
   }, [customerId, customerPhone, customerSearch.data]);
+
+  // Mirror web POS → Printer Setup → Manage Printers so new waiter orders
+  // carry the same category routing into the server print queue.
+  useEffect(() => {
+    if (!branchId) return;
+    http.get<{ settings: Record<string, string> }>("/settings", { branchId })
+      .then(({ settings }) => {
+        try {
+          const setup = JSON.parse(settings?.printerSetup || "{}");
+          const next: Record<number, number> = {};
+          Object.entries(setup?.printerCategories || {}).forEach(([printerId, categoryIds]) => {
+            if (Array.isArray(categoryIds)) {
+              categoryIds.forEach((categoryId) => { next[Number(categoryId)] = Number(printerId); });
+            }
+          });
+          setCategoryPrinterMap(next);
+        } catch {
+          setCategoryPrinterMap({});
+        }
+      })
+      .catch(() => setCategoryPrinterMap({}));
+  }, [branchId]);
 
   const items = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -134,7 +157,7 @@ export default function TakeOrderScreen() {
           name: variation ? `${item.name} (${variation.name})` : item.name,
           unitPrice: priceOf(item, variation),
           qty,
-          printerId: item.printerId,
+          printerId: item.printerId ?? categoryPrinterMap[item.categoryId ?? -1] ?? null,
           variationName: variation?.name ?? null,
           modifiers: mods.map((m) => ({ id: m.id, name: m.name, price: m.price })),
           note,

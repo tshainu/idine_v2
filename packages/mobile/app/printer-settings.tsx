@@ -8,9 +8,11 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
   DEFAULT_CONFIG, loadPrinterConfig, savePrinterConfig, printTest,
-  directPrintAvailable, type PrinterConfig, type Transport,
+  directPrintAvailable, type KotPrinter, type PrinterConfig, type Transport,
 } from "../lib/printer";
 import { kotPreviewText } from "../lib/escpos";
+import { http } from "../lib/http";
+import { useSession } from "../hooks/use-session";
 import { Colors, Fonts, Radius, Shadow, Space } from "../constants/theme";
 import { Card, Loading, PrimaryButton, ScreenHeader } from "../components/ui";
 
@@ -39,9 +41,11 @@ const SAMPLE_BODY = SAMPLE.split("\n").slice(1).join("\n");
 
 export default function PrinterSettingsScreen() {
   const router = useRouter();
+  const { branchId } = useSession();
   const [cfg, setCfg] = useState<PrinterConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadPrinterConfig().then((saved) => {
@@ -70,6 +74,65 @@ export default function PrinterSettingsScreen() {
       setTesting(false);
     }
   }, [cfg]);
+
+  const addPrinter = useCallback(() => {
+    const next: KotPrinter = {
+      id: `local-${Date.now()}`,
+      name: `KOT Printer ${cfg.kotPrinters.length + 1}`,
+      host: "",
+      port: 9100,
+      categoryIds: [],
+      enabled: true,
+    };
+    patch({ kotPrinters: [...cfg.kotPrinters, next] });
+  }, [cfg, patch]);
+
+  const updatePrinter = useCallback((id: string, next: Partial<KotPrinter>) => {
+    patch({ kotPrinters: cfg.kotPrinters.map((p) => p.id === id ? { ...p, ...next } : p) });
+  }, [cfg, patch]);
+
+  const removePrinter = useCallback((id: string) => {
+    patch({ kotPrinters: cfg.kotPrinters.filter((p) => p.id !== id) });
+  }, [cfg, patch]);
+
+  const syncFromPos = useCallback(async () => {
+    if (!branchId) return;
+    setSyncing(true);
+    try {
+      const [printerRes, settingsRes] = await Promise.all([
+        http.get<{ printers: { id: number; name: string; type: string; ipAddress: string | null; port: number | null; isActive: boolean }[] }>("/printers", { branchId }),
+        http.get<{ settings: Record<string, string> }>("/settings", { branchId }),
+      ]);
+      const setup = (() => {
+        try { return JSON.parse(settingsRes.settings?.printerSetup || "{}"); } catch { return {}; }
+      })();
+      const selectedIds = ["kot", "kot2", "kot3", "kot4"]
+        .map((slot) => Number(setup?.[slot]?.printerId || 0))
+        .filter(Boolean);
+      const categoryMap = setup?.printerCategories || {};
+      const synced = (printerRes.printers || [])
+        .filter((p) => p.isActive !== false && p.type === "kot" && selectedIds.includes(p.id))
+        .map((p) => ({
+          id: `pos-${p.id}`,
+          printerId: p.id,
+          name: p.name,
+          host: p.ipAddress || "",
+          port: p.port || 9100,
+          categoryIds: Array.isArray(categoryMap[String(p.id)]) ? categoryMap[String(p.id)] : [],
+          enabled: true,
+        }));
+      if (!synced.length) {
+        Alert.alert("No KOT printers found", "Add KOT printers in web POS → Printer Setup → Manage Printers, select them in the KOT tabs, then sync again.");
+      } else {
+        patch({ transport: "lan", kotPrinters: synced });
+        Alert.alert("Printer setup synced", `${synced.length} KOT printer${synced.length === 1 ? "" : "s"} loaded from web POS.`);
+      }
+    } catch (e) {
+      Alert.alert("Sync failed", (e as Error)?.message ?? "Could not load web POS printer setup.");
+    } finally {
+      setSyncing(false);
+    }
+  }, [branchId, patch]);
 
   const nativeReady = directPrintAvailable(cfg.transport);
 
@@ -166,6 +229,62 @@ export default function PrinterSettingsScreen() {
             </Card>
           )}
 
+          {/* Multiple KOT printers */}
+          <Card style={s.gap}>
+            <View style={s.sectionHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardTitle}>KOT printers</Text>
+                <Text style={s.help}>Add one printer per kitchen station. Items use the matching printer from web POS setup.</Text>
+              </View>
+              <TouchableOpacity style={s.smallButton} onPress={syncFromPos} disabled={syncing}>
+                {syncing ? <ActivityIndicator size="small" color={c.primary} /> : <Ionicons name="sync-outline" size={16} color={c.primary} />}
+                <Text style={s.smallButtonText}>{syncing ? "Syncing" : "Sync POS"}</Text>
+              </TouchableOpacity>
+            </View>
+            {cfg.kotPrinters.map((printer) => (
+              <View key={printer.id} style={s.printerCard}>
+                <View style={s.printerTitleRow}>
+                  <TextInput
+                    style={[s.input, { flex: 1 }]}
+                    value={printer.name}
+                    onChangeText={(v) => updatePrinter(printer.id, { name: v })}
+                    placeholder="Kitchen printer"
+                    placeholderTextColor={c.mutedSoft}
+                  />
+                  <TouchableOpacity onPress={() => removePrinter(printer.id)} style={s.deleteButton}>
+                    <Ionicons name="trash-outline" size={18} color={c.destructive} />
+                  </TouchableOpacity>
+                </View>
+                <View style={s.inlineFields}>
+                  <TextInput
+                    style={[s.input, { flex: 1 }]}
+                    value={printer.host}
+                    onChangeText={(v) => updatePrinter(printer.id, { host: v.trim() })}
+                    placeholder="192.168.1.50"
+                    placeholderTextColor={c.mutedSoft}
+                    keyboardType="numbers-and-punctuation"
+                    autoCapitalize="none"
+                  />
+                  <TextInput
+                    style={[s.input, { width: 92 }]}
+                    value={String(printer.port)}
+                    onChangeText={(v) => updatePrinter(printer.id, { port: Number(v.replace(/\D/g, "")) || 9100 })}
+                    placeholder="9100"
+                    placeholderTextColor={c.mutedSoft}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                {!!printer.categoryIds?.length && (
+                  <Text style={s.mappingHint}>POS categories: {printer.categoryIds.join(", ")}</Text>
+                )}
+              </View>
+            ))}
+            <TouchableOpacity style={s.addButton} onPress={addPrinter} activeOpacity={0.8}>
+              <Ionicons name="add-circle-outline" size={19} color={c.primary} />
+              <Text style={s.addButtonText}>Add another KOT printer</Text>
+            </TouchableOpacity>
+          </Card>
+
           {/* Paper width */}
           <Card style={s.gap}>
             <Text style={s.cardTitle}>Paper width</Text>
@@ -241,6 +360,16 @@ const s = StyleSheet.create({
 
   gap: { gap: Space.sm },
   rowCard: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: Space.sm },
+  smallButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 7, borderRadius: Radius.sm, backgroundColor: c.primarySoft },
+  smallButtonText: { fontFamily: Fonts.semibold, fontSize: 11, color: c.primary },
+  printerCard: { gap: Space.sm, padding: Space.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt },
+  printerTitleRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
+  inlineFields: { flexDirection: "row", gap: Space.sm },
+  deleteButton: { padding: 8 },
+  mappingHint: { fontFamily: Fonts.regular, fontSize: 11, color: c.muted },
+  addButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.xs, paddingVertical: Space.sm, borderRadius: Radius.md, borderWidth: 1.5, borderStyle: "dashed", borderColor: c.primary },
+  addButtonText: { fontFamily: Fonts.semibold, fontSize: 12, color: c.primary },
   cardTitle: { fontFamily: Fonts.semibold, fontSize: 14.5, color: c.foreground },
 
   option: {
