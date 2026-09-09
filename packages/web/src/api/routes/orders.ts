@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, like } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 
 // Table occupancy must follow the live orders: the POS never reset it, so tables
@@ -26,8 +26,26 @@ async function syncTableStatus(tableId: number | null | undefined) {
   }
 }
 
-function generateOrderNumber(id: number): string {
-  return `ORD-${String(id).padStart(4, "0")}`;
+function waiterShortId(name: string | null | undefined): string {
+  if (!name) return "WW";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+async function generateOrderNumber(branchId: number | null, waiterName: string | null | undefined): Promise<string> {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const dayPrefix = `${mm}${dd}`;
+  const conditions = [like(schema.orders.orderNumber, `${dayPrefix}%`)];
+  if (branchId !== null) conditions.push(eq(schema.orders.branchId, branchId));
+  const todayOrders = await db
+    .select({ orderNumber: schema.orders.orderNumber })
+    .from(schema.orders)
+    .where(and(...conditions));
+  const seq = todayOrders.length + 1;
+  return `${dayPrefix}${waiterShortId(waiterName)}-${String(seq).padStart(3, "0")}`;
 }
 
 export const orders = new Hono()
@@ -91,7 +109,7 @@ export const orders = new Hono()
       ...body,
       orderNumber: "TEMP",
     }).returning();
-    const orderNumber = generateOrderNumber(order.id);
+    const orderNumber = await generateOrderNumber(order.branchId, body.placedBy);
     const [updated] = await db.update(schema.orders)
       .set({ orderNumber })
       .where(eq(schema.orders.id, order.id))

@@ -160,7 +160,7 @@ export default function HistoryScreen() {
                 >
                   <View style={s.row}>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.orderNo}>{o.orderNumber}</Text>
+                      <Text style={s.orderNo}>#{o.orderNumber}</Text>
                       <Text style={s.meta}>
                         {tableName(o) ?? o.type} · {o.items?.length ?? 0} items
                       </Text>

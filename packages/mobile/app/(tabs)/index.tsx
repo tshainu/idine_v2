@@ -130,7 +130,7 @@ export default function DashboardScreen() {
                 <Card style={{ marginBottom: Space.md }}>
                   <View style={s.orderRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.orderNo}>{o.orderNumber}</Text>
+                      <Text style={s.orderNo}>#{o.orderNumber}</Text>
                       <Text style={s.orderMeta}>
                         {table?.name ?? o.type} · {o.items?.length ?? 0} items · {elapsed(o.createdAt)}
                       </Text>
