@@ -16,6 +16,8 @@ export type KotItem = {
 export type KotPayload = {
   orderNumber: string;
   tableName?: string | null;
+  /** Stable fallback when the table catalog name is unavailable at print time. */
+  tableId?: number | null;
   placedBy?: string | null;
   waiterName?: string | null;
   customerName?: string | null;
@@ -129,6 +131,7 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   const printedAt = payload.printedAt ?? new Date();
   const qtyCol = 4; // "12x "
   const nameWidth = width - qtyCol;
+  const tableLabel = payload.tableName?.trim() || (payload.tableId ? String(payload.tableId) : null);
   const typeLabel = (payload.type || "DINE IN").replace(/[-_]/g, " ").toUpperCase();
   const boxWidth = Math.min(width - 4, typeLabel.length + 4);
 
@@ -140,6 +143,7 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
 
   b.align("left").line(rule(width));
   b.line(`Order #: ${payload.orderNumber}`);
+  if (tableLabel) b.bold(true).line(`Table: ${tableLabel}`).bold(false);
   b.line(`Time: ${two(printedAt.getHours())}:${two(printedAt.getMinutes())}:${two(printedAt.getSeconds())}`);
   b.line(`Placed By: ${payload.placedBy || payload.waiterName || "—"}`);
   b.line(`Waiter: ${payload.waiterName || "—"}`);
@@ -168,6 +172,7 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
 /** Plain-text mirror of the ticket — used for the on-screen preview. */
 export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): string {
   const printedAt = payload.printedAt ?? new Date();
+  const tableLabel = payload.tableName?.trim() || (payload.tableId ? String(payload.tableId) : null);
   const lines: string[] = [];
   const center = (v: string) => {
     const pad = Math.max(0, Math.floor((width - v.length) / 2));
@@ -182,6 +187,7 @@ export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): str
   lines.push(center(`+${"-".repeat(boxWidth)}+`));
   lines.push(rule(width));
   lines.push(`Order #: ${payload.orderNumber}`);
+  if (tableLabel) lines.push(`Table: ${tableLabel}`);
   lines.push(`Time: ${two(printedAt.getHours())}:${two(printedAt.getMinutes())}:${two(printedAt.getSeconds())}`);
   lines.push(`Placed By: ${payload.placedBy || payload.waiterName || "—"}`);
   lines.push(`Waiter: ${payload.waiterName || "—"}`);

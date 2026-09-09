@@ -67,6 +67,9 @@ export default function TakeOrderScreen() {
   const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
 
   const table = (tables.data ?? []).find((t) => t.id === tableId);
+  // Printing must not depend on the table catalog finishing its refresh: the route
+  // always carries the numeric table ID, so use it as a stable KOT fallback.
+  const printTableName = table?.name ?? (Number.isFinite(tableId) ? String(tableId) : null);
   const customerSearch = useCustomerSearch(customerName, branchId);
   const customerMatches = customerId
     ? []
@@ -249,7 +252,8 @@ export default function TakeOrderScreen() {
               order: res.order,
               items: res.items,
               branchId: branchId ?? null,
-              tableName: table?.name ?? null,
+              tableName: printTableName,
+              tableId,
               waiterName,
               customerPhone: customerPhone || null,
             })
@@ -269,7 +273,7 @@ export default function TakeOrderScreen() {
       const res = await sendToKitchen.mutateAsync({
         existingOrderId: openOrder?.id,
         tableId,
-        tableName: table?.name ?? null,
+        tableName: printTableName,
         lines: cart,
         waiterId: waiterId ?? null,
         waiterName,
@@ -281,7 +285,8 @@ export default function TakeOrderScreen() {
         order: res.order,
         items: res.items,
         branchId: branchId ?? null,
-        tableName: table?.name ?? null,
+        tableName: printTableName,
+        tableId,
         waiterName,
         customerPhone: customerPhone || null,
       });

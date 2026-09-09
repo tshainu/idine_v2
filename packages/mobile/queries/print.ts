@@ -31,6 +31,7 @@ async function queueJobs(input: {
   branchId: number | null;
   type: "kot" | "reprint";
   tableName?: string | null;
+  tableId?: number | null;
   waiterName?: string | null;
   customerPhone?: string | null;
   nonce?: string;
@@ -40,6 +41,7 @@ async function queueJobs(input: {
     const payload: KotPayload = {
       orderNumber: input.order.orderNumber,
       tableName: input.tableName ?? null,
+      tableId: input.tableId ?? input.order.tableId ?? null,
       placedBy: input.order.placedBy ?? input.waiterName ?? null,
       waiterName: input.waiterName ?? null,
       customerName: input.order.customerName,
@@ -170,6 +172,7 @@ export function kotPreview(
     {
       orderNumber: order.orderNumber,
       tableName: tableName ?? null,
+      tableId: order.tableId ?? null,
       waiterName: waiterName ?? null,
       customerName: order.customerName,
       customerPhone: customerPhone ?? null,

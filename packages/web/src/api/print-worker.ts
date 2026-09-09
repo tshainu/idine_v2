@@ -55,7 +55,10 @@ export function buildKOT(job: any): Buffer {
 
   const orderNum = payload.orderNumber || `ORD-${String(job.orderId).padStart(4, "0")}`;
   const orderTypeLabel = payload.type === "dine-in" ? "DINE IN" : payload.type === "takeaway" ? "TAKEAWAY" : payload.type === "delivery" ? "DELIVERY" : (payload.type || "DINE-IN").toUpperCase();
-  const tableInfo = payload.tableName ? `Table: ${payload.tableName}` : "";
+  // Prefer the catalog label, but never omit the table when only the stable ID
+  // is available in a queued job.
+  const tableLabel = payload.tableName?.trim() || (payload.tableId ? String(payload.tableId) : "");
+  const tableInfo = tableLabel ? `Table: ${tableLabel}` : "";
   const waiter = payload.waiterName ? `Waiter: ${payload.waiterName}` : "";
 
   // Order type — big & centered, directly under the KOT title
