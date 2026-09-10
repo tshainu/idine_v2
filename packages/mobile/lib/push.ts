@@ -25,7 +25,7 @@ export async function registerWaiterPush(session: WaiterSession) {
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
     name: "Kitchen ready alerts",
     importance: Notifications.AndroidImportance.MAX,
-    sound: "ready-alert",
+    sound: "ready_alert",
     vibrationPattern: [0, 700, 400],
     enableVibrate: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,

@@ -15,7 +15,7 @@ const c = Colors.light;
 
 // A cooked order goes cold fast: the alert must ring loudly and keep ringing
 // until a human acknowledges it, not fire one notification chime and vanish.
-const RING = require("../assets/ready-alert.mp3");
+const RING = require("../assets/ready_alert.mp3");
 const VIBRATE_PATTERN = [0, 700, 400];
 const POLL_MS = 5_000;
 

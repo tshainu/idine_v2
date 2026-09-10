@@ -44,7 +44,7 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "sounds": ["./assets/ready-alert.mp3"] }],
+      ["expo-notifications", { "sounds": ["./assets/ready_alert.mp3"] }],
       "expo-font",
       "expo-audio"
     ],

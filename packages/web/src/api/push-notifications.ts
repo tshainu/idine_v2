@@ -30,7 +30,7 @@ export async function sendKitchenReadyPush(order: ReadyOrderNotification) {
     to,
     title: "Order ready for pickup",
     body: `${order.orderNumber} is ready for pickup`,
-    sound: "ready-alert",
+    sound: "ready_alert",
     priority: "high",
     channelId: "kitchen-ready",
     data: {

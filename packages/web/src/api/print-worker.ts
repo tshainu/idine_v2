@@ -39,6 +39,7 @@ function feed(lines = 1): Buffer { return Buffer.from([ESC, 0x64, lines]); }
 function text(str: string): Buffer { return Buffer.from(str + "\n", "utf8"); }
 function divider(char = "-", width = 42): Buffer { return text(char.repeat(width)); }
 function doubleSize(on: boolean): Buffer { return Buffer.from([GS, 0x21, on ? 0x11 : 0x00]); } // double width+height
+function itemDetailSize(on: boolean): Buffer { return Buffer.from([GS, 0x21, on ? 0x01 : 0x00]); } // normal width, double height
 
 // ── ESC/POS document builders ───────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export function buildKOT(job: any): Buffer {
   for (const item of items) {
     const qty = String(item.qty || 1).padEnd(4);
     const name = String(item.name || "").slice(0, 30);
+    parts.push(itemDetailSize(true));
     parts.push(bold(true));
     parts.push(text(`${qty}x ${name}`));
     parts.push(bold(false));
@@ -92,6 +94,7 @@ export function buildKOT(job: any): Buffer {
     if (item.modifiers && item.modifiers.length > 0) {
       for (const m of item.modifiers) parts.push(text(`    + ${m.name}`));
     }
+    parts.push(itemDetailSize(false));
   }
 
   parts.push(divider());

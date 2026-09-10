@@ -152,12 +152,16 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   for (const item of payload.items) {
     const label = item.variationName ? `${item.name} (${item.variationName})` : item.name;
     const wrapped = wrap(label, nameWidth);
-    b.bold(true).size(1, 1);
+    // Keep normal character width so 58mm tickets still wrap correctly, while
+    // doubling height makes item details readable from the kitchen pass.
+    b.bold(true).size(1, 2);
     b.line(`${`${item.qty}x`.padEnd(qtyCol, " ")}${wrapped[0]}`);
     for (const extra of wrapped.slice(1)) b.line(`${" ".repeat(qtyCol)}${extra}`);
-    b.bold(false);
+    b.bold(false).size(1, 1);
     if (item.notes) {
+      b.size(1, 2);
       for (const l of wrap(`** ${item.notes} **`, nameWidth)) b.line(`${" ".repeat(qtyCol)}${l}`);
+      b.size(1, 1);
     }
     b.line(rule(width));
   }
