@@ -3,7 +3,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "lk.idine.waiter",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -44,6 +44,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-notifications", { "sounds": ["./assets/ready-alert.mp3"] }],
       "expo-font",
       "expo-audio"
     ],

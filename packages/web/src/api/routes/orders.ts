@@ -3,6 +3,7 @@ import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, and, desc, inArray, like } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
+import { sendKitchenReadyPush } from "../push-notifications";
 
 // Table occupancy must follow the live orders: the POS never reset it, so tables
 // stayed "occupied" long after their order was settled and waiters were blocked.
@@ -136,12 +137,19 @@ export const orders = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
+    const [before] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
+    if (!before) return c.json({ error: "Order not found" }, 404);
     const [order] = await db.update(schema.orders)
       .set({ ...body, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
       .returning();
     await syncTableStatus(order.tableId);
     pushOutbox("orders", "update", order.id, order, order.branchId ?? undefined);
+    if (before.status !== "ready" && order.status === "ready") {
+      sendKitchenReadyPush(order).catch((error) => {
+        console.error("[push] kitchen-ready notification failed:", error?.message ?? error);
+      });
+    }
     return c.json({ order }, 200);
   })
   .post("/:id/refund", async (c) => {

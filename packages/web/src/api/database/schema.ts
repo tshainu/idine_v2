@@ -24,6 +24,19 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// Expo push tokens registered by waiter devices. A token is portable between
+// waiter accounts because a device can be handed to another staff member.
+export const waiterPushTokens = sqliteTable("waiter_push_tokens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  token: text("token").notNull().unique(),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  waiterId: integer("waiter_id").references(() => users.id).notNull(),
+  platform: text("platform").notNull().default("android"),
+  appVersion: text("app_version"),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 // Businesses (managed from /idsa — the software owner's super admin panel)
 export const businesses = sqliteTable("businesses", {
   id: integer("id").primaryKey({ autoIncrement: true }),

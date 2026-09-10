@@ -14,6 +14,9 @@ import {
 import { Colors } from "../constants/theme";
 import { hasPin } from "../lib/session";
 import { ReadyAlertProvider } from "../components/ready-alert";
+import * as Notifications from "expo-notifications";
+import { registerWaiterPush } from "../lib/push";
+import { useSession } from "../hooks/use-session";
 
 // Shared cache tuning for the whole waiter app.
 // Before: every screen used raw defaults, so each mount refired its request and
@@ -70,6 +73,33 @@ function useAutoLock() {
   }, [router]);
 }
 
+function PushRegistration() {
+  const router = useRouter();
+  const { session } = useSession();
+
+  useEffect(() => {
+    if (!session) return;
+    registerWaiterPush(session).catch((error) => {
+      // Push is an enhancement; polling and the foreground alert still work if
+      // permission is denied or the device is offline during registration.
+      console.warn("[push] registration failed:", error?.message ?? error);
+    });
+  }, [session]);
+
+  useEffect(() => {
+    const openReadyQueue = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data as { screen?: string };
+      if (data?.screen === "ready-items") router.push("/ready-items");
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener(openReadyQueue);
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) openReadyQueue(response);
+    }).catch(() => undefined);
+    return () => sub.remove();
+  }, [router]);
+  return null;
+}
+
 export default function RootLayout() {
   useAutoLock();
 
@@ -98,6 +128,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <PushRegistration />
         <StatusBar style="light" backgroundColor={Colors.light.chrome} translucent={false} />
         <ReadyAlertProvider>
           <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
