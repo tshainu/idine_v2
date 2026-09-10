@@ -32,12 +32,7 @@ export default function DashboardScreen() {
     const mine = today.filter((o) => o.waiterId === waiterId);
     const open = all.filter((o) => OPEN_STATUSES.includes(o.status));
     const ready = all.filter((o) => o.status === "ready");
-    const sales = today
-      .filter((o) => !["cancelled", "refunded"].includes(o.status))
-      .reduce((s, o) => s + (o.total ?? 0), 0);
-    const tips = mine.reduce((s, o) => s + (o.tipAmount ?? 0), 0);
-    const occupied = (tables.data ?? []).filter((t) => t.status === "occupied").length;
-    return { open, ready, sales, tips, occupied, myCount: mine.length };
+    return { open, ready };
   }, [orders.data, tables.data, waiterId]);
 
   const err = (orders.error ?? tables.error) as Error | null;
@@ -86,23 +81,8 @@ export default function DashboardScreen() {
         {/* Stats */}
         <View style={s.grid}>
           <StatCard label="Open orders" value={String(stats.open.length)} icon="receipt-outline" tone="primary" style={s.gridItem} />
-          <StatCard label="Tables busy" value={String(stats.occupied)} icon="restaurant-outline" tone="warning" style={s.gridItem} />
           <StatCard label="Ready to serve" value={String(stats.ready.length)} icon="notifications-outline" tone="success" style={s.gridItem} />
-          <StatCard label="Today's sales" value={lkr(stats.sales)} icon="cash-outline" tone="info" style={s.gridItem} />
         </View>
-
-        <Card style={{ marginTop: Space.lg }}>
-          <View style={s.tipRow}>
-            <View style={s.tipIcon}>
-              <Ionicons name="wallet-outline" size={18} color={c.success} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.tipLabel}>My tips today</Text>
-              <Text style={s.tipHint}>{stats.myCount} order{stats.myCount === 1 ? "" : "s"} served by you</Text>
-            </View>
-            <Text style={s.tipValue}>{lkr(stats.tips)}</Text>
-          </View>
-        </Card>
 
         {/* Quick actions */}
         <SectionTitle title="Quick actions" />
@@ -110,7 +90,6 @@ export default function DashboardScreen() {
           <QuickAction icon="add-circle-outline" label="New order" onPress={() => router.push("/(tabs)/tables")} />
           <QuickAction icon="notifications-outline" label="Ready items" onPress={() => router.push("/ready-items")} badge={stats.ready.length} />
           <QuickAction icon="print-outline" label="Reprint KOT" onPress={() => router.push("/(tabs)/history")} />
-          <QuickAction icon="people-outline" label="Customers" onPress={() => router.push("/customer-lookup")} />
         </View>
 
         {/* Open orders */}
@@ -156,7 +135,9 @@ function QuickAction({ icon, label, onPress, badge }: {
   return (
     <TouchableOpacity style={s.action} onPress={onPress} activeOpacity={0.8}>
       <View style={s.actionIcon}>
-        <Ionicons name={icon} size={21} color={c.foreground} />
+        <View style={s.actionIconCircle}>
+          <Ionicons name={icon} size={21} color={c.primaryDark} />
+        </View>
         {badge ? (
           <View style={s.badge}><Text style={s.badgeText}>{badge > 9 ? "9+" : badge}</Text></View>
         ) : null}
@@ -185,14 +166,10 @@ const s = StyleSheet.create({
   shiftText: { flex: 1, fontFamily: Fonts.medium, fontSize: 13, color: "#8A5A08" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.md },
   gridItem: { width: "48%", flexGrow: 1, padding: Space.lg },
-  tipRow: { flexDirection: "row", alignItems: "center", gap: Space.md },
-  tipIcon: {
-    width: 38, height: 38, borderRadius: Radius.md, backgroundColor: c.successSoft,
+  actionIconCircle: {
+    width: 42, height: 42, borderRadius: Radius.md, backgroundColor: c.primarySoft,
     alignItems: "center", justifyContent: "center",
   },
-  tipLabel: { fontFamily: Fonts.semibold, fontSize: 14, color: c.foreground },
-  tipHint: { fontFamily: Fonts.regular, fontSize: 12, color: c.muted, marginTop: 1 },
-  tipValue: { fontFamily: Fonts.bold, fontSize: 17, color: c.success },
   actions: { flexDirection: "row", gap: Space.md },
   action: {
     flex: 1, backgroundColor: c.card, borderRadius: Radius.lg, borderWidth: 1,

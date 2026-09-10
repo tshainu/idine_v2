@@ -61,9 +61,9 @@ export const Shadow = {
 
 export const TableStatus = {
   available: { label: "Free", fg: "#159A63", bg: "#E2F7EC", border: "#BEEBD2" },
-  occupied: { label: "Occupied", fg: "#087F6C", bg: "#DDF8F1", border: "#A9E8D8" },
-  billed: { label: "Billed", fg: "#3579C7", bg: "#E7F0FB", border: "#C6DCF6" },
-  reserved: { label: "Reserved", fg: "#607087", bg: "#EEF2F6", border: "#D8E0EA" },
+  occupied: { label: "Occupied", fg: "#D64550", bg: "#FCE9EC", border: "#F2BFC6" },
+  billed: { label: "Billed", fg: "#B7791F", bg: "#FFF4CC", border: "#F1D58A" },
+  reserved: { label: "Reserved", fg: "#3579C7", bg: "#E7F0FB", border: "#C6DCF6" },
 } as const;
 
 export type TableStatusKey = keyof typeof TableStatus;
