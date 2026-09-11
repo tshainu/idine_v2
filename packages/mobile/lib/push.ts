@@ -5,7 +5,10 @@ import { Platform } from "react-native";
 import { http } from "./http";
 import type { WaiterSession } from "./session";
 
-const CHANNEL_ID = "kitchen-ready";
+// Channel settings are immutable after Android creates a channel. The v2 ID
+// forces devices that previously created a silent kitchen-ready channel to get
+// a fresh high-importance channel with sound and vibration enabled.
+const CHANNEL_ID = "kitchen-ready-v2";
 
 // Foreground uses the existing looping in-app alert. Background/terminated/locked
 // states are handled by Android's system notification UI and sound channel.
@@ -28,7 +31,9 @@ export async function registerWaiterPush(session: WaiterSession) {
     sound: "ready_alert",
     vibrationPattern: [0, 700, 400],
     enableVibrate: true,
+    enableLights: true,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    showBadge: true,
   });
 
   const permissions = await Notifications.getPermissionsAsync();

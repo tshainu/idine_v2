@@ -3,7 +3,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "lk.idine.waiter",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
