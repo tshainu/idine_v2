@@ -33,6 +33,44 @@ function lineKey(itemId: number, variation: Variation | null, mods: Modifier[], 
   return [itemId, variation?.id ?? 0, mods.map((m) => m.id).sort().join("."), note.trim()].join("|");
 }
 
+/** Build an amendment ticket instead of reprinting the whole running order. */
+function runningOrderDelta(existing: OrderItem[], cart: CartLine[]): OrderItem[] {
+  const cartById = new Map(
+    cart.filter((line) => line.orderItemId).map((line) => [line.orderItemId!, line]),
+  );
+  const delta: OrderItem[] = [];
+
+  for (const oldItem of existing) {
+    const next = cartById.get(oldItem.id);
+    if (!next) {
+      delta.push({ ...oldItem, qty: -oldItem.qty, total: -(oldItem.total || oldItem.price * oldItem.qty) });
+      continue;
+    }
+    const qtyDelta = next.qty - oldItem.qty;
+    const noteChanged = (next.note || "").trim() !== (oldItem.note || "").trim();
+    if (qtyDelta !== 0 || noteChanged) {
+      delta.push({
+        ...oldItem,
+        qty: qtyDelta !== 0 ? qtyDelta : next.qty,
+        note: next.note || null,
+        total: (qtyDelta !== 0 ? qtyDelta : next.qty) * oldItem.price,
+      });
+    }
+  }
+
+  for (let index = 0; index < cart.length; index += 1) {
+    const line = cart[index];
+    if (line.orderItemId) continue;
+    const price = line.unitPrice + line.modifiers.reduce((sum, modifier) => sum + modifier.price, 0);
+    delta.push({
+      id: -(index + 1), orderId: null, menuItemId: line.menuItemId, name: line.name,
+      price, qty: line.qty, printerId: line.printerId, total: line.qty * price,
+      kotPrinted: false, note: line.note || null, createdAt: null,
+    });
+  }
+  return delta;
+}
+
 export default function TakeOrderScreen() {
   const router = useRouter();
   const { tableId: rawId } = useLocalSearchParams<{ tableId: string }>();
@@ -247,10 +285,11 @@ export default function TakeOrderScreen() {
           removeIds,
           additions,
         });
-        const print = updates.length || removeIds.length || additions.length
+        const deltaItems = runningOrderDelta(targetOrder.items ?? [], cart);
+        const print = deltaItems.length
           ? await reprintKot.mutateAsync({
               order: res.order,
-              items: res.items,
+              items: deltaItems,
               branchId: branchId ?? null,
               tableName: printTableName,
               tableId,

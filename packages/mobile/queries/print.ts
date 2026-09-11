@@ -17,7 +17,12 @@ function groupByPrinter(items: OrderItem[]): Map<number | null, OrderItem[]> {
 }
 
 function toKotItems(items: OrderItem[]): KotItem[] {
-  return items.map((i) => ({ name: i.name, qty: i.qty, notes: i.note, printerId: i.printerId }));
+  return items.map((i) => ({
+    name: i.id < 0 ? `${i.name} - NEW ORDER` : i.name,
+    qty: i.qty,
+    notes: i.note,
+    printerId: i.printerId,
+  }));
 }
 
 /**
@@ -82,6 +87,7 @@ export function useSendKot() {
       items: OrderItem[];
       branchId: number | null;
       tableName?: string | null;
+      tableId?: number | null;
       waiterName?: string | null;
       customerPhone?: string | null;
     }) => {
@@ -134,6 +140,7 @@ export function useReprintKot() {
       items: OrderItem[];
       branchId: number | null;
       tableName?: string | null;
+      tableId?: number | null;
       waiterName?: string | null;
       customerPhone?: string | null;
     }) => {

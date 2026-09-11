@@ -72,6 +72,11 @@ export function buildKOT(job: any): Buffer {
   parts.push(divider());
 
   parts.push(align("left"));
+  if (payload.mode === "update") {
+    parts.push(bold(true));
+    parts.push(text("*** UPDATED ORDER ***"));
+    parts.push(bold(false));
+  }
   parts.push(bold(true));
   parts.push(text(`Order: ${orderNum}`));
   parts.push(bold(false));
