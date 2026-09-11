@@ -3,7 +3,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "lk.idine.waiter",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +28,7 @@
     },
     "name": "iDine Waiter",
     "slug": "idine",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "scheme": "idine",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -46,8 +46,7 @@
       "expo-router",
       ["expo-notifications", { "sounds": ["./assets/ready_alert.mp3"] }],
       "expo-font",
-      "expo-audio",
-      "expo-notifications"
+      "expo-audio"
     ],
     "owner": "shainu"
   }

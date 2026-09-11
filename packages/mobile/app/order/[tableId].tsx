@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
   FlatList, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Colors, Fonts, Radius, Shadow, Space } from "../../constants/theme";
 import {
-  ScreenHeader, Loading, EmptyState, ErrorBanner, PrimaryButton, QtyStepper, Pill,
+  ScreenHeader, Loading, EmptyState, ErrorBanner, PrimaryButton, QtyStepper,
 } from "../../components/ui";
 import { useSession } from "../../hooks/use-session";
 import { useTables } from "../../queries/tables";
@@ -83,7 +83,7 @@ export default function TakeOrderScreen() {
   const modifiers = useModifiers(branchId);
   // Not scoped to this waiter: a new round must append to whatever order is
   // running on the table, even one another waiter opened.
-  const { order: openOrder, isLoading: orderLoading } = useOpenOrderForTable(branchId, tableId);
+  const { order: openOrder } = useOpenOrderForTable(branchId, tableId);
   const sendToKitchen = useSendToKitchen(branchId);
   const updateRunningOrder = useUpdateRunningOrder();
   const sendKot = useSendKot();
@@ -160,26 +160,16 @@ export default function TakeOrderScreen() {
       });
   }, [menu.data, categories.data, cat, search]);
 
-  const groupedSearch = useMemo(() => {
-    if (!search.trim() || cat !== "all") return [];
-    const byCategory = new Map<number | null, MenuItem[]>();
-    for (const item of items) {
-      const key = item.categoryId ?? null;
-      if (!byCategory.has(key)) byCategory.set(key, []);
-      byCategory.get(key)!.push(item);
-    }
-    return [...byCategory.entries()].map(([categoryId, categoryItems]) => ({
-      categoryId,
-      name: categories.data?.find((category) => category.id === categoryId)?.name ?? "Other dishes",
-      items: categoryItems,
-    }));
-  }, [categories.data, items, search, cat]);
-
   const cartTotal = cart.reduce(
     (s, l) => s + (l.unitPrice + l.modifiers.reduce((m, x) => m + x.price, 0)) * l.qty,
     0,
   );
   const cartCount = cart.reduce((s, l) => s + l.qty, 0);
+  const cartQuantities = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const line of cart) counts.set(line.menuItemId, (counts.get(line.menuItemId) ?? 0) + line.qty);
+    return counts;
+  }, [cart]);
 
   function addLine(item: MenuItem, variation: Variation | null, mods: Modifier[], note: string, qty: number) {
     const key = lineKey(item.id, variation, mods, note);
@@ -344,7 +334,7 @@ export default function TakeOrderScreen() {
     }
   }
 
-  if (menu.isLoading || tables.isLoading || orderLoading) {
+  if (menu.isLoading) {
     return (
       <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
         <Loading label="Loading menu…" />
@@ -478,6 +468,9 @@ export default function TakeOrderScreen() {
         horizontal
         style={s.categoryScroller}
         showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        directionalLockEnabled
+        alwaysBounceHorizontal
         contentContainerStyle={s.cats}
       >
         <Chip label="All" active={cat === "all"} onPress={() => setCat("all")} />
@@ -491,40 +484,19 @@ export default function TakeOrderScreen() {
         ))}
       </ScrollView>
 
-      {/* A stable one-column section list prevents Android from crashing while search changes. */}
+      {/* Virtualized grid keeps touch handling responsive with large menus. */}
       {items.length === 0 ? (
         <EmptyState icon="fast-food-outline" title="No dishes found" hint="Try another category or search term." />
       ) : (
         <FlatList
-          data={search.trim() && cat === "all"
-            ? groupedSearch
-            : [{
-                categoryId: cat === "all" ? null : cat,
-                name: cat === "all"
-                  ? "All dishes"
-                  : (categories.data ?? []).find((category) => category.id === cat)?.name ?? "Dishes",
-                items,
-              }]}
-          keyExtractor={(section) => `section-${section.categoryId ?? "all"}-${section.name}`}
+          data={items}
+          numColumns={2}
+          keyExtractor={(item) => String(item.id)}
+          columnWrapperStyle={s.menuRow}
           contentContainerStyle={s.groupedGrid}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          renderItem={({ item: section }) => (
-            <View>
-              {search.trim() ? (
-                <View style={s.searchCategoryHeader}>
-                  <View style={s.searchCategoryAccent} />
-                  <Text style={s.searchCategoryTitle}>{section.name}</Text>
-                  <Text style={s.searchCategoryCount}>{section.items.length} match{section.items.length === 1 ? "" : "es"}</Text>
-                </View>
-              ) : null}
-              <View style={s.menuGrid}>
-                {section.items.map((item) => (
-                  <DishTile key={item.id} item={item} cart={cart} onPress={quickAdd} />
-                ))}
-              </View>
-            </View>
-          )}
+          renderItem={({ item }) => <DishTile item={item} inCart={cartQuantities.get(item.id) ?? 0} onPress={quickAdd} />}
         />
       )}
 
@@ -602,12 +574,11 @@ export default function TakeOrderScreen() {
   );
 }
 
-function DishTile({ item, cart, onPress }: {
+const DishTile = memo(function DishTile({ item, inCart, onPress }: {
   item: MenuItem;
-  cart: CartLine[];
+  inCart: number;
   onPress: (item: MenuItem) => void;
 }) {
-  const inCart = cart.filter((line) => line.menuItemId === item.id).reduce((n, line) => n + line.qty, 0);
   const uri = imageUri(item.imageUrl);
   return (
     <TouchableOpacity
@@ -617,7 +588,7 @@ function DishTile({ item, cart, onPress }: {
     >
       <View style={s.imgWrap}>
         {uri ? (
-          <Image source={{ uri }} style={s.img} contentFit="cover" transition={120} />
+          <Image source={{ uri }} style={s.img} contentFit="cover" />
         ) : (
           <View style={[s.img, s.imgFallback]}>
             <Ionicons name="fast-food-outline" size={26} color={c.mutedSoft} />
@@ -641,7 +612,7 @@ function DishTile({ item, cart, onPress }: {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
@@ -831,7 +802,8 @@ const s = StyleSheet.create({
   },
   chipText: { fontFamily: Fonts.medium, fontSize: 12.5, color: c.muted },
   grid: { paddingHorizontal: Space.lg, paddingBottom: 72, gap: Space.sm },
-  groupedGrid: { paddingHorizontal: Space.lg, paddingBottom: 72, gap: Space.lg },
+  groupedGrid: { paddingHorizontal: Space.lg, paddingBottom: 72, gap: Space.sm },
+  menuRow: { justifyContent: "space-between", gap: Space.sm },
   searchCategoryHeader: {
     flexDirection: "row", alignItems: "center", gap: Space.sm,
     backgroundColor: c.primarySoft, borderRadius: Radius.md, paddingHorizontal: Space.md,

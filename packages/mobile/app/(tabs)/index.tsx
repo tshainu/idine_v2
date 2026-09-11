@@ -10,7 +10,7 @@ import { useTables } from "../../queries/tables";
 import { useOrders, useUpdateOrder, useUpdateRunningOrder } from "../../queries/orders";
 import { useReprintKot } from "../../queries/print";
 import { useActiveShift } from "../../queries/shifts";
-import { lkr, initials, startOfDay, elapsed } from "../../lib/format";
+import { lkr, initials, elapsed } from "../../lib/format";
 import type { Order, OrderItem } from "../../lib/types";
 
 const c = Colors.light;
@@ -128,16 +128,10 @@ export default function DashboardScreen() {
 
   const stats = useMemo(() => {
     const all = orders.data ?? [];
-    const dayStart = startOfDay().getTime();
-    const today = all.filter((o) => {
-      const t = o.createdAt ? new Date(o.createdAt).getTime() : 0;
-      return t >= dayStart;
-    });
-    const mine = today.filter((o) => o.waiterId === waiterId);
     const open = all.filter((o) => OPEN_STATUSES.includes(o.status));
     const ready = all.filter((o) => o.status === "ready");
     return { open, ready };
-  }, [orders.data, tables.data, waiterId]);
+  }, [orders.data]);
 
   const err = (orders.error ?? tables.error) as Error | null;
   const refreshing = orders.isFetching || tables.isFetching;
@@ -285,6 +279,20 @@ export default function DashboardScreen() {
                 <Ionicons name="print-outline" size={18} color={c.primaryDark} />
                 <Text style={s.kotNoticeText}>Saving changes sends an updated KOT to the relevant kitchen stations.</Text>
               </View>
+              {selectedOrder?.tableId ? (
+                <TouchableOpacity
+                  style={s.addItemsButton}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const target = selectedOrder.tableId;
+                    closeOrderModal(true);
+                    router.push(`/order/${target}`);
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={c.primaryDark} />
+                  <Text style={s.addItemsText}>Add new items to this order</Text>
+                </TouchableOpacity>
+              ) : null}
             </ScrollView>
 
             <View style={s.modalFooter}>
@@ -392,6 +400,12 @@ const s = StyleSheet.create({
   qtyValue: { minWidth: 18, textAlign: "center", fontFamily: Fonts.bold, fontSize: 14, color: c.foreground },
   kotNotice: { flexDirection: "row", alignItems: "center", gap: Space.sm, backgroundColor: c.primarySoft, borderRadius: Radius.md, padding: Space.md, marginTop: Space.md },
   kotNoticeText: { flex: 1, fontFamily: Fonts.regular, fontSize: 11.5, lineHeight: 17, color: c.primaryDark },
+  addItemsButton: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm,
+    marginTop: Space.md, minHeight: 44, borderRadius: Radius.md,
+    borderWidth: 1, borderColor: c.primary, backgroundColor: c.primarySoft,
+  },
+  addItemsText: { fontFamily: Fonts.semibold, fontSize: 12.5, color: c.primaryDark },
   modalFooter: { flexDirection: "row", alignItems: "center", gap: Space.md, padding: Space.lg, paddingBottom: Space.xl, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border },
   cancelOrderButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: Space.sm, minHeight: 48 },
   cancelOrderText: { fontFamily: Fonts.semibold, fontSize: 12, color: c.destructive },

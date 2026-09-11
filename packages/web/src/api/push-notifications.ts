@@ -28,7 +28,7 @@ export async function notifyKitchenReady(order: {
       title: `Kitchen order ready · Table ${order.tableId ?? "—"}`,
       body: `Table ${order.tableId ?? "—"} · ${order.orderNumber} is ready for pickup`,
       sound: "ready_alert",
-      channelId: "kitchen-ready-v2",
+      channelId: "kitchen-ready",
       priority: "high",
       data: {
         type: "kitchen-ready",

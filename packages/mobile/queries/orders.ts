@@ -11,6 +11,9 @@ export function useOrders(
   return useQuery({
     queryKey: ["orders", branchId, opts?.status ?? "all", opts?.waiterId ?? "all-waiters"],
     enabled: !!branchId,
+    staleTime: 10_000,
+    gcTime: 10 * 60_000,
+    refetchOnMount: false,
     refetchInterval: opts?.poll === false ? false : (opts?.poll ?? 30_000),
     queryFn: async () => {
       const data = await http.get<{ orders: Order[] }>("/orders", {
@@ -101,9 +104,9 @@ export function useSendToKitchen(branchId: number | undefined) {
         const res = await http.patch<{ order: Order }>(`/orders/${orderId}`, {
           subtotal: (prev.order.subtotal ?? 0) + subtotal,
           total: (prev.order.total ?? 0) + subtotal,
-          // Any added round must return to the KDS cooking queue, even when the
-          // earlier round was already marked ready or served.
-          status: "confirmed",
+          // Keep the order out of the KDS while its new lines are being inserted.
+          // It is moved back to confirmed only after the bulk insert succeeds.
+          status: "pending",
           customerId: input.customerId ?? prev.order.customerId ?? null,
           customerName: input.customerName?.trim() || prev.order.customerName || null,
         });
@@ -113,9 +116,9 @@ export function useSendToKitchen(branchId: number | undefined) {
           branchId,
           orderNumber: "TEMP",
           type: input.type ?? "dine-in",
-          // KDS polls confirmed orders, so a waiter submission must enter that
-          // state immediately after it is accepted by the API.
-          status: "confirmed",
+          // KDS polls confirmed orders; this starts pending and is promoted only
+          // after all lines are stored below, preventing empty KDS tickets.
+          status: "pending",
           tableId: input.tableId,
           waiterId: input.waiterId,
           customerId: input.customerId ?? null,
@@ -138,6 +141,9 @@ export function useSendToKitchen(branchId: number | undefined) {
       const res = await http.post<{ orderItems: OrderItem[] }>("/order-items/bulk", {
         items: input.lines.map((l) => lineToItem(l, orderId!)),
       });
+
+      const confirmed = await http.patch<{ order: Order }>(`/orders/${orderId}`, { status: "confirmed" });
+      order = confirmed.order;
 
       // A new dine-in order means the table is now occupied.
       if (!input.existingOrderId && input.tableId) {
@@ -180,13 +186,13 @@ export function useUpdateRunningOrder() {
       );
       const nextTotal = keptTotal + additionsTotal;
 
-      const orderRes = await http.patch<{ order: Order }>(`/orders/${input.orderId}`, {
+      await http.patch<{ order: Order }>(`/orders/${input.orderId}`, {
         subtotal: nextTotal,
         total: nextTotal,
         customerId: input.customerId ?? null,
         customerName: input.customerName?.trim() || null,
-        // Edited items need kitchen confirmation again.
-        status: "confirmed",
+        // Hold the order out of KDS until all item updates/additions finish.
+        status: "pending",
       });
 
       await Promise.all([
@@ -201,6 +207,8 @@ export function useUpdateRunningOrder() {
           items: input.additions.map((line) => lineToItem(line, input.orderId)),
         });
       }
+
+      await http.patch(`/orders/${input.orderId}`, { status: "confirmed" });
 
       const final = await http.get<{ order: Order; items: OrderItem[] }>(`/orders/${input.orderId}`);
       // Return the fully reloaded order so the UI and KOT use the exact final item

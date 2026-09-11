@@ -11,10 +11,10 @@ export const KITCHEN_READY_CHANNEL = "kitchen-ready";
 // Background/closed alerts are rendered by Android as a high-priority notification.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: false,
-    shouldShowList: false,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
@@ -25,7 +25,7 @@ export async function configureKitchenReadyNotifications() {
       description: "Alerts when the kitchen finishes a waiter order.",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 700, 400],
-      sound: "default",
+      sound: "ready_alert",
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }

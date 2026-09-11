@@ -99,7 +99,7 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
     const readyIds = new Set(ready.map((o) => o.id));
 
     // An order that left "ready" (served elsewhere) may cook again later.
-    for (const id of [...seen.current]) if (!readyIds.has(id)) seen.current.delete(id);
+    for (const id of seen.current) if (!readyIds.has(id)) seen.current.delete(id);
 
     const fresh = ready.filter((o) => !seen.current.has(o.id));
     if (fresh.length) {
@@ -129,9 +129,10 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active" && ringing) startRing();
+      else if (state !== "active") stopRing();
     });
     return () => sub.remove();
-  }, [ringing, startRing]);
+  }, [ringing, startRing, stopRing]);
 
   useEffect(() => () => stopRing(), [stopRing]);
 

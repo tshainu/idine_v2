@@ -59,7 +59,7 @@ export default function TablesScreen() {
     return by;
   }, [enriched]);
 
-  if (tables.isLoading) {
+  if (tables.isLoading && !tables.data) {
     return (
       <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
         <Loading label="Loading floor plan…" />

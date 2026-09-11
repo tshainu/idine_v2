@@ -6,6 +6,9 @@ export function useTables(branchId: number | undefined, opts?: { poll?: boolean 
   return useQuery({
     queryKey: ["tables", branchId],
     enabled: !!branchId,
+    staleTime: 15_000,
+    gcTime: 10 * 60_000,
+    refetchOnMount: false,
     queryFn: async () => {
       const data = await http.get<{ tables: Table[] }>("/tables", { branchId });
       return (data.tables ?? []).filter((t) => t.isActive);
