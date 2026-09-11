@@ -46,7 +46,8 @@
       "expo-router",
       ["expo-notifications", { "sounds": ["./assets/ready_alert.mp3"] }],
       "expo-font",
-      "expo-audio"
+      "expo-audio",
+      "expo-notifications"
     ],
     "owner": "shainu"
   }

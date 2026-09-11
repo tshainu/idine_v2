@@ -16,13 +16,38 @@ function groupByPrinter(items: OrderItem[]): Map<number | null, OrderItem[]> {
   return map;
 }
 
-function toKotItems(items: OrderItem[]): KotItem[] {
-  return items.map((i) => ({
-    name: i.id < 0 ? `${i.name} - NEW ORDER` : i.name,
-    qty: i.qty,
-    notes: i.note,
-    printerId: i.printerId,
-  }));
+export type KotDelta = {
+  itemId?: number;
+  name: string;
+  qty: number;
+  delta: number;
+  note?: string | null;
+  isNew?: boolean;
+};
+
+function toKotItems(items: OrderItem[], deltas?: KotDelta[]): KotItem[] {
+  if (!deltas?.length) {
+    return items.map((i) => ({
+      name: i.name,
+      qty: i.qty,
+      notes: i.note,
+      printerId: i.printerId,
+    }));
+  }
+  const result: KotItem[] = [];
+  for (const delta of deltas) {
+    const item = items.find((candidate) => delta.itemId === candidate.id || (!delta.itemId && delta.name === candidate.name));
+    if (!item) continue;
+    result.push({
+      name: delta.name,
+      qty: Math.abs(delta.delta),
+      delta: delta.delta,
+      isNew: delta.isNew,
+      notes: delta.note,
+      printerId: item.printerId,
+    });
+  }
+  return result;
 }
 
 /**
@@ -39,6 +64,7 @@ async function queueJobs(input: {
   tableId?: number | null;
   waiterName?: string | null;
   customerPhone?: string | null;
+  deltas?: KotDelta[];
   nonce?: string;
 }) {
   const groups = groupByPrinter(input.items);
@@ -90,6 +116,7 @@ export function useSendKot() {
       tableId?: number | null;
       waiterName?: string | null;
       customerPhone?: string | null;
+      deltas?: KotDelta[];
     }) => {
       const config = await loadPrinterConfig();
       const groups = groupByPrinter(input.items);
@@ -102,7 +129,7 @@ export function useSendKot() {
         customerName: input.order.customerName,
         customerPhone: input.customerPhone ?? null,
         type: input.order.type,
-        items: toKotItems(input.items),
+        items: toKotItems(input.items, input.deltas),
         mode: "new",
         printedAt: new Date(),
       };
@@ -143,6 +170,7 @@ export function useReprintKot() {
       tableId?: number | null;
       waiterName?: string | null;
       customerPhone?: string | null;
+      deltas?: KotDelta[];
     }) => {
       const config = await loadPrinterConfig();
       const nonce = String(Date.now());
@@ -154,7 +182,7 @@ export function useReprintKot() {
         customerName: input.order.customerName,
         customerPhone: input.customerPhone ?? null,
         type: input.order.type,
-        items: toKotItems(input.items),
+        items: toKotItems(input.items, input.deltas),
         mode: "update",
         printedAt: new Date(),
       };

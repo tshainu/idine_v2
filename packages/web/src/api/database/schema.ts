@@ -38,6 +38,18 @@ export const waiterPushTokens = sqliteTable("waiter_push_tokens", {
 });
 
 // Businesses (managed from /idsa — the software owner's super admin panel)
+// Android/iOS push tokens for background kitchen-ready notifications.
+export const deviceTokens = sqliteTable("device_tokens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  branchId: integer("branch_id").references(() => branches.id),
+  token: text("token").notNull().unique(),
+  platform: text("platform").notNull().default("android"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 export const businesses = sqliteTable("businesses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().unique(),      // e.g. "ELE5236"

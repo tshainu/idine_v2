@@ -10,6 +10,10 @@ export type KotItem = {
   qty: number;
   notes?: string | null;
   variationName?: string | null;
+  /** Quantity change for an updated KOT. */
+  delta?: number | null;
+  /** Marks an item newly added during an order edit. */
+  isNew?: boolean;
   printerId?: number | null;
 };
 

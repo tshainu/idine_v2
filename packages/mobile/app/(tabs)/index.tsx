@@ -69,10 +69,24 @@ export default function DashboardScreen() {
         removeIds: removed,
         additions: [],
       });
-      if (result.items.length) {
+      const deltas = [
+        ...changed.flatMap((item) => {
+          const previous = original.find((source) => source.id === item.id);
+          const delta = item.qty - (previous?.qty ?? 0);
+          return delta === 0 ? [] : [{ itemId: item.id, name: previous?.name ?? "Item", qty: Math.abs(delta), delta, note: item.note }];
+        }),
+        ...removed.map((id) => {
+          const previous = original.find((item) => item.id === id)!;
+          return { itemId: id, name: previous.name, qty: previous.qty, delta: -previous.qty, note: previous.note };
+        }),
+      ];
+      if (deltas.length) {
+        const removedItems = original.filter((item) => removed.includes(item.id));
+        const printItems = [...result.items, ...removedItems.filter((item) => !result.items.some((next) => next.id === item.id))];
         await reprintKot.mutateAsync({
           order: result.order,
-          items: result.items,
+          items: printItems,
+          deltas,
           branchId: result.order.branchId ?? branchId ?? null,
           tableName: (tables.data ?? []).find((table) => table.id === result.order.tableId)?.name ?? null,
           tableId: result.order.tableId,

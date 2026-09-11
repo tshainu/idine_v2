@@ -1,63 +1,65 @@
-import * as schema from "./database/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "./database";
-import { eq } from "drizzle-orm";
+import * as schema from "./database/schema";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
-export type ReadyOrderNotification = {
+export async function notifyKitchenReady(order: {
   id: number;
   branchId: number | null;
   orderNumber: string;
   tableId: number | null;
-  type: string;
-};
+}) {
+  try {
+    const tokens = await db
+      .select({ token: schema.deviceTokens.token })
+      .from(schema.deviceTokens)
+      .where(and(
+        eq(schema.deviceTokens.isActive, true),
+        order.branchId === null
+          ? isNull(schema.deviceTokens.branchId)
+          : eq(schema.deviceTokens.branchId, order.branchId),
+      ));
 
-/**
- * Sends a high-priority Expo push notification to every waiter device registered
- * for the order's branch. The in-app polling alert remains the foreground fallback.
- */
-export async function sendKitchenReadyPush(order: ReadyOrderNotification) {
-  if (!order.branchId) return;
+    if (!tokens.length) return;
+    const messages = tokens.map(({ token }) => ({
+      to: token,
+      title: "Kitchen order ready",
+      body: `${order.orderNumber} is ready for pickup`,
+      sound: "default",
+      channelId: "kitchen-ready",
+      priority: "high",
+      data: {
+        type: "kitchen-ready",
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        tableId: order.tableId,
+      },
+    }));
 
-  const rows = await db
-    .select({ token: schema.waiterPushTokens.token })
-    .from(schema.waiterPushTokens)
-    .where(eq(schema.waiterPushTokens.branchId, order.branchId));
-  const tokens = [...new Set(rows.map((row) => row.token).filter(Boolean))];
-  if (!tokens.length) return;
-
-  const messages = tokens.map((to) => ({
-    to,
-    title: "Order ready for pickup",
-    body: `${order.orderNumber} is ready for pickup`,
-    sound: "ready_alert",
-    priority: "high",
-    channelId: "kitchen-ready",
-    data: {
-      screen: "ready-items",
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      tableId: order.tableId,
-    },
-  }));
-
-  // Expo accepts up to 100 messages per request. Branches normally have far
-  // fewer devices, but batching keeps this safe as the restaurant grows.
-  for (let i = 0; i < messages.length; i += 100) {
-    const batch = messages.slice(i, i + 100);
     const response = await fetch(EXPO_PUSH_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch),
-      signal: AbortSignal.timeout(15_000),
+      body: JSON.stringify(messages),
     });
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`Expo push failed (${response.status}): ${text.slice(0, 300)}`);
+      console.error("Expo push notification failed", response.status, await response.text());
+      return;
     }
-  }
-}
 
-export function isExpoPushToken(value: unknown): value is string {
-  return typeof value === "string" && /^(ExpoPushToken|ExponentPushToken)\[.+\]$/.test(value);
+    const result = await response.json() as {
+      data?: Array<{ status?: string; details?: { error?: string } }>;
+    };
+    const invalidTokens = result.data
+      ?.map((receipt, index) => receipt.details?.error === "DeviceNotRegistered" ? tokens[index]?.token : null)
+      .filter((token): token is string => !!token) ?? [];
+    for (const token of invalidTokens) {
+      await db.update(schema.deviceTokens)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(schema.deviceTokens.token, token));
+    }
+  } catch (error) {
+    // A push outage must never prevent the KDS from marking an order ready.
+    console.error("Kitchen-ready push notification error", error);
+  }
 }

@@ -28,7 +28,7 @@ import { menuExtract } from "./routes/menu-extract";
 import { comboItems } from "./routes/combo-items";
 import { messaging } from "./routes/messaging";
 import { shifts } from "./routes/shifts";
-import { pushTokens } from "./routes/push-tokens";
+import { deviceTokens } from "./routes/device-tokens";
 
 const app = new Hono()
   .basePath("api")
@@ -63,7 +63,7 @@ const app = new Hono()
   .route("/combo-items", comboItems)
   .route("/messaging", messaging)
   .route("/shifts", shifts)
-  .route("/push-tokens", pushTokens);
+  .route("/device-tokens", deviceTokens);
 
 export type AppType = typeof app;
 export default app;
