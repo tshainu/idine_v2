@@ -162,14 +162,14 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
             </Text>
             <Text style={s.sub}>
               {alerting.length > 1
-                ? alerting.map((o) => o.orderNumber).join(", ")
-                : `${first?.orderNumber ?? ""} is ready for pickup`}
+                ? alerting.map((o) => `Table ${o.tableId ?? "—"} · ${o.orderNumber}`).join(", ")
+                : `Table ${first?.tableId ?? "—"} · ${first?.orderNumber ?? ""} is ready for pickup`}
             </Text>
 
             {first ? (
               <View style={s.meta}>
                 <Text style={s.metaLine}>
-                  {first.items?.length ?? 0} items · {lkr(first.total)}
+                  Table {first.tableId ?? "—"} · {first.items?.length ?? 0} items · {lkr(first.total)}
                 </Text>
                 <Text style={s.metaLine}>Placed {elapsed(first.createdAt)}</Text>
               </View>

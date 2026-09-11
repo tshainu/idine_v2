@@ -24,8 +24,8 @@ export async function notifyKitchenReady(order: {
     if (!tokens.length) return;
     const messages = tokens.map(({ token }) => ({
       to: token,
-      title: "Kitchen order ready",
-      body: `${order.orderNumber} is ready for pickup`,
+      title: `Kitchen order ready · Table ${order.tableId ?? "—"}`,
+      body: `Table ${order.tableId ?? "—"} · ${order.orderNumber} is ready for pickup`,
       sound: "default",
       channelId: "kitchen-ready",
       priority: "high",
