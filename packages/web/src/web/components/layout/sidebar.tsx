@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../../lib/useTheme";
 import { api } from "../../lib/api";
-import { getBranchId } from "../../lib/store";
+import { getBranchId, getUser } from "../../lib/store";
 
 const GOLD = "var(--color-gold)";
 const SURF = "var(--color-surface)";
@@ -91,6 +91,7 @@ export function Sidebar() {
   const [location, navigate] = useLocation();
   const { isDark, toggle: toggleTheme } = useTheme();
   const branchId = getBranchId();
+  const currentUser = getUser();
 
   // Only collapsible groups need open state; default all open
   const [open, setOpen] = useState<Record<string, boolean>>({
@@ -110,6 +111,25 @@ export function Sidebar() {
   });
 
   const settingsMap: Record<string, string> = (settingsData as any)?.settings || {};
+  let savedPrivileges: Record<string, Record<string, boolean>> = {};
+  try { savedPrivileges = settingsMap.userPrivileges ? JSON.parse(settingsMap.userPrivileges) : {}; } catch { savedPrivileges = {}; }
+  const role = String(currentUser?.role || "admin");
+  const builtInDefaults: Record<string, string[]> = {
+    waiter: ["POS", "Kitchen", "Tables"],
+    cashier: ["POS", "Sales", "Customers"],
+    manager: ["Dashboard", "POS", "Menu Items", "Categories", "Sales", "Customers", "Reports", "Kitchen", "Tables", "Expenses", "Purchases", "Promotions", "Ingredients"],
+  };
+  const can = (privilege: string) => role === "superadmin" || role === "admin"
+    ? true
+    : savedPrivileges[role]?.[privilege] ?? Boolean(builtInDefaults[role]?.includes(privilege));
+  const sectionPrivilege: Record<string, string> = { dashboard: "Dashboard", pos: "POS", item: "Menu Items", sales: "Sales", panel: "Kitchen", purchases: "Purchases", expenses: "Expenses", messaging: "Customers", users: "Users", settings: "Settings", reports: "Reports" };
+  const itemPrivilege = (label: string) => ({
+    "List Item": "Menu Items", "List Category": "Categories", "List Modifiers": "Menu Items", "Combo & Promo": "Promotions",
+    "List of Sales": "Sales", "Promotions": "Promotions", "Kitchen Display": "Kitchen", "Tables": "Tables",
+    "List of Purchases": "Purchases", "Purchase Items": "Purchases", "Suppliers": "Purchases", "Send Messages": "Customers",
+    "Message Settings": "Settings", "List Users": "Users", "Sales Performance": "Reports", "Menu Performance": "Reports",
+    "Inventory & Stock": "Reports", "Profit & Loss": "Reports", "Staff Performance": "Reports", "Customer Analytics": "Reports",
+  } as Record<string, string>)[label] || label;
   // "Restaurant Name" in General Settings saves to settings.restaurantName — prefer that
   // over the branch record's name so renaming in Settings reflects immediately here.
   const branchName: string = settingsMap.restaurantName || (branchData as any)?.branch?.name || "iDine";
@@ -148,6 +168,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {NAV.map(section => {
+          if (!can(sectionPrivilege[section.id] || section.label)) return null;
           if (section.type === "link") {
             const active = isActive(section.path);
             return (
@@ -190,7 +211,7 @@ export function Sidebar() {
 
               {isOpen && (
                 <div className="pb-1">
-                  {section.items.map(item => {
+                  {section.items.filter(item => can(itemPrivilege(item.label))).map(item => {
                     const active = isActive(item.path);
                     return (
                       <button

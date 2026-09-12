@@ -13,14 +13,22 @@ const MUTED = "var(--color-text-muted)";
 const DIM = "var(--color-text-dim)";
 const TEXT = "var(--color-text)";
 
-function StatCard({ label, value, sub, imgSrc }: { label: string; value: string | number; sub?: string; imgSrc: string }) {
+const CARD_GRADIENTS = [
+  "linear-gradient(135deg,#22C55E,#06B6D4)", "linear-gradient(135deg,#A855F7,#EC4899)",
+  "linear-gradient(135deg,#F59E0B,#EF4444)", "linear-gradient(135deg,#3B82F6,#8B5CF6)",
+  "linear-gradient(135deg,#14B8A6,#84CC16)", "linear-gradient(135deg,#F97316,#EAB308)",
+];
+
+function StatCard({ label, value, sub, imgSrc, index }: { label: string; value: string | number; sub?: string; imgSrc: string; index: number }) {
   return (
-    <div className="rounded-2xl p-5 flex items-start gap-4 border" style={{ background: SURF, borderColor: BORD }}>
-      <img src={imgSrc} alt="" className="w-12 h-12 object-contain shrink-0" />
-      <div>
-        <div className="text-2xl font-bold" style={{ color: TEXT }}>{value}</div>
-        <div className="text-sm font-medium mt-0.5" style={{ color: MUTED }}>{label}</div>
-        {sub && <div className="text-xs mt-1" style={{ color: DIM }}>{sub}</div>}
+    <div className="rounded-2xl p-[1px]" style={{ background: CARD_GRADIENTS[index % CARD_GRADIENTS.length] }}>
+      <div className="rounded-[15px] p-5 flex items-start gap-4 h-full" style={{ background: SURF }}>
+        <img src={imgSrc} alt="" className="w-12 h-12 object-contain shrink-0" />
+        <div>
+          <div className="text-2xl font-bold" style={{ color: TEXT }}>{value}</div>
+          <div className="text-sm font-medium mt-0.5" style={{ color: MUTED }}>{label}</div>
+          {sub && <div className="text-xs mt-1" style={{ color: DIM }}>{sub}</div>}
+        </div>
       </div>
     </div>
   );
@@ -160,36 +168,42 @@ export default function HomePage() {
               value={`LKR ${todayRevenue.toLocaleString()}`}
               sub={`${todayOrders.length} orders`}
               imgSrc="/dashboard-icons/sales.png"
+              index={0}
             />
             <StatCard
               label="Profit Today"
               value={`LKR ${Math.round(profitToday).toLocaleString()}`}
               sub="Est. 40% margin"
               imgSrc="/dashboard-icons/profit.png"
+              index={1}
             />
             <StatCard
               label="Active Tables"
               value={activeTables}
               sub="Currently occupied"
               imgSrc="/dashboard-icons/active_table.png"
+              index={2}
             />
             <StatCard
               label="Pending Kitchen Orders"
               value={pendingKitchen}
               sub="Open / Confirmed"
               imgSrc="/dashboard-icons/pending_kitchen.png"
+              index={3}
             />
             <StatCard
               label="Top Selling Item"
               value={topSellingItem}
               sub={topSellingArr[0] ? `${topSellingArr[0].qty}x today` : "No sales yet"}
               imgSrc="/dashboard-icons/top_selling.png"
+              index={4}
             />
             <StatCard
               label="Total Orders"
               value={totalOrdersCount}
               sub={`Dine-in: ${dineInToday} · Takeaway: ${takeawayToday}`}
               imgSrc="/dashboard-icons/total_orders.png"
+              index={5}
             />
           </div>
 

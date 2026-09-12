@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, like, or, desc, and } from "drizzle-orm";
+import { triggerSalesTemplate } from "../sales-messaging";
 
 export const customers = new Hono()
   /**
@@ -99,6 +100,7 @@ export const customers = new Hono()
   .post("/", async (c) => {
     const body = await c.req.json();
     const [customer] = await db.insert(schema.customers).values(body).returning();
+    triggerSalesTemplate({ branchId: customer.branchId, customer, kind: "new_customer" });
     return c.json({ customer }, 201);
   })
   .patch("/:id", async (c) => {

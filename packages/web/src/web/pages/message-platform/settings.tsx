@@ -6,7 +6,7 @@ import { fmtDayMonth } from "../../lib/daymonth";
 import { Sidebar } from "../../components/layout/sidebar";
 import {
   Settings as SettingsIcon, Clock, FileText, Plus, Pencil, Trash2, Save,
-  BellRing, BellOff, Type, ArrowLeft, Cake, Gift, Baby,
+  BellRing, BellOff, Type, ArrowLeft, Cake, Gift, Baby, UserPlus, ReceiptText, HeartHandshake,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -27,6 +27,9 @@ const inp: React.CSSProperties = {
 };
 
 const KINDS = [
+  { value: "new_customer", label: "Registered new customer", icon: UserPlus },
+  { value: "first_bill", label: "First bill", icon: ReceiptText },
+  { value: "thank_you_visit", label: "Thank you for your visit", icon: HeartHandshake },
   { value: "birthday", label: "Birthday wish", icon: Cake },
   { value: "anniversary", label: "Wedding anniversary", icon: Gift },
   { value: "child_birthday", label: "Child's birthday", icon: Baby },
@@ -36,7 +39,7 @@ const KINDS = [
   { value: "custom", label: "Custom", icon: FileText },
 ];
 
-const TOKENS = ["{name}", "{first_name}", "{points}", "{child}", "{date}"];
+const TOKENS = ["{name}", "{first_name}", "{points}", "{child}", "{date}", "{order_number}", "{total}"];
 
 export default function MessageSettings() {
   const branchId = getBranchId();
@@ -243,7 +246,7 @@ function Templates({ branchId, qc }: any) {
         <div>
           <div className="text-sm font-bold" style={{ color: TEXT }}>SMS & WhatsApp templates</div>
           <div className="text-[11px]" style={{ color: DIM }}>
-            The active template for each occasion is what the daily job sends. Built-in wording is used if none exists.
+            Active sales templates can automatically send an SMS when a customer is registered, their first bill is completed, or a bill is paid.
           </div>
         </div>
         <button onClick={() => { reset(); setShowForm(true); }}

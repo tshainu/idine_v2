@@ -4,6 +4,7 @@ import * as schema from "../database/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
+import { triggerSalesTemplate } from "../sales-messaging";
 
 // Table occupancy must follow the live orders: the POS never reset it, so tables
 // stayed "occupied" long after their order was settled and waiters were blocked.
@@ -143,7 +144,7 @@ export const orders = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
-    const [before] = await db.select({ status: schema.orders.status })
+    const [before] = await db.select()
       .from(schema.orders)
       .where(eq(schema.orders.id, id));
     const [order] = await db.update(schema.orders)
@@ -154,6 +155,17 @@ export const orders = new Hono()
     pushOutbox("orders", "update", order.id, order, order.branchId ?? undefined);
     if (order.status === "ready" && before?.status !== "ready") {
       await notifyKitchenReady(order);
+    }
+    const isPaidState = order.status === "completed" || order.status === "paid";
+    const wasPaidState = before?.status === "completed" || before?.status === "paid";
+    if (isPaidState && !wasPaidState && order.customerId) {
+      const [customer] = await db.select().from(schema.customers).where(eq(schema.customers.id, order.customerId));
+      if (customer) {
+        const priorPaid = await db.select({ id: schema.orders.id }).from(schema.orders)
+          .where(and(eq(schema.orders.customerId, customer.id), eq(schema.orders.status, "completed")));
+        if (priorPaid.length === 0) triggerSalesTemplate({ branchId: order.branchId, customer, kind: "first_bill", order });
+        triggerSalesTemplate({ branchId: order.branchId, customer, kind: "thank_you_visit", order });
+      }
     }
     return c.json({ order }, 200);
   })

@@ -15,7 +15,7 @@ const TEXT = "var(--color-text)";
 const PURPLE = "var(--color-purple)";
 const ROLE_COLOR: Record<string, string> = { superadmin: "var(--color-purple-light)", admin: GOLD, manager: "#F97316", waiter: "var(--color-success)", cashier: "var(--color-info)" };
 
-type ModalType = "create" | "edit" | "password" | null;
+type ModalType = "create" | "edit" | "password" | "role" | null;
 type TabType = "users" | "privileges";
 
 const GENERAL_SECTIONS = [
@@ -33,7 +33,7 @@ const POS_SECTIONS = [
 
 const PRIVILEGE_SECTIONS = [...GENERAL_SECTIONS, ...POS_SECTIONS];
 
-const ROLES = ["superadmin", "admin", "manager", "waiter", "cashier"];
+const BUILT_IN_ROLES = ["superadmin", "admin", "manager", "waiter", "cashier"];
 
 const DEFAULT_PRIVILEGES: Record<string, Record<string, boolean>> = {
   superadmin: Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, true])),
@@ -65,6 +65,8 @@ export default function UsersPage() {
   const [privileges, setPrivileges] = useState<Record<string, Record<string, boolean>>>(DEFAULT_PRIVILEGES);
   const [privSaved, setPrivSaved] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string>("waiter");
+  const [customRoles, setCustomRoles] = useState<string[]>([]);
+  const [newRoleName, setNewRoleName] = useState("");
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["users", branchId],
@@ -85,7 +87,12 @@ export default function UsersPage() {
         setPrivileges(p => ({ ...DEFAULT_PRIVILEGES, ...parsed }));
       } catch {}
     }
+    if (s?.customRoles) {
+      try { setCustomRoles(JSON.parse(s.customRoles).filter((r: unknown) => typeof r === "string")); } catch {}
+    }
   }, [settingsData]);
+
+  const roleNames = [...BUILT_IN_ROLES, ...customRoles];
 
   const users: any[] = (usersData as any)?.users || [];
 
@@ -103,7 +110,7 @@ export default function UsersPage() {
   });
   const savePrivileges = useMutation({
     mutationFn: async () =>
-      (await api.settings.$post({ json: { branchId, settings: { userPrivileges: JSON.stringify(privileges) } } })).json(),
+      (await api.settings.$post({ json: { branchId, settings: { userPrivileges: JSON.stringify(privileges), customRoles: JSON.stringify(customRoles) } } })).json(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["settings", branchId] });
       setPrivSaved(true);
@@ -171,6 +178,16 @@ export default function UsersPage() {
       ...p,
       [role]: Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, val])),
     }));
+  }
+
+  function createRole() {
+    const role = newRoleName.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+    if (!role || roleNames.includes(role)) return;
+    setCustomRoles(prev => [...prev, role]);
+    setPrivileges(prev => ({ ...prev, [role]: Object.fromEntries(PRIVILEGE_SECTIONS.map(section => [section, false])) }));
+    setSelectedRole(role);
+    setNewRoleName("");
+    setModal(null);
   }
 
   const rolePrivs = privileges[selectedRole] || {};
@@ -295,19 +312,22 @@ export default function UsersPage() {
                     <div className="font-bold text-sm" style={{ color: TEXT }}>Role Privileges</div>
                     <div className="text-xs mt-0.5" style={{ color: DIM }}>Control which sections each role can access</div>
                   </div>
-                  <button
-                    onClick={() => savePrivileges.mutate()}
-                    disabled={savePrivileges.isPending}
-                    className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                    style={{ background: privSaved ? "var(--color-success)" : PURPLE, color: "#fff" }}
-                  >
-                    {privSaved ? "Saved!" : savePrivileges.isPending ? "Saving…" : "Save Privileges"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setModal("role")} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: BG, border: `1px solid ${BORD}`, color: GOLD }}>+ Create Role</button>
+                    <button
+                      onClick={() => savePrivileges.mutate()}
+                      disabled={savePrivileges.isPending}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
+                      style={{ background: privSaved ? "var(--color-success)" : PURPLE, color: "#fff" }}
+                    >
+                      {privSaved ? "Saved!" : savePrivileges.isPending ? "Saving…" : "Save Privileges"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Role selector tabs */}
                 <div className="flex border-b overflow-x-auto" style={{ borderColor: BORD }}>
-                  {ROLES.map(role => (
+                  {roleNames.map(role => (
                     <button
                       key={role}
                       onClick={() => setSelectedRole(role)}
@@ -437,11 +457,7 @@ export default function UsersPage() {
                 <select value={form.role || "waiter"} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
                   className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                   style={{ background: BG, borderColor: BORD, color: TEXT }}>
-                  <option value="waiter">Waiter</option>
-                  <option value="cashier">Cashier</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
+                  {roleNames.map(role => <option key={role} value={role}>{role.replace(/[\-_]/g, " ")}</option>)}
                 </select>
               </div>
             </div>
@@ -481,11 +497,7 @@ export default function UsersPage() {
                 <select value={form.role || "waiter"} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
                   className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                   style={{ background: BG, borderColor: BORD, color: TEXT }}>
-                  <option value="waiter">Waiter</option>
-                  <option value="cashier">Cashier</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
+                  {roleNames.map(role => <option key={role} value={role}>{role.replace(/[\-_]/g, " ")}</option>)}
                 </select>
               </div>
             </div>
@@ -497,6 +509,21 @@ export default function UsersPage() {
                 style={{ background: GOLD, color: "var(--color-surface)" }}>
                 Save Changes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Custom Role Modal */}
+      {modal === "role" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="w-80 rounded-2xl p-6 border" style={{ background: SURF, borderColor: BORD }}>
+            <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>Create New Role</div>
+            <p className="text-xs mb-4" style={{ color: DIM }}>The new role starts with no privileges. Select its menu permissions, then save.</p>
+            <input autoFocus value={newRoleName} onChange={e => setNewRoleName(e.target.value)} placeholder="e.g. counter-cashier" className="w-full px-3 py-2 text-sm rounded-lg border outline-none" style={{ background: BG, borderColor: BORD, color: TEXT }} />
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => setModal(null)} className="px-4 py-2 rounded-lg text-xs" style={{ background: BORD, color: MUTED }}>Cancel</button>
+              <button onClick={createRole} disabled={!newRoleName.trim()} className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50" style={{ background: GOLD, color: "var(--color-surface)" }}>Create Role</button>
             </div>
           </div>
         </div>
