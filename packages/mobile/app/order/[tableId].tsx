@@ -611,7 +611,9 @@ const DishTile = memo(function DishTile({ item, inCart, pressed, onPress }: {
     <TouchableOpacity
       style={[s.tile, (inCart > 0 || pressed) && s.tileSelected]}
       activeOpacity={0.85}
-      onPress={() => onPress(item)}
+      // Start selection on touch-down instead of waiting for touch-up and
+      // image/list work; this makes every dish respond like the fast juice cards.
+      onPressIn={() => onPress(item)}
     >
       <View style={s.imgWrap}>
         {uri ? (

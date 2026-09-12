@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and, desc, inArray, like } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
 
@@ -34,19 +34,14 @@ function waiterShortId(name: string | null | undefined): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-async function generateOrderNumber(branchId: number | null, waiterName: string | null | undefined): Promise<string> {
+function generateOrderNumber(orderId: number, waiterName: string | null | undefined): string {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const dayPrefix = `${mm}${dd}`;
-  const conditions = [like(schema.orders.orderNumber, `${dayPrefix}%`)];
-  if (branchId !== null) conditions.push(eq(schema.orders.branchId, branchId));
-  const todayOrders = await db
-    .select({ orderNumber: schema.orders.orderNumber })
-    .from(schema.orders)
-    .where(and(...conditions));
-  const seq = todayOrders.length + 1;
-  return `${dayPrefix}${waiterShortId(waiterName)}-${String(seq).padStart(3, "0")}`;
+  // The database id is monotonic and cannot collide when two waiters place
+  // orders at the same time; counting today's rows was race-prone.
+  return `${dayPrefix}${waiterShortId(waiterName)}-${String(orderId).padStart(5, "0")}`;
 }
 
 export const orders = new Hono()
@@ -88,9 +83,15 @@ export const orders = new Hono()
         waiterRows.forEach((waiter) => waiterNames.set(waiter.id, waiter.name));
       }
 
+      const tableIds = [...new Set(all.map((o) => o.tableId).filter((id): id is number => typeof id === "number"))];
+      const tableRows = tableIds.length
+        ? await db.select({ id: schema.tables.id, name: schema.tables.name }).from(schema.tables).where(inArray(schema.tables.id, tableIds))
+        : [];
+      const tableNames = new Map(tableRows.map((table) => [table.id, table.name]));
       ordersWithItems = all.map((o) => ({
         ...o,
         waiterName: (o.waiterId ? waiterNames.get(o.waiterId) : null) || o.placedBy || null,
+        tableName: o.tableId ? tableNames.get(o.tableId) || null : null,
         items: itemsByOrder[o.id] || [],
       }));
     }
@@ -110,7 +111,7 @@ export const orders = new Hono()
       ...body,
       orderNumber: "TEMP",
     }).returning();
-    const orderNumber = await generateOrderNumber(order.branchId, body.placedBy);
+    const orderNumber = generateOrderNumber(order.id, body.placedBy);
     const [updated] = await db.update(schema.orders)
       .set({ orderNumber })
       .where(eq(schema.orders.id, order.id))
@@ -132,7 +133,12 @@ export const orders = new Hono()
         .where(eq(schema.users.id, order.waiterId));
       waiterName = waiter?.name || waiterName;
     }
-    return c.json({ order: { ...order, waiterName }, items }, 200);
+    let tableName: string | null = null;
+    if (order.tableId) {
+      const [table] = await db.select({ name: schema.tables.name }).from(schema.tables).where(eq(schema.tables.id, order.tableId));
+      tableName = table?.name ?? null;
+    }
+    return c.json({ order: { ...order, waiterName, tableName }, items }, 200);
   })
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
