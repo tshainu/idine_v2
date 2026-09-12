@@ -50,6 +50,17 @@ export const deviceTokens = sqliteTable("device_tokens", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// KDS tablets do not use waiter login; their push token is scoped directly to a branch.
+export const kdsPushTokens = sqliteTable("kds_push_tokens", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  token: text("token").notNull().unique(),
+  branchId: integer("branch_id").references(() => branches.id).notNull(),
+  platform: text("platform").notNull().default("android"),
+  appVersion: text("app_version"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 export const businesses = sqliteTable("businesses", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().unique(),      // e.g. "ELE5236"

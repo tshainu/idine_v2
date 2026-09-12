@@ -34,6 +34,28 @@
         "vite-plugin-electron-renderer": "^0.14.5",
       },
     },
+    "packages/kds": {
+      "name": "@template/kds",
+      "version": "1.0.0",
+      "dependencies": {
+        "@expo/vector-icons": "^15.0.3",
+        "@react-native-async-storage/async-storage": "2.2.0",
+        "expo": "~54.0.35",
+        "expo-constants": "~18.0.13",
+        "expo-device": "~7.0.3",
+        "expo-notifications": "~0.32.16",
+        "expo-router": "~6.0.24",
+        "expo-status-bar": "~3.0.9",
+        "react": "19.1.0",
+        "react-native": "0.81.5",
+        "react-native-safe-area-context": "~5.6.0",
+        "react-native-screens": "~4.16.0",
+      },
+      "devDependencies": {
+        "@types/react": "19.1.17",
+        "typescript": "~5.9.2",
+      },
+    },
     "packages/mobile": {
       "name": "@template/mobile",
       "version": "1.0.0",
@@ -998,6 +1020,8 @@
     "@tanstack/react-query-persist-client": ["@tanstack/react-query-persist-client@5.102.8", "", { "dependencies": { "@tanstack/query-persist-client-core": "5.102.8" }, "peerDependencies": { "@tanstack/react-query": "^5.102.8", "react": "^18 || ^19" } }, "sha512-WOZReC+m9klekPtG7eeZ3txJeMA9lg2R0RytSG3yXcZgJItQAVIyoobJdbdIQtlpgcU2tSzsOEBtJacs2vlCOA=="],
 
     "@template/desktop": ["@template/desktop@workspace:packages/desktop"],
+
+    "@template/kds": ["@template/kds@workspace:packages/kds"],
 
     "@template/mobile": ["@template/mobile@workspace:packages/mobile"],
 

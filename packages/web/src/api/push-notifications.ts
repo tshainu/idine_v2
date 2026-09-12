@@ -26,9 +26,19 @@ export async function notifyKitchenReady(order: {
       .where(order.branchId === null
         ? isNull(schema.waiterPushTokens.branchId)
         : eq(schema.waiterPushTokens.branchId, order.branchId));
+    const kdsRows = await db
+      .select({ token: schema.kdsPushTokens.token })
+      .from(schema.kdsPushTokens)
+      .where(and(
+        eq(schema.kdsPushTokens.isActive, true),
+        order.branchId === null
+          ? isNull(schema.kdsPushTokens.branchId)
+          : eq(schema.kdsPushTokens.branchId, order.branchId),
+      ));
     const tokens = [...new Set([
       ...deviceRows.map((row) => row.token),
       ...waiterRows.map((row) => row.token),
+      ...kdsRows.map((row) => row.token),
     ].filter(Boolean))];
     if (!tokens.length) return;
 

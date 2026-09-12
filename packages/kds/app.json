@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "iDine KDS",
+    "slug": "idine-kds",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "scheme": "idine-kds",
+    "newArchEnabled": false,
+    "android": {
+      "package": "lk.idine.kds",
+      "versionCode": 1,
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#111827" }
+    },
+    "extra": {
+      "apiUrl": "https://idinev2.69-169-97-195.sslip.io/",
+      "eas": { "projectId": "535f993b-342c-4ea5-a958-22ee26076d4d" }
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-notifications", { "sounds": ["./assets/ready_alert.mp3"] }]
+    ],
+    "owner": "shainu"
+  }
+}
