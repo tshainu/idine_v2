@@ -116,7 +116,7 @@ export function Sidebar() {
   const role = String(currentUser?.role || "admin");
   const builtInDefaults: Record<string, string[]> = {
     waiter: ["POS", "Kitchen", "Tables"],
-    cashier: ["POS", "Sales", "Customers"],
+    cashier: ["POS"],
     manager: ["Dashboard", "POS", "Menu Items", "Categories", "Sales", "Customers", "Reports", "Kitchen", "Tables", "Expenses", "Purchases", "Promotions", "Ingredients"],
   };
   const can = (privilege: string) => role === "superadmin" || role === "admin"
@@ -130,6 +130,9 @@ export function Sidebar() {
     "Message Settings": "Settings", "List Users": "Users", "Sales Performance": "Reports", "Menu Performance": "Reports",
     "Inventory & Stock": "Reports", "Profit & Loss": "Reports", "Staff Performance": "Reports", "Customer Analytics": "Reports",
   } as Record<string, string>)[label] || label;
+  const visibleItems = (section: NavSection) => section.type === "group"
+    ? section.items.filter(item => can(itemPrivilege(item.label)))
+    : [];
   // "Restaurant Name" in General Settings saves to settings.restaurantName — prefer that
   // over the branch record's name so renaming in Settings reflects immediately here.
   const branchName: string = settingsMap.restaurantName || (branchData as any)?.branch?.name || "iDine";
@@ -168,7 +171,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {NAV.map(section => {
-          if (!can(sectionPrivilege[section.id] || section.label)) return null;
+          if (section.type === "group" ? visibleItems(section).length === 0 : !can(sectionPrivilege[section.id] || section.label)) return null;
           if (section.type === "link") {
             const active = isActive(section.path);
             return (
@@ -211,7 +214,7 @@ export function Sidebar() {
 
               {isOpen && (
                 <div className="pb-1">
-                  {section.items.filter(item => can(itemPrivilege(item.label))).map(item => {
+                  {visibleItems(section).map(item => {
                     const active = isActive(item.path);
                     return (
                       <button
