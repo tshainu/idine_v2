@@ -22,6 +22,7 @@ import {
   registerKitchenReadyNotifications,
   subscribeToKitchenReadyNotificationTap,
 } from "../lib/notifications";
+import { registerWaiterPush } from "../lib/push";
 
 // Shared cache tuning for the whole waiter app.
 // Before: every screen used raw defaults, so each mount refired its request and
@@ -65,7 +66,10 @@ function NotificationBootstrap() {
 
   useEffect(() => {
     if (!session) return;
+    // Register both token stores for compatibility with older server workers.
+    // Either path may be used while a VPS deployment is being rolled forward.
     registerKitchenReadyNotifications(session).catch(() => {});
+    registerWaiterPush(session).catch(() => {});
   }, [session]);
 
   useEffect(() => {

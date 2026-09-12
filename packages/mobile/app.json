@@ -3,7 +3,7 @@
     "icon": "./assets/icon.png",
     "android": {
       "package": "lk.idine.waiter",
-      "versionCode": 8,
+      "versionCode": 9,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +28,7 @@
     },
     "name": "iDine Waiter",
     "slug": "idine",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "scheme": "idine",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

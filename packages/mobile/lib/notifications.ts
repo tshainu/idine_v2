@@ -5,10 +5,10 @@ import { Platform } from "react-native";
 import { http } from "./http";
 import type { WaiterSession } from "./session";
 
-export const KITCHEN_READY_CHANNEL = "kitchen-ready";
+export const KITCHEN_READY_CHANNEL = "kitchen-ready-v3";
 // Older server deployments used this channel ID. Keeping it registered lets
 // existing installations receive alerts while the server rolls forward.
-const LEGACY_KITCHEN_READY_CHANNEL = "kitchen-ready-v2";
+const LEGACY_KITCHEN_READY_CHANNEL = "kitchen-ready";
 
 // Foreground alerts continue to use the existing full-screen ringing provider.
 // Background/closed alerts are rendered by Android as a high-priority notification.

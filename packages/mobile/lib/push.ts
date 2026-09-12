@@ -8,7 +8,7 @@ import type { WaiterSession } from "./session";
 // Channel settings are immutable after Android creates a channel. The v2 ID
 // forces devices that previously created a silent kitchen-ready channel to get
 // a fresh high-importance channel with sound and vibration enabled.
-const CHANNEL_ID = "kitchen-ready-v2";
+const CHANNEL_ID = "kitchen-ready-v3";
 
 // Foreground uses the existing looping in-app alert. Background/terminated/locked
 // states are handled by Android's system notification UI and sound channel.

@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
   FlatList, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -103,6 +103,8 @@ export default function TakeOrderScreen() {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [sending, setSending] = useState(false);
   const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
+  const [pressedItems, setPressedItems] = useState<Set<number>>(() => new Set());
+  const pressedTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   const table = (tables.data ?? []).find((t) => t.id === tableId);
   // Printing must not depend on the table catalog finishing its refresh: the route
@@ -145,6 +147,10 @@ export default function TakeOrderScreen() {
       })
       .catch(() => setCategoryPrinterMap({}));
   }, [branchId]);
+
+  useEffect(() => () => {
+    for (const timer of pressedTimers.current.values()) clearTimeout(timer);
+  }, []);
 
   const items = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -199,6 +205,17 @@ export default function TakeOrderScreen() {
   }
 
   function quickAdd(item: MenuItem) {
+    setPressedItems((prev) => new Set(prev).add(item.id));
+    const oldTimer = pressedTimers.current.get(item.id);
+    if (oldTimer) clearTimeout(oldTimer);
+    pressedTimers.current.set(item.id, setTimeout(() => {
+      setPressedItems((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+      pressedTimers.current.delete(item.id);
+    }, 450));
     // Items with choices always open the sheet; simple items go straight in.
     const hasVariations = (item.variations?.length ?? 0) > 0;
     if (hasVariations) {
@@ -496,7 +513,14 @@ export default function TakeOrderScreen() {
           contentContainerStyle={s.groupedGrid}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => <DishTile item={item} inCart={cartQuantities.get(item.id) ?? 0} onPress={quickAdd} />}
+          renderItem={({ item }) => (
+            <DishTile
+              item={item}
+              inCart={cartQuantities.get(item.id) ?? 0}
+              pressed={pressedItems.has(item.id)}
+              onPress={quickAdd}
+            />
+          )}
         />
       )}
 
@@ -574,15 +598,16 @@ export default function TakeOrderScreen() {
   );
 }
 
-const DishTile = memo(function DishTile({ item, inCart, onPress }: {
+const DishTile = memo(function DishTile({ item, inCart, pressed, onPress }: {
   item: MenuItem;
   inCart: number;
+  pressed: boolean;
   onPress: (item: MenuItem) => void;
 }) {
   const uri = imageUri(item.imageUrl);
   return (
     <TouchableOpacity
-      style={[s.tile, inCart > 0 && s.tileSelected]}
+      style={[s.tile, (inCart > 0 || pressed) && s.tileSelected]}
       activeOpacity={0.85}
       onPress={() => onPress(item)}
     >

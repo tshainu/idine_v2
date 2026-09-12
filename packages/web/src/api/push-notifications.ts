@@ -11,7 +11,7 @@ export async function notifyKitchenReady(order: {
   tableId: number | null;
 }) {
   try {
-    const rows = await db
+    const deviceRows = await db
       .select({ token: schema.deviceTokens.token })
       .from(schema.deviceTokens)
       .where(and(
@@ -20,7 +20,16 @@ export async function notifyKitchenReady(order: {
           ? isNull(schema.deviceTokens.branchId)
           : eq(schema.deviceTokens.branchId, order.branchId),
       ));
-    const tokens = [...new Set(rows.map((row) => row.token).filter(Boolean))];
+    const waiterRows = await db
+      .select({ token: schema.waiterPushTokens.token })
+      .from(schema.waiterPushTokens)
+      .where(order.branchId === null
+        ? isNull(schema.waiterPushTokens.branchId)
+        : eq(schema.waiterPushTokens.branchId, order.branchId));
+    const tokens = [...new Set([
+      ...deviceRows.map((row) => row.token),
+      ...waiterRows.map((row) => row.token),
+    ].filter(Boolean))];
     if (!tokens.length) return;
 
     const messages = tokens.map((to) => ({
@@ -28,8 +37,9 @@ export async function notifyKitchenReady(order: {
       title: `Kitchen order ready · Table ${order.tableId ?? "—"}`,
       body: `Table ${order.tableId ?? "—"} · ${order.orderNumber} is ready for pickup`,
       sound: "ready_alert",
-      channelId: "kitchen-ready",
+      channelId: "kitchen-ready-v3",
       priority: "high",
+      _contentAvailable: true,
       data: {
         type: "kitchen-ready",
         screen: "ready-items",
