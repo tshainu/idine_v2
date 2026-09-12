@@ -162,7 +162,7 @@ export default function HistoryScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={s.orderNo}>#{o.orderNumber}</Text>
                       <Text style={s.meta}>
-                        {tableName(o) ?? o.type} · {o.items?.length ?? 0} items
+                        {tableName(o) ?? o.type} · {o.items?.length ?? 0} items · {o.waiterName ?? o.placedBy ?? "Unknown waiter"}
                       </Text>
                       <Text style={s.metaDim}>{dateTimeOf(o.createdAt)}</Text>
                     </View>

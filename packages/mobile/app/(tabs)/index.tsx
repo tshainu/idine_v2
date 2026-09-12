@@ -185,9 +185,9 @@ export default function DashboardScreen() {
         {/* Quick actions */}
         <SectionTitle title="Quick actions" />
         <View style={s.actions}>
-          <QuickAction icon="add-circle-outline" label="New order" onPress={() => router.push("/(tabs)/tables")} />
-          <QuickAction icon="notifications-outline" label="Ready items" onPress={() => router.push("/ready-items")} badge={stats.ready.length} />
-          <QuickAction icon="print-outline" label="Reprint KOT" onPress={() => router.push("/(tabs)/history")} />
+          <QuickAction icon="restaurant-outline" label="New order" accent="#19B796" onPress={() => router.push("/(tabs)/tables")} />
+          <QuickAction icon="notifications-outline" label="Ready items" accent="#D98218" onPress={() => router.push("/ready-items")} badge={stats.ready.length} />
+          <QuickAction icon="receipt-outline" label="Reprint KOT" accent="#3579C7" onPress={() => router.push("/(tabs)/history")} />
         </View>
 
         {/* Open orders */}
@@ -209,7 +209,7 @@ export default function DashboardScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={s.orderNo}>#{o.orderNumber}</Text>
                       <Text style={s.orderMeta}>
-                        {table?.name ?? o.type} · {o.items?.length ?? 0} items · {elapsed(o.createdAt)}
+                        {table?.name ?? o.type} · {o.items?.length ?? 0} items · {elapsed(o.createdAt)} · {o.waiterName ?? o.placedBy ?? "Unknown waiter"}
                       </Text>
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
@@ -239,7 +239,7 @@ export default function DashboardScreen() {
                 <Text style={s.modalTitle}>Order #{selectedOrder?.orderNumber}</Text>
                 <Text style={s.modalSub}>
                   {(tables.data ?? []).find((table) => table.id === selectedOrder?.tableId)?.name ?? "Open order"}
-                  {selectedOrder ? ` · ${selectedOrder.items?.length ?? 0} items` : ""}
+                  {selectedOrder ? ` · ${selectedOrder.items?.length ?? 0} items · ${selectedOrder.waiterName ?? selectedOrder.placedBy ?? "Unknown waiter"}` : ""}
                 </Text>
               </View>
               <TouchableOpacity style={s.modalClose} onPress={() => closeOrderModal()} activeOpacity={0.75}>
@@ -315,14 +315,14 @@ export default function DashboardScreen() {
   );
 }
 
-function QuickAction({ icon, label, onPress, badge }: {
-  icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; badge?: number;
+function QuickAction({ icon, label, onPress, badge, accent }: {
+  icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; badge?: number; accent: string;
 }) {
   return (
     <TouchableOpacity style={s.action} onPress={onPress} activeOpacity={0.8}>
       <View style={s.actionIcon}>
-        <View style={s.actionIconCircle}>
-          <Ionicons name={icon} size={21} color={c.primaryDark} />
+        <View style={[s.actionIconCircle, { borderColor: accent, backgroundColor: `${accent}12` }]}>
+          <Ionicons name={icon} size={21} color={accent} />
         </View>
         {badge ? (
           <View style={s.badge}><Text style={s.badgeText}>{badge > 9 ? "9+" : badge}</Text></View>
@@ -353,7 +353,7 @@ const s = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.md },
   gridItem: { width: "48%", flexGrow: 1, padding: Space.lg },
   actionIconCircle: {
-    width: 42, height: 42, borderRadius: Radius.md, backgroundColor: c.primarySoft,
+    width: 42, height: 42, borderRadius: Radius.md, borderWidth: 1.5,
     alignItems: "center", justifyContent: "center",
   },
   actions: { flexDirection: "row", gap: Space.md },

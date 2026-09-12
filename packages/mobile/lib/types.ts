@@ -96,6 +96,7 @@ export type Order = {
   amountPaid: number;
   kotPrinted: boolean;
   source: string;
+  waiterName?: string | null;
   createdAt: number | null;
   updatedAt: number | null;
   items?: OrderItem[];
