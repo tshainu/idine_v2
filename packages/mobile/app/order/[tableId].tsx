@@ -490,7 +490,7 @@ export default function TakeOrderScreen() {
       ) : (
         <FlatList
           data={items}
-          numColumns={2}
+          numColumns={3}
           keyExtractor={(item) => String(item.id)}
           columnWrapperStyle={s.menuRow}
           contentContainerStyle={s.groupedGrid}

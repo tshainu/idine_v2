@@ -1,6 +1,9 @@
 import { Stack, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
+import { QueryClient, focusManager } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef } from "react";
 import { ActivityIndicator, AppState, Platform, View } from "react-native";
 import { useFonts } from "expo-font";
@@ -44,6 +47,12 @@ const queryClient = new QueryClient({
       networkMode: "offlineFirst",
     },
   },
+});
+
+const queryPersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: "idine-waiter-query-cache-v1",
+  throttleTime: 1000,
 });
 
 // Re-lock after this long in the background, so a phone left on a table is safe
@@ -119,13 +128,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister: queryPersister, maxAge: 24 * 60 * 60 * 1000 }}
+        >
         <StatusBar style="light" backgroundColor={Colors.light.chrome} translucent={false} />
         <NotificationBootstrap />
         <ReadyAlertProvider>
           <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />
         </ReadyAlertProvider>
-      </QueryClientProvider>
+        </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }
