@@ -12,7 +12,8 @@ const TYPE: Record<string, string> = { "dine-in": C.gold, takeaway: C.purple, de
 
 type Branch = { id: number; name: string };
 type Printer = { id: number; name: string; type?: string; ipAddress?: string; port?: number };
-type Item = { id: number; name: string; qty: number; note?: string | null; printerId?: number | null };
+type Item = { id: number; menuItemId?: number | null; name: string; qty: number; note?: string | null; printerId?: number | null };
+type MenuItem = { id: number; categoryId?: number | null; printerId?: number | null };
 type Order = { id: number; orderNumber: string; type?: string; tableId?: number | null; createdAt: string; customerName?: string | null; placedBy?: string | null; notes?: string | null; items?: Item[] };
 
 async function api<T>(path: string, options: RequestInit = {}, query?: Record<string, string | number | undefined>): Promise<T> {
@@ -31,6 +32,7 @@ export default function KdsScreen() {
   const [printer, setPrinter] = useState<number | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
+  const [itemPrinterMap, setItemPrinterMap] = useState<Record<number, number | null>>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [setupLoading, setSetupLoading] = useState(true);
@@ -71,7 +73,24 @@ export default function KdsScreen() {
   }, [registerPush]);
 
   const loadSetup = useCallback(async (branchId: number) => {
-    try { const p = await api<{ printers: Printer[] }>("/printers", {}, { branchId }); setPrinters((p.printers || []).filter(x => !x.type || x.type === "kot" || x.type === "kitchen")); } catch { setPrinters([]); }
+    try {
+      const [p, menu, settings] = await Promise.all([
+        api<{ printers: Printer[] }>("/printers", {}, { branchId }),
+        api<{ items: MenuItem[] }>("/menu-items", {}, { branchId }),
+        api<{ settings?: Record<string, string> }>("/settings", {}, { branchId }),
+      ]);
+      setPrinters((p.printers || []).filter(x => !x.type || x.type === "kot" || x.type === "kitchen"));
+      const categoryPrinter: Record<number, number> = {};
+      try {
+        const setup = JSON.parse(settings.settings?.printerSetup || "{}");
+        Object.entries(setup.printerCategories || {}).forEach(([printerId, categoryIds]) => {
+          if (Array.isArray(categoryIds)) categoryIds.forEach(categoryId => { categoryPrinter[Number(categoryId)] = Number(printerId); });
+        });
+      } catch { /* keep direct menu item assignments */ }
+      const next: Record<number, number | null> = {};
+      (menu.items || []).forEach(item => { next[item.id] = item.printerId ?? categoryPrinter[item.categoryId ?? -1] ?? null; });
+      setItemPrinterMap(next);
+    } catch { setPrinters([]); setItemPrinterMap({}); }
   }, []);
   useEffect(() => { if (branch) loadSetup(branch.id); }, [branch, loadSetup]);
 
@@ -86,7 +105,13 @@ export default function KdsScreen() {
   const selectBranch = async (value: Branch) => { setBranch(value); setPrinter(null); await AsyncStorage.setItem("idine-kds-selection", JSON.stringify({ branchId: value.id, printerId: null })); registerPush(value.id); };
   const selectPrinter = async (value: number | null) => { setPrinter(value); if (branch) await AsyncStorage.setItem("idine-kds-selection", JSON.stringify({ branchId: branch.id, printerId: value })); };
   const markReady = async (id: number) => { setBusy(id); try { await api(`/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status: "ready" }) }); setOrders(prev => prev.filter(o => o.id !== id)); } catch (e) { setError((e as Error).message); } finally { setBusy(null); } };
-  const display = useMemo(() => printer ? orders.filter(o => o.items?.some(i => i.printerId === printer)) : orders, [orders, printer]);
+  const display = useMemo(() => {
+    if (printer === null) return orders;
+    return orders.map(order => ({
+      ...order,
+      items: (order.items || []).filter(item => (item.printerId ?? itemPrinterMap[item.menuItemId ?? -1] ?? null) === printer),
+    })).filter(order => (order.items || []).length > 0);
+  }, [orders, printer, itemPrinterMap]);
 
   if (setupLoading) return <View style={s.center}><ActivityIndicator size="large" color={C.gold} /><Text style={s.muted}>Loading kitchen setup…</Text></View>;
   if (!branch) return <View style={s.center}><Text style={s.brand}>iDine KDS</Text><Text style={s.title}>Select default kitchen</Text><View style={s.setupRow}>{branches.map(b => <Pressable key={b.id} onPress={() => selectBranch(b)} style={s.selectCard}><Ionicons name="restaurant-outline" size={26} color={C.gold} /><Text style={s.selectText}>{b.name}</Text></Pressable>)}</View></View>;
