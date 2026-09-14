@@ -142,9 +142,10 @@ export function buildBill(job: any): Buffer {
   parts.push(align("left"));
   const orderNum = payload.orderNumber || `ORD-${String(job.orderId).padStart(4, "0")}`;
   parts.push(text(`Bill No: ${orderNum}`));
-  parts.push(text(`Date: ${new Date().toLocaleString("en-GB")}`));
+  parts.push(text(`Date/Time: ${payload.receiptDate || new Date().toLocaleString("en-GB")}`));
   if (payload.tableName) parts.push(text(`Table: ${payload.tableName}`));
-  if (payload.waiterName) parts.push(text(`Served by: ${payload.waiterName}`));
+  parts.push(text(`Waiter: ${payload.waiterName || "Unassigned"}`));
+  parts.push(text(`Cashier: ${payload.cashierName || "Unassigned"}`));
   parts.push(divider());
 
   // Header row

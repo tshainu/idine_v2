@@ -990,9 +990,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const printId = "idine-invoice-printable";
   const footerText = settings?.invoiceFooter || "Thank you for visiting us!";
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const receiptDate = order?.createdAt ? new Date(order.createdAt) : new Date();
+  const dateStr = receiptDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = receiptDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const waiterName = order?.waiterName || order?.placedBy || "Unassigned";
+  const cashierName = getUser()?.name || "Unassigned";
 
   const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
   const discount      = Number(order?.discount || 0) || items.reduce((s, it) => s + Number(it.discount || 0), 0);
@@ -1046,6 +1048,8 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         type: order?.type,
         tableName: order?.tableName || (order?.tableId ? `T${order.tableId}` : ""),
         waiterName: order?.waiterName || "",
+        cashierName,
+        receiptDate: `${dateStr} ${timeStr}`,
         items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, discount: it.discount || 0, promotionName: it.promotionName || null, promotionOriginalPrice: it.promotionOriginalPrice || null })),
         subtotal, discount, serviceCharge, total,
         serviceChargeLabel: "Service Charge:",
@@ -1109,10 +1113,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   {/* Order meta */}
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
                     <span>Order #: <strong style={{ color: "#000" }}>{order.orderNumber}</strong></span>
-                    <span>{dateStr}</span>
+                    <span>{dateStr} {timeStr}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
-                    <span>{timeStr}</span>
+                    <span>Waiter: <strong>{waiterName}</strong></span>
+                    <span>Cashier: <strong>{cashierName}</strong></span>
                   </div>
                   {order.customerName && order.customerName !== "Walk-in Customer" && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
