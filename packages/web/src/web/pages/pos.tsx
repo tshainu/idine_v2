@@ -1444,6 +1444,9 @@ export default function POSPage() {
   const { data: categoriesData } = useQuery({
     queryKey: ["categories", branchId],
     queryFn: async () => (await api.categories.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const { data: menuData } = useQuery({
     queryKey: ["menu-items", branchId, categoryId],
@@ -1452,11 +1455,16 @@ export default function POSPage() {
       if (categoryId) q.categoryId = String(categoryId);
       return (await api["menu-items"].$get({ query: q })).json();
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const { data: allMenuData } = useQuery({
     queryKey: ["all-menu-items", branchId],
     queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const allMenuItemsForPromos: any[] = (allMenuData as any)?.menuItems || [];
   const promoItems = allMenuItemsForPromos.filter(i => i.isPromo && !i.isCombo);
