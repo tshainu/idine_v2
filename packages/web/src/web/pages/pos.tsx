@@ -936,9 +936,10 @@ function ReceiptHeader({ settings, label }: { settings: Record<string, string>; 
   const address   = settings?.outletAddress || "";
 
   if (headerImg) {
+    const headerSrc = `${headerImg}${headerImg.includes("?") ? "&" : "?"}v=20260914`;
     return (
-      <div style={{ width: "3in", textAlign: "center", margin: "-20px 0 12px" }}>
-        <img src={headerImg} alt="Header" style={{ width: "3in", maxWidth: "none", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
+      <div style={{ width: "100%", textAlign: "center", margin: "-20px 0 12px", overflow: "hidden" }}>
+        <img src={headerSrc} alt="Header" style={{ width: "100%", height: "auto", maxWidth: "100%", display: "block", margin: "0 auto" }} />
         <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#000" }}>{label}</div>
       </div>
     );
