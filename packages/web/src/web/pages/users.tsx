@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { getBranchId, getUser } from "../lib/store";
 import { Sidebar } from "../components/layout/sidebar";
 import { Plus, Trash2, Shield, User, Pencil, KeyRound, ShieldCheck } from "lucide-react";
+import { FEATURE_PRIVILEGES, DEFAULT_ROLE_PRIVILEGES } from "../lib/permissions";
 
 const GOLD = "var(--color-gold)";
 const BG = "var(--color-bg)";
@@ -18,36 +19,16 @@ const ROLE_COLOR: Record<string, string> = { superadmin: "var(--color-purple-lig
 type ModalType = "create" | "edit" | "password" | "role" | null;
 type TabType = "users" | "privileges";
 
-const GENERAL_SECTIONS = [
-  "Dashboard", "POS", "Menu Items", "Categories", "Sales",
-  "Customers", "Reports", "Settings", "Users", "Kitchen",
-  "Tables", "Expenses", "Purchases", "Promotions", "Ingredients",
-];
-
-const POS_SECTIONS = [
-  "Print Bill", "Print Invoice", "Print KOT", "Cancel Order",
-  "Apply Discount", "Apply Coupon", "Void Item", "Refund Order",
-  "Change Order Type", "Change Table", "Assign Waiter",
-  "Edit Placed Order", "Quick Add Item",
-];
-
-const PRIVILEGE_SECTIONS = [...GENERAL_SECTIONS, ...POS_SECTIONS];
+const GENERAL_SECTIONS = FEATURE_PRIVILEGES.filter(key => ![
+  "Print Bill", "Print Invoice", "Print KOT", "Cancel Order", "Apply Discount", "Apply Coupon", "Void Item", "Refund Order",
+  "Change Order Type", "Change Table", "Assign Waiter", "Edit Placed Order", "Quick Add Item",
+].includes(key));
+const POS_SECTIONS = FEATURE_PRIVILEGES.filter(key => !GENERAL_SECTIONS.includes(key));
+const PRIVILEGE_SECTIONS = [...FEATURE_PRIVILEGES];
 
 const BUILT_IN_ROLES = ["superadmin", "admin", "manager", "waiter", "cashier"];
 
-const DEFAULT_PRIVILEGES: Record<string, Record<string, boolean>> = {
-  superadmin: Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, true])),
-  admin:      Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, true])),
-  manager:    Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s,
-    !["Settings", "Users", "Refund Order", "Void Item"].includes(s)
-  ])),
-  waiter:     Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s,
-    ["POS", "Kitchen", "Tables", "Print Bill", "Print KOT"].includes(s)
-  ])),
-  cashier:    Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s,
-    ["POS", "Sales", "Customers", "Print Bill", "Print Invoice", "Apply Discount", "Cancel Order"].includes(s)
-  ])),
-};
+const DEFAULT_PRIVILEGES: Record<string, Record<string, boolean>> = DEFAULT_ROLE_PRIVILEGES;
 
 export default function UsersPage() {
   const branchId = getBranchId();

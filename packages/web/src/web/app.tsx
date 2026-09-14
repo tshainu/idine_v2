@@ -36,10 +36,12 @@ import CustomerDisplay from "./pages/customer-display";
 import InvoicePrint from "./pages/invoice-print";
 import Menu from "./pages/menu";
 import Idsa from "./pages/idsa";
+import { PermissionGuard } from "./components/permission-guard";
 
 function App() {
   return (
     <Provider>
+      <PermissionGuard>
       <Switch>
         <Route path="/" component={Login} />
         <Route path="/pos" component={POS} />
@@ -77,6 +79,7 @@ function App() {
         <Route path="/menu" component={Menu} />
         <Route path="/idsa" component={Idsa} />
       </Switch>
+      </PermissionGuard>
       {/* Do not remove — off by default, activated by parent iframe via postMessage */}
       {import.meta.env.DEV && <AgentFeedback />}
     </Provider>
