@@ -96,7 +96,12 @@ export default function ComboPromoPage() {
       }
       await api["combo-items"].replace.$post({ json: { comboId, items } });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["menu-items"] }); resetForm(); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["all-menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["promo-links", branchId] });
+      resetForm();
+    },
   });
 
   const savePromo = useMutation({
@@ -132,17 +137,30 @@ export default function ComboPromoPage() {
         });
       await api["combo-items"].replace.$post({ json: { comboId: promoId, items } });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["menu-items"] }); resetForm(); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["all-menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["promo-links", branchId] });
+      resetForm();
+    },
   });
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, isActive }: any) => api["menu-items"][":id"].$patch({ param: { id: String(id) }, json: { isActive } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["menu-items"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["all-menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["promo-links", branchId] });
+    },
   });
 
   const deleteItem = useMutation({
     mutationFn: async (id: number) => api["menu-items"][":id"].$delete({ param: { id: String(id) } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["menu-items"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["all-menu-items", branchId] });
+      qc.invalidateQueries({ queryKey: ["promo-links", branchId] });
+    },
   });
 
   function resetForm() {

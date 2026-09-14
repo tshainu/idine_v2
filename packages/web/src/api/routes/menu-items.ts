@@ -59,7 +59,10 @@ export const menuItems = new Hono()
   })
   .delete("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
+    const [item] = await db.select({ id: schema.menuItems.id }).from(schema.menuItems).where(eq(schema.menuItems.id, id));
+    if (!item) return c.json({ error: "Menu item not found" }, 404);
     await db.delete(schema.menuItemVariations).where(eq(schema.menuItemVariations.menuItemId, id));
+    await db.delete(schema.comboItems).where(eq(schema.comboItems.comboId, id));
     await db.delete(schema.menuItems).where(eq(schema.menuItems.id, id));
     return c.json({ ok: true }, 200);
   });

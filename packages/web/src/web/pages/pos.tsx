@@ -1475,7 +1475,9 @@ export default function POSPage() {
       const res = await (await (api as any)["combo-items"].$get({ query: { comboId: String(promo.id) } })).json();
       return { promo, items: res.comboItems || [] };
     })),
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   // Best-sellers ranking — used to sort the "All" category tab top-selling first
   const { data: bestSellersData } = useQuery({
