@@ -224,6 +224,7 @@ export const orderItems = sqliteTable("order_items", {
   qty: integer("qty").notNull().default(1),
   discount: real("discount").notNull().default(0),
   promotionName: text("promotion_name"),
+  promotionOriginalPrice: real("promotion_original_price"),
   printerId: integer("printer_id").references(() => printers.id),
   total: real("total").notNull().default(0),
   kotPrinted: integer("kot_printed", { mode: "boolean" }).notNull().default(false),

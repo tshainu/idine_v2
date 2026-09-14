@@ -1046,7 +1046,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         type: order?.type,
         tableName: order?.tableName || (order?.tableId ? `T${order.tableId}` : ""),
         waiterName: order?.waiterName || "",
-        items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, discount: it.discount || 0, promotionName: it.promotionName || null })),
+        items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, discount: it.discount || 0, promotionName: it.promotionName || null, promotionOriginalPrice: it.promotionOriginalPrice || null })),
         subtotal, discount, serviceCharge, total,
         serviceChargeLabel: "Service Charge:",
         paymentMethod: isInvoice ? paymentMethod : "",
@@ -1140,7 +1140,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   {/* Items */}
                   {items.map((it: any, i: number) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3, paddingBottom: 3, borderBottom: "1px dotted #999" }}>
-                      <span style={{ flex: 1, paddingRight: 16, fontWeight: 500 }}>{it.name}{it.promotionName && <div style={{ fontSize: 10, fontStyle: "italic", fontWeight: 400 }}>{it.promotionName}</div>}</span>
+                      <span style={{ flex: 1, paddingRight: 16, fontWeight: 500 }}>{it.name}{it.promotionName && <div style={{ fontSize: 10, fontStyle: "italic", fontWeight: 400 }}>{it.promotionName}{it.promotionOriginalPrice ? ` (Original: ${num(it.promotionOriginalPrice)})` : ""}</div>}</span>
                       <span style={{ width: 18, textAlign: "right", color: "#000" }}>{it.qty}</span>
                       <span style={{ width: 46, textAlign: "right", color: "#000", marginLeft: 4 }}>{num(it.price)}</span>
                       <span style={{ width: 52, textAlign: "right", fontWeight: 700, marginLeft: 4 }}>{num(it.total)}</span>
@@ -1546,7 +1546,7 @@ export default function POSPage() {
             json: {
               items: cartItems.map(i => ({
                 orderId, menuItemId: i.menuItemId, name: i.name, price: i.price,
-                qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, printerId: i.printerId,
+                qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, promotionOriginalPrice: i.promotionOriginalPrice ?? null, printerId: i.printerId,
                 total: i.qty * i.price - i.discount + i.modifiers.reduce((ms, m) => ms + m.price, 0) * i.qty,
                 modifiers: i.modifiers.length ? JSON.stringify(i.modifiers.map(m => m.name)) : null,
                 note: i.note || null,
@@ -1627,7 +1627,7 @@ export default function POSPage() {
           json: {
             items: cartItems.map(i => ({
               orderId, menuItemId: i.menuItemId, name: i.name, price: i.price,
-              qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, printerId: i.printerId,
+              qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, promotionOriginalPrice: i.promotionOriginalPrice ?? null, printerId: i.printerId,
               total: i.qty * i.price - i.discount + i.modifiers.reduce((ms, m) => ms + m.price, 0) * i.qty,
               modifiers: i.modifiers.length ? JSON.stringify(i.modifiers.map(m => m.name)) : null,
               note: i.note || null,
@@ -1747,7 +1747,7 @@ export default function POSPage() {
     setSelectedTableId(order.tableId ?? null);
     setCartItems((items || []).map((i: any) => ({
       cartKey: String(i.id), menuItemId: i.menuItemId, name: i.name, price: i.price, qty: i.qty,
-      discount: i.discount ?? 0, promotionName: i.promotionName ?? null, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
+      discount: i.discount ?? 0, promotionName: i.promotionName ?? null, promotionOriginalPrice: i.promotionOriginalPrice ?? null, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
       note: i.note || undefined,
     })));
     setModifyOriginalItems((items || []).map((i: any) => ({ menuItemId: i.menuItemId ?? null, name: i.name, qty: i.qty })));
@@ -1782,7 +1782,8 @@ export default function POSPage() {
     setCartItems(prev => {
       const ex = prev.find(i => i.cartKey === cartKey);
       if (ex) return prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { cartKey, menuItemId: item.sourceMenuItemId ?? item.id, name, price: priceByType, qty: 1, discount: 0, promotionName: item.promotionName ?? null, printerId: item.printerId ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
+      const originalPrice = orderType === "dine-in" ? (item.priceDineIn || item.price) : orderType === "takeaway" ? (item.priceTakeaway || item.price) : (item.priceDelivery || item.price);
+      return [...prev, { cartKey, menuItemId: item.sourceMenuItemId ?? item.id, name, price: priceByType, qty: 1, discount: 0, promotionName: item.promotionName ?? null, promotionOriginalPrice: item.promotionName ? originalPrice : null, printerId: item.printerId ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
     });
   }
   function changeQty(cartKey: string, delta: number) {
