@@ -487,13 +487,14 @@ function FinalizeModal({
   const settings: Record<string, string> = (settingsRaw as any)?.settings || {};
   // Parse service charge % from settings e.g. "10%" or "10"
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
+  const isDineIn = order?.type === "dine-in";
 
   const subtotal      = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
   const itemDiscount  = items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0);
   const [extraDiscount, setExtraDiscount] = useState(initialDiscount);
   const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
   const afterDiscount = Math.max(0, subtotal - itemDiscount - extraDiscount);
-  const serviceCharge = parseFloat((afterDiscount * serviceChargeRate).toFixed(2));
+  const serviceCharge = isDineIn ? parseFloat((afterDiscount * serviceChargeRate).toFixed(2)) : 0;
   const payable       = parseFloat((afterDiscount + serviceCharge).toFixed(2));
 
   const [activeMethod,    setActiveMethod]    = useState<PaymentMethod>("Cash");
@@ -1003,8 +1004,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
   const svcRate       = parseFloat(String(settings?.serviceCharge || "0").replace("%", "")) / 100 || 0;
+  const isDineIn       = order?.type === "dine-in";
   const storedSvc     = Number(order?.serviceCharge || 0);
-  const serviceCharge = storedSvc > 0
+  const serviceCharge = !isDineIn ? 0 : storedSvc > 0
     ? storedSvc
     : parseFloat(((subtotal - discount) * svcRate).toFixed(2));
   const storedTotal   = Number(order?.total || 0);
