@@ -1774,7 +1774,7 @@ export default function POSPage() {
     // Determine price based on order type
     const priceByType = variation
       ? (orderType === "dine-in" ? variation.priceDineIn : orderType === "takeaway" ? variation.priceTakeaway : variation.priceDelivery)
-      : (orderType === "dine-in" ? (item.priceDineIn || item.price) : orderType === "takeaway" ? (item.priceTakeaway || item.price) : (item.priceDelivery || item.price));
+      : (orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price));
     const cartKey = variation ? `${item.id}-${variation.id}` : String(item.id);
     // Abbreviate the variation to its first letter, capitalized, e.g. "Full" -> "(F)"
     const varInitial = variation?.name?.trim()?.[0]?.toUpperCase();
@@ -1838,7 +1838,7 @@ export default function POSPage() {
   const promoMenuItems = ((promoLinksData as any[]) || []).flatMap(({ promo, items }) => items.map((link: any) => {
     const source = allMenuItemsForPromos.find(i => i.id === link.menuItemId);
     if (!source) return null;
-    return { ...source, id: `${promo.id}-${source.id}`, sourceMenuItemId: source.id, promotionName: promo.name, isPromo: true };
+    return { ...source, id: `${promo.id}-${source.id}`, sourceMenuItemId: source.id, promotionName: promo.name, offerPriceDineIn: promo.priceDineIn || promo.price, offerPriceTakeaway: promo.priceTakeaway || promo.price, offerPriceDelivery: promo.priceDelivery || promo.price, isPromo: true };
   }).filter(Boolean));
   const bestSellerRank = new Map<number, number>(
     ((bestSellersData as any)?.bestSellers || []).map((b: any, i: number) => [b.menuItemId, i])
@@ -2427,7 +2427,7 @@ export default function POSPage() {
                           </div>
                           <div className="px-2 py-1.5">
                             <div className="text-sm font-semibold truncate" style={{ color: TEXT }}>{item.name}</div>
-                            <div className="text-sm font-bold font-mono mt-0.5" style={{ color: GOLD }}>{item.price.toFixed(2)}</div>
+                            <div className="text-sm font-bold font-mono mt-0.5" style={{ color: GOLD }}>{(orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price)).toFixed(2)}</div>
                           </div>
                         </button>
                       );
