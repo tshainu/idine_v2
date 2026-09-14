@@ -28,6 +28,7 @@ export default function ComboPromoPage() {
   const [editItem, setEditItem] = useState<any>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [comboSelection, setComboSelection] = useState<Record<number, number>>({}); // menuItemId -> qty
+  const [promoSelection, setPromoSelection] = useState<Record<number, boolean>>({}); // menuItemId -> included
   const [imgUploading, setImgUploading] = useState(false);
   const imgInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,8 +114,21 @@ export default function ComboPromoPage() {
         isActive: form.isActive ?? true,
         branchId,
       };
-      if (editItem) await api["menu-items"][":id"].$patch({ param: { id: String(editItem.id) }, json: payload });
-      else await api["menu-items"].$post({ json: payload });
+      let promoId: number;
+      if (editItem) {
+        const res = await (await api["menu-items"][":id"].$patch({ param: { id: String(editItem.id) }, json: payload })).json();
+        promoId = (res as any).menuItem.id;
+      } else {
+        const res = await (await api["menu-items"].$post({ json: payload })).json();
+        promoId = (res as any).menuItem.id;
+      }
+      const items = Object.entries(promoSelection)
+        .filter(([, included]) => included)
+        .map(([menuItemId]) => {
+          const src = plainItems.find(i => i.id === Number(menuItemId));
+          return { menuItemId: Number(menuItemId), name: src?.name || "", qty: 1 };
+        });
+      await api["combo-items"].replace.$post({ json: { comboId: promoId, items } });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["menu-items"] }); resetForm(); },
   });
@@ -130,7 +144,7 @@ export default function ComboPromoPage() {
   });
 
   function resetForm() {
-    setShowForm(false); setEditItem(null); setForm({}); setComboSelection({});
+    setShowForm(false); setEditItem(null); setForm({}); setComboSelection({}); setPromoSelection({});
   }
 
   function openAdd() {
@@ -151,6 +165,11 @@ export default function ComboPromoPage() {
       const sel: Record<number, number> = {};
       (res.comboItems || []).forEach((ci: any) => { if (ci.menuItemId) sel[ci.menuItemId] = ci.qty; });
       setComboSelection(sel);
+    } else {
+      const res = await (await api["combo-items"].$get({ query: { comboId: String(item.id) } })).json() as any;
+      const sel: Record<number, boolean> = {};
+      (res.comboItems || []).forEach((pi: any) => { if (pi.menuItemId) sel[pi.menuItemId] = true; });
+      setPromoSelection(sel);
     }
     setShowForm(true);
   }
@@ -323,6 +342,22 @@ export default function ComboPromoPage() {
                     <option value="">None</option>
                     {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                </div>
+              )}
+
+              {tab === "promo" && (
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: MUTED }}>Menu Items (optional — choose the items included in this promo)</label>
+                  <div className="rounded-lg border max-h-48 overflow-y-auto" style={{ borderColor: BORD }}>
+                    {plainItems.length === 0 ? <div className="p-3 text-xs" style={{ color: DIM }}>No menu items available</div> : plainItems.map((mi: any) => (
+                      <label key={mi.id} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0 text-xs cursor-pointer" style={{ borderColor: BORD, color: TEXT }}>
+                        <input type="checkbox" checked={!!promoSelection[mi.id]} onChange={e => setPromoSelection(prev => ({ ...prev, [mi.id]: e.target.checked }))} />
+                        <span>{mi.name}</span>
+                        <span className="ml-auto text-[10px]" style={{ color: DIM }}>LKR {(mi.priceDineIn || mi.price || 0).toFixed(2)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[10px] mt-1" style={{ color: DIM }}>Leave all unchecked if this promo should remain available for the whole category.</p>
                 </div>
               )}
 
