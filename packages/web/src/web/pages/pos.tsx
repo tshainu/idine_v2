@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { clearUser } from "../lib/store";
+import { hasPrivilege, parsePrivileges } from "../lib/permissions";
 import { DraftSalesModal, RecentSalesModal, SelfOrderQRModal, QROrdersModal, RegistryModal, RefundModal } from "../components/pos-toolbar-modals";
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
@@ -1334,6 +1335,13 @@ export default function POSPage() {
   const branchId = getBranchId();
   const qc = useQueryClient();
   const [, navigate] = useLocation();
+  const currentUser = getUser();
+  const { data: privilegeSettings } = useQuery({
+    queryKey: ["settings", branchId],
+    queryFn: async () => (await api.settings.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30_000,
+  });
+  const can = (privilege: string) => hasPrivilege(currentUser?.role, privilege, parsePrivileges((privilegeSettings as any)?.settings?.userPrivileges));
 
   // ── Toolbar feature state
   const [showDrafts,         setShowDrafts]         = useState(false);
@@ -1953,7 +1961,11 @@ export default function POSPage() {
     { icon: BookOpen,  title: "Register Summary",  onClick: () => setShowRegistry(true) },
     { icon: Monitor,   title: "Customer Display",  onClick: openCustomerDisplay },
     { icon: Maximize,  title: "Fullscreen",        onClick: toggleFullscreen },
-  ];
+  ].filter(btn => {
+    if (btn.title === "Print Last Invoice") return can("Print Invoice");
+    if (btn.title === "Refund") return can("Refund Order");
+    return true;
+  });
 
   // ── Constants
   const TABS: { key: OrderType; label: string; icon: any }[] = [
@@ -2081,8 +2093,8 @@ export default function POSPage() {
 
           {/* Action buttons */}
           <div className="p-2 space-y-1 border-t" style={{ borderColor: BORD }}>
-            <Btn icon={Edit3}    label="Modify Order"
-              onClick={() => selectedOrderId && loadOrderForEdit(selectedOrderId)} />
+            {can("Edit Placed Order") && <Btn icon={Edit3}    label="Modify Order"
+              onClick={() => selectedOrderId && loadOrderForEdit(selectedOrderId)} />}
             <Btn icon={Info}     label="Order Details"
               onClick={() => selectedOrderId && setDetailsOrderId(selectedOrderId)} />
             <div className="relative">
@@ -2102,17 +2114,17 @@ export default function POSPage() {
                   </div>
                 </>
               )}
-              <Btn icon={RotateCcw} label="Re-print KOT"
-                onClick={() => { if (selectedOrderId) setShowKotMenu(v => !v); }} />
+              {can("Print KOT") && <Btn icon={RotateCcw} label="Re-print KOT"
+                onClick={() => { if (selectedOrderId) setShowKotMenu(v => !v); }} />}
             </div>
             <div className="grid grid-cols-2 gap-1">
-              <Btn icon={Receipt} label="Invoice"
-                onClick={() => { if (selectedOrderId) { setFinalizeIsQuick(false); setFinalizeOrderId(selectedOrderId); } }} />
-              <Btn icon={Printer} label="Bill"
-                onClick={() => { if (selectedOrderId) { setInvoicePreviewMode("bill"); setInvoicePreviewId(selectedOrderId); } }} />
+              {can("Print Invoice") && <Btn icon={Receipt} label="Invoice"
+                onClick={() => { if (selectedOrderId) { setFinalizeIsQuick(false); setFinalizeOrderId(selectedOrderId); } }} />}
+              {can("Print Bill") && <Btn icon={Printer} label="Bill"
+                onClick={() => { if (selectedOrderId) { setInvoicePreviewMode("bill"); setInvoicePreviewId(selectedOrderId); } }} />}
             </div>
-            <Btn icon={Ban} label="Cancel Order" danger
-              onClick={() => selectedOrderId && setCancelConfirmId(selectedOrderId)} />
+            {can("Cancel Order") && <Btn icon={Ban} label="Cancel Order" danger
+              onClick={() => selectedOrderId && setCancelConfirmId(selectedOrderId)} />}
           </div>
         </div>
 
