@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, SlidersHorizontal,
-  TrendingUp, Users, Percent, Monitor, ChefHat, Table2,
+  TrendingUp, Users, Monitor, ChefHat, Table2,
   Settings, BarChart3, LogOut, ChevronDown, ChevronRight, Sun, Moon,
   ShoppingBag, Package, Building2, Receipt, MessageSquare, Send,
 } from "lucide-react";
@@ -40,7 +40,6 @@ const NAV: NavSection[] = [
     id: "sales", type: "group", label: "Sales", icon: TrendingUp,
     items: [
       { path: "/sales",       label: "List of Sales", icon: TrendingUp },
-      { path: "/promotions",  label: "Promotions",    icon: Percent },
     ],
   },
   {

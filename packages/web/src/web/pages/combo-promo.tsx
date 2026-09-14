@@ -29,6 +29,7 @@ export default function ComboPromoPage() {
   const [form, setForm] = useState<Record<string, any>>({});
   const [comboSelection, setComboSelection] = useState<Record<number, number>>({}); // menuItemId -> qty
   const [promoSelection, setPromoSelection] = useState<Record<number, boolean>>({}); // menuItemId -> included
+  const [promoItemSearch, setPromoItemSearch] = useState("");
   const [imgUploading, setImgUploading] = useState(false);
   const imgInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +42,7 @@ export default function ComboPromoPage() {
   const promos = allItems.filter(i => i.isPromo && !i.isCombo);
   // Plain menu items only — the pool combos are built from
   const plainItems = allItems.filter(i => !i.isCombo && !i.isPromo);
+  const filteredPlainItems = plainItems.filter(i => i.name.toLowerCase().includes(promoItemSearch.toLowerCase()));
 
   const { data: categoriesData } = useQuery({
     queryKey: ["categories", branchId],
@@ -144,7 +146,7 @@ export default function ComboPromoPage() {
   });
 
   function resetForm() {
-    setShowForm(false); setEditItem(null); setForm({}); setComboSelection({}); setPromoSelection({});
+    setShowForm(false); setEditItem(null); setForm({}); setComboSelection({}); setPromoSelection({}); setPromoItemSearch("");
   }
 
   function openAdd() {
@@ -348,8 +350,9 @@ export default function ComboPromoPage() {
               {tab === "promo" && (
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: MUTED }}>Menu Items (optional — choose the items included in this promo)</label>
+                  <input value={promoItemSearch} onChange={e => setPromoItemSearch(e.target.value)} placeholder="Search menu items..." className="w-full px-3 py-2 text-xs rounded-lg border mb-2 outline-none" style={{ background: BG, borderColor: BORD, color: TEXT }} />
                   <div className="rounded-lg border max-h-48 overflow-y-auto" style={{ borderColor: BORD }}>
-                    {plainItems.length === 0 ? <div className="p-3 text-xs" style={{ color: DIM }}>No menu items available</div> : plainItems.map((mi: any) => (
+                    {filteredPlainItems.length === 0 ? <div className="p-3 text-xs" style={{ color: DIM }}>No matching menu items</div> : filteredPlainItems.map((mi: any) => (
                       <label key={mi.id} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0 text-xs cursor-pointer" style={{ borderColor: BORD, color: TEXT }}>
                         <input type="checkbox" checked={!!promoSelection[mi.id]} onChange={e => setPromoSelection(prev => ({ ...prev, [mi.id]: e.target.checked }))} />
                         <span>{mi.name}</span>

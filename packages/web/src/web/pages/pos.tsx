@@ -39,6 +39,7 @@ type CartItem  = {
   discount: number;
   printerId: number | null;
   categoryId: number | null;
+  promotionName?: string | null;
   modifiers: Modifier[];
   note?: string; // kitchen instruction, e.g. "Low spicy" — prints on the KOT only
 };
@@ -993,8 +994,8 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const dateStr = now.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0), 0);
-  const discount      = Number(order?.discount || 0);
+  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
+  const discount      = Number(order?.discount || 0) || items.reduce((s, it) => s + Number(it.discount || 0), 0);
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
@@ -1045,7 +1046,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         type: order?.type,
         tableName: order?.tableName || (order?.tableId ? `T${order.tableId}` : ""),
         waiterName: order?.waiterName || "",
-        items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price })),
+        items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, discount: it.discount || 0, promotionName: it.promotionName || null })),
         subtotal, discount, serviceCharge, total,
         serviceChargeLabel: "Service Charge:",
         paymentMethod: isInvoice ? paymentMethod : "",
@@ -1139,7 +1140,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   {/* Items */}
                   {items.map((it: any, i: number) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3, paddingBottom: 3, borderBottom: "1px dotted #999" }}>
-                      <span style={{ flex: 1, paddingRight: 16, fontWeight: 500 }}>{it.name}</span>
+                      <span style={{ flex: 1, paddingRight: 16, fontWeight: 500 }}>{it.name}{it.promotionName && <div style={{ fontSize: 10, fontStyle: "italic", fontWeight: 400 }}>{it.promotionName}</div>}</span>
                       <span style={{ width: 18, textAlign: "right", color: "#000" }}>{it.qty}</span>
                       <span style={{ width: 46, textAlign: "right", color: "#000", marginLeft: 4 }}>{num(it.price)}</span>
                       <span style={{ width: 52, textAlign: "right", fontWeight: 700, marginLeft: 4 }}>{num(it.total)}</span>
@@ -1387,10 +1388,6 @@ export default function POSPage() {
   const [customerId,         setCustomerId]         = useState<number | null>(null);
   const [customerName,       setCustomerName]       = useState("Walk-in Customer");
   const [selectedTableId,    setSelectedTableId]    = useState<number | null>(null);
-  const [selectedPromotion,  setSelectedPromotion]  = useState<any | null>(null);
-  const [manualDiscountMode, setManualDiscountMode] = useState<"fixed" | "percent">("fixed");
-  const [manualDiscountInput, setManualDiscountInput] = useState("");
-  const [showManualDiscountModal, setShowManualDiscountModal] = useState(false);
   const [cartItems,          setCartItems]          = useState<CartItem[]>([]);
   const [categoryId,         setCategoryId]         = useState<number | null>(null);
   const [searchQuery,        setSearchQuery]        = useState("");
@@ -1450,6 +1447,22 @@ export default function POSPage() {
       return (await api["menu-items"].$get({ query: q })).json();
     },
   });
+  const { data: allMenuData } = useQuery({
+    queryKey: ["all-menu-items", branchId],
+    queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30_000,
+  });
+  const allMenuItemsForPromos: any[] = (allMenuData as any)?.menuItems || [];
+  const promoItems = allMenuItemsForPromos.filter(i => i.isPromo && !i.isCombo);
+  const { data: promoLinksData } = useQuery({
+    queryKey: ["promo-links", branchId, promoItems.map(i => i.id).join(",")],
+    enabled: promoItems.length > 0,
+    queryFn: async () => Promise.all(promoItems.map(async (promo: any) => {
+      const res = await (await (api as any)["combo-items"].$get({ query: { comboId: String(promo.id) } })).json();
+      return { promo, items: res.comboItems || [] };
+    })),
+    staleTime: 30_000,
+  });
   // Best-sellers ranking — used to sort the "All" category tab top-selling first
   const { data: bestSellersData } = useQuery({
     queryKey: ["best-sellers", branchId],
@@ -1463,16 +1476,7 @@ export default function POSPage() {
     queryKey: ["users", branchId],
     queryFn: async () => (await api.users.$get({ query: { branchId: String(branchId) } })).json(),
   });
-  const { data: promotionsData } = useQuery({
-    queryKey: ["promotions", branchId],
-    queryFn: async () => (await (api as any).promotions.$get({ query: { branchId: String(branchId) } })).json(),
-    staleTime: 30_000,
-  });
   const waiters = ((usersData as any)?.users || []).filter((u: any) => u.role === "waiter" || u.role === "manager");
-  const activePromotions: any[] = ((promotionsData as any)?.promotions || []).filter((p: any) => {
-    const now = new Date().toISOString().slice(0, 10);
-    return p.isActive && (!p.startDate || p.startDate <= now) && (!p.endDate || p.endDate >= now);
-  });
 
   // Printer setup settings — for category→printer routing
   const { data: printerSettingsData } = useQuery({
@@ -1528,7 +1532,7 @@ export default function POSPage() {
           json: {
             type: orderType, status: apiStatus, tableId: selectedTableId,
             waiterId: selectedWaiterId, customerId, customerName,
-            subtotal, discount: promotionDiscount + manualDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount - manualDiscount),
+            subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0), total: subtotal,
           },
         });
 
@@ -1542,7 +1546,7 @@ export default function POSPage() {
             json: {
               items: cartItems.map(i => ({
                 orderId, menuItemId: i.menuItemId, name: i.name, price: i.price,
-                qty: i.qty, printerId: i.printerId,
+                qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, printerId: i.printerId,
                 total: i.qty * i.price - i.discount + i.modifiers.reduce((ms, m) => ms + m.price, 0) * i.qty,
                 modifiers: i.modifiers.length ? JSON.stringify(i.modifiers.map(m => m.name)) : null,
                 note: i.note || null,
@@ -1612,7 +1616,7 @@ export default function POSPage() {
         json: {
           branchId, type: orderType, status: apiStatus, tableId: selectedTableId,
           waiterId: selectedWaiterId, customerId, customerName,
-          subtotal, discount: promotionDiscount + manualDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount - manualDiscount), orderNumber, placedBy: getUser()?.name || null,
+          subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0), total: subtotal, orderNumber, placedBy: getUser()?.name || null,
         },
       })).json();
       const orderId = (order as any).order.id;
@@ -1623,7 +1627,7 @@ export default function POSPage() {
           json: {
             items: cartItems.map(i => ({
               orderId, menuItemId: i.menuItemId, name: i.name, price: i.price,
-              qty: i.qty, printerId: i.printerId,
+              qty: i.qty, discount: i.discount, promotionName: i.promotionName || null, printerId: i.printerId,
               total: i.qty * i.price - i.discount + i.modifiers.reduce((ms, m) => ms + m.price, 0) * i.qty,
               modifiers: i.modifiers.length ? JSON.stringify(i.modifiers.map(m => m.name)) : null,
               note: i.note || null,
@@ -1741,10 +1745,9 @@ export default function POSPage() {
     setCustomerId(order.customerId ?? null);
     setCustomerName(order.customerName || "Walk-in Customer");
     setSelectedTableId(order.tableId ?? null);
-    setSelectedPromotion((promotionsData as any)?.promotions?.find((p: any) => p.id === order.promotionId) || null);
     setCartItems((items || []).map((i: any) => ({
       cartKey: String(i.id), menuItemId: i.menuItemId, name: i.name, price: i.price, qty: i.qty,
-      discount: i.discount ?? 0, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
+      discount: i.discount ?? 0, promotionName: i.promotionName ?? null, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
       note: i.note || undefined,
     })));
     setModifyOriginalItems((items || []).map((i: any) => ({ menuItemId: i.menuItemId ?? null, name: i.name, qty: i.qty })));
@@ -1758,7 +1761,6 @@ export default function POSPage() {
     setCustomerName("Walk-in Customer"); setCustomerId(null);
     setSelectedOrderId(null); setSelectedWaiterId(null); setSelectedWaiterName(null);
     setModifyOrderId(null); setModifyOriginalItems([]);
-    setSelectedPromotion(null);
     setManualDiscountInput(""); setManualDiscountMode("fixed");
   }
   function showToast(msg: string) { setToast(msg); }
@@ -1780,7 +1782,7 @@ export default function POSPage() {
     setCartItems(prev => {
       const ex = prev.find(i => i.cartKey === cartKey);
       if (ex) return prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { cartKey, menuItemId: item.id, name, price: priceByType, qty: 1, discount: 0, printerId: item.printerId ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
+      return [...prev, { cartKey, menuItemId: item.sourceMenuItemId ?? item.id, name, price: priceByType, qty: 1, discount: 0, promotionName: item.promotionName ?? null, printerId: item.printerId ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
     });
   }
   function changeQty(cartKey: string, delta: number) {
@@ -1833,10 +1835,16 @@ export default function POSPage() {
   const orders      = (ordersData as any)?.orders || [];
   const categories  = ((categoriesData as any)?.categories || []).filter((c: any) => c.isActive);
   const allMenuItems = (menuData as any)?.menuItems || [];
+  const promoMenuItems = ((promoLinksData as any[]) || []).flatMap(({ promo, items }) => items.map((link: any) => {
+    const source = allMenuItemsForPromos.find(i => i.id === link.menuItemId);
+    if (!source) return null;
+    return { ...source, id: `${promo.id}-${source.id}`, sourceMenuItemId: source.id, promotionName: promo.name, isPromo: true };
+  }).filter(Boolean));
   const bestSellerRank = new Map<number, number>(
     ((bestSellersData as any)?.bestSellers || []).map((b: any, i: number) => [b.menuItemId, i])
   );
-  const menuItemsFiltered = allMenuItems.filter((item: any) => {
+  const menuSourceItems = activeFilter === "promo" ? promoMenuItems : allMenuItems;
+  const menuItemsFiltered = menuSourceItems.filter((item: any) => {
     if (activeFilter === "veg"   && !item.isVeg)      return false;
     if (activeFilter === "bev"   && !item.isBeverage)  return false;
     if (activeFilter === "promo" && !item.isPromo)     return false;
@@ -1884,23 +1892,7 @@ export default function POSPage() {
     return (item.qty * (item.price + modCost)) - item.discount;
   }
   const cartSubtotal = cartItems.reduce((s, i) => s + itemTotal(i), 0);
-  const promotionDiscount = (() => {
-    if (!selectedPromotion) return 0;
-    let ids: number[] = [];
-    try { ids = JSON.parse(selectedPromotion.targetItemIds || "[]").map((id: any) => Number(id)); } catch {}
-    const eligible = ids.length === 0 ? cartItems : cartItems.filter(i => i.menuItemId != null && ids.includes(Number(i.menuItemId)));
-    const eligibleTotal = eligible.reduce((s, i) => s + itemTotal(i), 0);
-    if (cartSubtotal < Number(selectedPromotion.minOrderAmount || 0)) return 0;
-    if (selectedPromotion.type === "percent") return Math.min(eligibleTotal, eligibleTotal * Number(selectedPromotion.value || 0) / 100);
-    if (selectedPromotion.type === "flat") return Math.min(eligibleTotal, Number(selectedPromotion.value || 0));
-    if (selectedPromotion.type === "bogo") return eligible.reduce((s, i) => s + Math.floor(i.qty / 2) * i.price, 0);
-    return 0;
-  })();
-  const manualDiscountValue = Number(manualDiscountInput || 0);
-  const manualDiscount = manualDiscountMode === "percent"
-    ? Math.min(Math.max(0, cartSubtotal - promotionDiscount), Math.max(0, cartSubtotal - promotionDiscount) * manualDiscountValue / 100)
-    : Math.min(Math.max(0, cartSubtotal - promotionDiscount), manualDiscountValue);
-  const total = Math.max(0, cartSubtotal - promotionDiscount - manualDiscount);
+  const total = cartSubtotal;
 
   // ── Customer Display: mirror live cart to localStorage for the popup window
   const customerWinRef = useRef<Window | null>(null);
@@ -2260,6 +2252,7 @@ export default function POSPage() {
                       <tr key={item.cartKey} className="border-t animate-fade-up" style={{ borderColor: BORD }}>
                         <td className="px-3 py-2">
                           <div className="text-xs font-medium" style={{ color: TEXT }}>{item.name}</div>
+                          {item.promotionName && <div className="text-[10px] italic" style={{ color: "var(--color-pink)" }}>{item.promotionName}</div>}
                           {/* Modifiers */}
                           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                             {item.modifiers.map(m => (
@@ -2302,7 +2295,7 @@ export default function POSPage() {
                         <td className="px-2 py-2">
                           <input type="number" placeholder="0" value={item.discount || ""}
                             onChange={e => setDiscount(item.cartKey, parseFloat(e.target.value))}
-                            className="w-14 px-1.5 py-1 rounded border text-xs text-center focus:outline-none"
+                            className="w-20 px-1.5 py-1 rounded border text-xs text-center focus:outline-none"
                             style={{ background: SURF2, borderColor: BORD, color: TEXT }} />
                         </td>
                         <td className="px-2 py-2 text-xs text-right font-mono font-bold" style={{ color: GOLD }}>
@@ -2320,15 +2313,7 @@ export default function POSPage() {
             }
           </div>
 
-          {/* Promotion and total payable */}
-          <div className="flex items-center gap-2 px-3 py-2 border-t" style={{ background: SURF, borderColor: BORD }}>
-            <div className="flex items-center gap-1 min-w-0" style={{ width: "50%" }}><span className="text-xs font-semibold" style={{ color: MUTED }}>Promotion</span><select value={selectedPromotion?.id || ""} onChange={e => setSelectedPromotion(activePromotions.find(p => p.id === Number(e.target.value)) || null)} className="min-w-0 flex-1 px-2 py-1.5 rounded border text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
-              <option value="">No promotion</option>
-              {activePromotions.map(p => <option key={p.id} value={p.id}>{p.name} — {p.type === "percent" ? `${p.value}% off` : p.type === "flat" ? `Rs. ${p.value} off` : "Buy 1 Get 1"}</option>)}
-            </select></div>
-            <button onClick={() => setShowManualDiscountModal(true)} className="flex-1 min-w-0 px-2 py-1.5 rounded border text-xs text-left truncate" style={{ background: SURF2, borderColor: manualDiscount > 0 ? GOLD : BORD, color: manualDiscount > 0 ? GOLD : MUTED }}>Discount {manualDiscount > 0 ? `- ${manualDiscount.toFixed(2)}` : "Add"}</button>
-            {promotionDiscount > 0 && <span className="text-xs font-bold" style={{ color: "var(--color-success)" }}>- {promotionDiscount.toFixed(2)}</span>}
-          </div>
+          {/* Total payable */}
           <div className="flex items-center px-3 py-2.5 border-t" style={{ background: SURF, borderColor: BORD }}>
             <span className="ml-auto font-bold text-base" style={{ color: TEXT }}>
               Total Payable: <span style={{ color: GOLD }}>{total.toFixed(2)}</span>
@@ -2811,18 +2796,6 @@ export default function POSPage() {
                 <div className="text-xs px-3 py-2 rounded border" style={{ color: "#F87171", borderColor: "var(--color-danger)44", background: "var(--color-danger)11" }}>
                   {qaError}
                 </div>
-      )}
-      {showManualDiscountModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "#00000099" }}>
-          <div className="w-80 rounded-xl border p-4 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
-            <div className="flex items-center justify-between mb-3"><span className="font-bold text-sm" style={{ color: TEXT }}>Discount Details</span><button onClick={() => setShowManualDiscountModal(false)} style={{ color: MUTED }}><X size={16} /></button></div>
-            <label className="block text-xs mb-1" style={{ color: MUTED }}>Discount type</label>
-            <select value={manualDiscountMode} onChange={e => setManualDiscountMode(e.target.value as "fixed" | "percent")} className="w-full border rounded px-2 py-2 text-sm mb-3" style={{ borderColor: BORD, background: BG, color: TEXT }}><option value="fixed">Fixed amount</option><option value="percent">Percentage</option></select>
-            <label className="block text-xs mb-1" style={{ color: MUTED }}>{manualDiscountMode === "percent" ? "Percentage (%)" : "Amount (LKR)"}</label>
-            <input autoFocus value={manualDiscountInput} onChange={e => setManualDiscountInput(e.target.value)} type="number" min="0" max={manualDiscountMode === "percent" ? 100 : undefined} className="w-full border rounded px-2 py-2 text-sm mb-4" style={{ borderColor: BORD, background: BG, color: TEXT }} />
-            <div className="flex gap-2"><button onClick={() => { setManualDiscountInput(""); setShowManualDiscountModal(false); }} className="flex-1 py-2 rounded border text-xs" style={{ borderColor: BORD, color: MUTED }}>Clear</button><button onClick={() => setShowManualDiscountModal(false)} className="flex-1 py-2 rounded text-xs font-semibold" style={{ background: GOLD, color: "var(--color-surface)" }}>Apply</button></div>
-          </div>
-        </div>
       )}
     </div>
 

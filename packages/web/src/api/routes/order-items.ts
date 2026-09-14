@@ -13,14 +13,14 @@ export const orderItems = new Hono()
   })
   .post("/", async (c) => {
     const body = await c.req.json();
-    const total = body.price * body.qty;
+    const total = Math.max(0, body.price * body.qty - Number(body.discount || 0));
     const [item] = await db.insert(schema.orderItems).values({ ...body, total }).returning();
     pushOutbox("order_items", "insert", item.id, item);
     return c.json({ orderItem: item }, 201);
   })
   .post("/bulk", async (c) => {
     const { items } = await c.req.json();
-    const withTotals = items.map((i: any) => ({ ...i, total: i.price * i.qty }));
+    const withTotals = items.map((i: any) => ({ ...i, total: Math.max(0, i.price * i.qty - Number(i.discount || 0)) }));
     const created = await db.insert(schema.orderItems).values(withTotals).returning();
     for (const item of created) pushOutbox("order_items", "insert", item.id, item);
     return c.json({ orderItems: created }, 201);
@@ -36,7 +36,7 @@ export const orderItems = new Hono()
     const patch = {
       ...body,
       // `total` is persisted separately, so it must change with quantity or price.
-      total: nextPrice * nextQty,
+      total: Math.max(0, nextPrice * nextQty - Number(body.discount ?? existing.discount ?? 0)),
     };
     const [item] = await db.update(schema.orderItems).set(patch).where(eq(schema.orderItems.id, id)).returning();
     pushOutbox("order_items", "update", item.id, item);
