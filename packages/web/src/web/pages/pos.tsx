@@ -469,12 +469,14 @@ function FinalizeModal({
   onClose,
   onSubmit,
   loading,
+  initialDiscount = 0,
 }: {
   order: any;
   items: any[];
   onClose: () => void;
   onSubmit?: (payments: PaymentEntry[], summary: { subtotal: number; discount: number; serviceCharge: number; total: number; amountPaid: number; cashGiven: number; balance: number; paymentMethod: string }) => void;
   loading?: boolean;
+  initialDiscount?: number;
 }) {
   const branchId = getBranchId();
   const { data: settingsRaw } = useQuery({
@@ -487,7 +489,8 @@ function FinalizeModal({
 
   const subtotal      = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
   const itemDiscount  = items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0);
-  const [extraDiscount, setExtraDiscount] = useState(0);
+  const [extraDiscount, setExtraDiscount] = useState(initialDiscount);
+  const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
   const afterDiscount = Math.max(0, subtotal - itemDiscount - extraDiscount);
   const serviceCharge = parseFloat((afterDiscount * serviceChargeRate).toFixed(2));
   const payable       = parseFloat((afterDiscount + serviceCharge).toFixed(2));
@@ -498,6 +501,7 @@ function FinalizeModal({
   const [refNote,         setRefNote]         = useState(""); // for card/check/bank
   const [payments,        setPayments]        = useState<PaymentEntry[]>([]);
   const [showCartDetails, setShowCartDetails] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [sendSMS,         setSendSMS]         = useState(false);
   const [discountInput,   setDiscountInput]   = useState("");
   const [phone,           setPhone]           = useState("");
@@ -537,7 +541,7 @@ function FinalizeModal({
 
   function handleDiscount() {
     const val = parseFloat(discountInput);
-    if (!isNaN(val) && val >= 0) setExtraDiscount(val);
+    if (!isNaN(val) && val >= 0) setExtraDiscount(discountMode === "percent" ? Math.min(afterDiscount + extraDiscount, afterDiscount * val / 100) : val);
     setDiscountInput("");
   }
 
@@ -692,15 +696,18 @@ function FinalizeModal({
               <div className="flex flex-col gap-2 w-44 shrink-0">
 
                 {/* Discount */}
+                <button onClick={() => setShowDiscountModal(true)}
+                  className="w-full py-2.5 rounded text-base font-semibold"
+                  style={{ background: BORD, color: MUTED }}>
+                  {extraDiscount > 0 ? `Discount: -${extraDiscount.toFixed(2)}` : "Add Discount"}
+                </button>
                 <div className="flex gap-1">
-                  <input value={discountInput} onChange={e => setDiscountInput(e.target.value)}
-                    placeholder="Discount" type="number" min="0"
-                    className="flex-1 border rounded px-2 py-2.5 text-base outline-none w-0"
-                    style={{ borderColor: BORD, background: BG, color: TEXT }}
-                    onKeyDown={e => e.key === "Enter" && handleDiscount()} />
-                  <button onClick={handleDiscount}
-                    className="px-2 py-2.5 rounded text-base font-semibold"
-                    style={{ background: BORD, color: MUTED }}>✓</button>
+                  <select value={discountMode} onChange={e => setDiscountMode(e.target.value as "fixed" | "percent")}
+                    className="border rounded px-1 py-2 text-xs" style={{ borderColor: BORD, background: BG, color: TEXT }}>
+                    <option value="fixed">Fixed</option><option value="percent">%</option>
+                  </select>
+                  <input value={discountInput} onChange={e => setDiscountInput(e.target.value)} placeholder={discountMode === "percent" ? "%" : "Amount"} type="number" min="0" className="flex-1 border rounded px-2 py-2 text-sm outline-none" style={{ borderColor: BORD, background: BG, color: TEXT }} />
+                  <button onClick={handleDiscount} className="px-2 rounded text-sm font-semibold" style={{ background: PURPLE, color: "#fff" }}>Apply</button>
                 </div>
 
                 {/* Totals */}
@@ -838,6 +845,18 @@ function FinalizeModal({
             ⊞ Submit{!canSubmit && due > 0 ? ` (Due LKR${due.toFixed(2)})` : ""}
           </button>
         </div>
+        {showDiscountModal && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ background: "#00000099" }}>
+            <div className="w-80 rounded-xl border p-4 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
+              <div className="flex items-center justify-between mb-3"><span className="font-bold text-base" style={{ color: TEXT }}>Discount Details</span><button onClick={() => setShowDiscountModal(false)} style={{ color: MUTED }}><X size={16} /></button></div>
+              <label className="block text-xs mb-1" style={{ color: MUTED }}>Discount type</label>
+              <select value={discountMode} onChange={e => setDiscountMode(e.target.value as "fixed" | "percent")} className="w-full border rounded px-2 py-2 text-sm mb-3" style={{ borderColor: BORD, background: BG, color: TEXT }}><option value="fixed">Fixed amount</option><option value="percent">Percentage</option></select>
+              <label className="block text-xs mb-1" style={{ color: MUTED }}>{discountMode === "percent" ? "Percentage (%)" : "Amount (LKR)"}</label>
+              <input autoFocus value={discountInput} onChange={e => setDiscountInput(e.target.value)} type="number" min="0" max={discountMode === "percent" ? 100 : undefined} className="w-full border rounded px-2 py-2 text-sm mb-4" style={{ borderColor: BORD, background: BG, color: TEXT }} />
+              <div className="flex gap-2"><button onClick={() => { setDiscountInput(""); setExtraDiscount(0); setShowDiscountModal(false); }} className="flex-1 py-2 rounded border text-sm" style={{ borderColor: BORD, color: MUTED }}>Clear</button><button onClick={() => { handleDiscount(); setShowDiscountModal(false); }} className="flex-1 py-2 rounded text-sm font-semibold" style={{ background: GOLD, color: "var(--color-surface)" }}>Apply</button></div>
+            </div>
+          </div>
+        )}
         </>
         )}
 
@@ -985,7 +1004,13 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
     ? storedSvc
     : parseFloat(((subtotal - discount) * svcRate).toFixed(2));
   const storedTotal   = Number(order?.total || 0);
-  const total         = storedTotal > 0 ? storedTotal : parseFloat((subtotal - discount + serviceCharge).toFixed(2));
+  // Bills are printed before payment finalization and may contain a stored total
+  // that predates service-charge calculation. Always derive the bill total from
+  // the displayed subtotal, discount, and service charge; finalized invoices can
+  // continue using the persisted payment total.
+  const total         = !isInvoice
+    ? parseFloat((subtotal - discount + serviceCharge).toFixed(2))
+    : (storedTotal > 0 ? storedTotal : parseFloat((subtotal - discount + serviceCharge).toFixed(2)));
   const amountPaid    = Number(order?.amountPaid || 0);
   const cashGiven     = Number(order?.cashGiven || 0);
   const balance       = Number(order?.balance || 0);
@@ -1363,6 +1388,9 @@ export default function POSPage() {
   const [customerName,       setCustomerName]       = useState("Walk-in Customer");
   const [selectedTableId,    setSelectedTableId]    = useState<number | null>(null);
   const [selectedPromotion,  setSelectedPromotion]  = useState<any | null>(null);
+  const [manualDiscountMode, setManualDiscountMode] = useState<"fixed" | "percent">("fixed");
+  const [manualDiscountInput, setManualDiscountInput] = useState("");
+  const [showManualDiscountModal, setShowManualDiscountModal] = useState(false);
   const [cartItems,          setCartItems]          = useState<CartItem[]>([]);
   const [categoryId,         setCategoryId]         = useState<number | null>(null);
   const [searchQuery,        setSearchQuery]        = useState("");
@@ -1500,7 +1528,7 @@ export default function POSPage() {
           json: {
             type: orderType, status: apiStatus, tableId: selectedTableId,
             waiterId: selectedWaiterId, customerId, customerName,
-            subtotal, discount: promotionDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount),
+            subtotal, discount: promotionDiscount + manualDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount - manualDiscount),
           },
         });
 
@@ -1584,7 +1612,7 @@ export default function POSPage() {
         json: {
           branchId, type: orderType, status: apiStatus, tableId: selectedTableId,
           waiterId: selectedWaiterId, customerId, customerName,
-          subtotal, discount: promotionDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount), orderNumber, placedBy: getUser()?.name || null,
+          subtotal, discount: promotionDiscount + manualDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount - manualDiscount), orderNumber, placedBy: getUser()?.name || null,
         },
       })).json();
       const orderId = (order as any).order.id;
@@ -1731,6 +1759,7 @@ export default function POSPage() {
     setSelectedOrderId(null); setSelectedWaiterId(null); setSelectedWaiterName(null);
     setModifyOrderId(null); setModifyOriginalItems([]);
     setSelectedPromotion(null);
+    setManualDiscountInput(""); setManualDiscountMode("fixed");
   }
   function showToast(msg: string) { setToast(msg); }
 
@@ -1867,7 +1896,11 @@ export default function POSPage() {
     if (selectedPromotion.type === "bogo") return eligible.reduce((s, i) => s + Math.floor(i.qty / 2) * i.price, 0);
     return 0;
   })();
-  const total = Math.max(0, cartSubtotal - promotionDiscount);
+  const manualDiscountValue = Number(manualDiscountInput || 0);
+  const manualDiscount = manualDiscountMode === "percent"
+    ? Math.min(Math.max(0, cartSubtotal - promotionDiscount), Math.max(0, cartSubtotal - promotionDiscount) * manualDiscountValue / 100)
+    : Math.min(Math.max(0, cartSubtotal - promotionDiscount), manualDiscountValue);
+  const total = Math.max(0, cartSubtotal - promotionDiscount - manualDiscount);
 
   // ── Customer Display: mirror live cart to localStorage for the popup window
   const customerWinRef = useRef<Window | null>(null);
@@ -2289,11 +2322,11 @@ export default function POSPage() {
 
           {/* Promotion and total payable */}
           <div className="flex items-center gap-2 px-3 py-2 border-t" style={{ background: SURF, borderColor: BORD }}>
-            <span className="text-xs font-semibold" style={{ color: MUTED }}>Promotion</span>
-            <select value={selectedPromotion?.id || ""} onChange={e => setSelectedPromotion(activePromotions.find(p => p.id === Number(e.target.value)) || null)} className="flex-1 px-2 py-1.5 rounded border text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
+            <div className="flex items-center gap-1 min-w-0" style={{ width: "50%" }}><span className="text-xs font-semibold" style={{ color: MUTED }}>Promotion</span><select value={selectedPromotion?.id || ""} onChange={e => setSelectedPromotion(activePromotions.find(p => p.id === Number(e.target.value)) || null)} className="min-w-0 flex-1 px-2 py-1.5 rounded border text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
               <option value="">No promotion</option>
               {activePromotions.map(p => <option key={p.id} value={p.id}>{p.name} — {p.type === "percent" ? `${p.value}% off` : p.type === "flat" ? `Rs. ${p.value} off` : "Buy 1 Get 1"}</option>)}
-            </select>
+            </select></div>
+            <button onClick={() => setShowManualDiscountModal(true)} className="flex-1 min-w-0 px-2 py-1.5 rounded border text-xs text-left truncate" style={{ background: SURF2, borderColor: manualDiscount > 0 ? GOLD : BORD, color: manualDiscount > 0 ? GOLD : MUTED }}>Discount {manualDiscount > 0 ? `- ${manualDiscount.toFixed(2)}` : "Add"}</button>
             {promotionDiscount > 0 && <span className="text-xs font-bold" style={{ color: "var(--color-success)" }}>- {promotionDiscount.toFixed(2)}</span>}
           </div>
           <div className="flex items-center px-3 py-2.5 border-t" style={{ background: SURF, borderColor: BORD }}>
@@ -2778,8 +2811,20 @@ export default function POSPage() {
                 <div className="text-xs px-3 py-2 rounded border" style={{ color: "#F87171", borderColor: "var(--color-danger)44", background: "var(--color-danger)11" }}>
                   {qaError}
                 </div>
-              )}
-            </div>
+      )}
+      {showManualDiscountModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "#00000099" }}>
+          <div className="w-80 rounded-xl border p-4 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
+            <div className="flex items-center justify-between mb-3"><span className="font-bold text-sm" style={{ color: TEXT }}>Discount Details</span><button onClick={() => setShowManualDiscountModal(false)} style={{ color: MUTED }}><X size={16} /></button></div>
+            <label className="block text-xs mb-1" style={{ color: MUTED }}>Discount type</label>
+            <select value={manualDiscountMode} onChange={e => setManualDiscountMode(e.target.value as "fixed" | "percent")} className="w-full border rounded px-2 py-2 text-sm mb-3" style={{ borderColor: BORD, background: BG, color: TEXT }}><option value="fixed">Fixed amount</option><option value="percent">Percentage</option></select>
+            <label className="block text-xs mb-1" style={{ color: MUTED }}>{manualDiscountMode === "percent" ? "Percentage (%)" : "Amount (LKR)"}</label>
+            <input autoFocus value={manualDiscountInput} onChange={e => setManualDiscountInput(e.target.value)} type="number" min="0" max={manualDiscountMode === "percent" ? 100 : undefined} className="w-full border rounded px-2 py-2 text-sm mb-4" style={{ borderColor: BORD, background: BG, color: TEXT }} />
+            <div className="flex gap-2"><button onClick={() => { setManualDiscountInput(""); setShowManualDiscountModal(false); }} className="flex-1 py-2 rounded border text-xs" style={{ borderColor: BORD, color: MUTED }}>Clear</button><button onClick={() => setShowManualDiscountModal(false)} className="flex-1 py-2 rounded text-xs font-semibold" style={{ background: GOLD, color: "var(--color-surface)" }}>Apply</button></div>
+          </div>
+        </div>
+      )}
+    </div>
 
             {/* Footer */}
             <div className="grid grid-cols-2 border-t" style={{ borderColor: BORD }}>
