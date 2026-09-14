@@ -937,8 +937,8 @@ function ReceiptHeader({ settings, label }: { settings: Record<string, string>; 
 
   if (headerImg) {
     return (
-      <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <img src={headerImg} alt="Header" style={{ width: "100%", maxWidth: "100%", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
+      <div style={{ width: "3in", textAlign: "center", margin: "-20px 0 12px" }}>
+        <img src={headerImg} alt="Header" style={{ width: "3in", maxWidth: "none", maxHeight: 130, objectFit: "contain", display: "block", margin: "0 auto" }} />
         <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#000" }}>{label}</div>
       </div>
     );
@@ -1093,7 +1093,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   background: "#fff",
                   color: "#000",
                   fontWeight: 500,
-                  padding: "20px 10px 16px",
+                  padding: "20px 0 16px",
                   fontSize: 13,
                   lineHeight: 1.5,
                 }}>
@@ -1115,9 +1115,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                     <span>Order #: <strong style={{ color: "#000" }}>{order.orderNumber}</strong></span>
                     <span>{dateStr} {timeStr}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
-                    <span>Waiter: <strong>{waiterName}</strong></span>
-                    <span>Cashier: <strong>{cashierName}</strong></span>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11, fontWeight: 400, color: "#000", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden" }}>
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Waiter: {waiterName}</span>
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>Cashier: {cashierName}</span>
                   </div>
                   {order.customerName && order.customerName !== "Walk-in Customer" && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
