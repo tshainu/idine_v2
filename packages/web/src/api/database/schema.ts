@@ -198,6 +198,8 @@ export const orders = sqliteTable("orders", {
   placedBy: text("placed_by"), // name of the logged-in staff member who placed the order
   subtotal: real("subtotal").notNull().default(0),
   discount: real("discount").notNull().default(0),
+  promotionId: integer("promotion_id").references(() => promotions.id),
+  promotionName: text("promotion_name"),
   serviceCharge: real("service_charge").notNull().default(0),
   tipAmount: real("tip_amount").notNull().default(0), // waiter tip, excluded from revenue, credited to waiterId
   total: real("total").notNull().default(0),
@@ -365,6 +367,8 @@ export const promotions = sqliteTable("promotions", {
   type: text("type").notNull().default("percent"), // percent | flat | bogo
   value: real("value").notNull().default(0),       // % or flat LKR amount
   minOrderAmount: real("min_order_amount").notNull().default(0),
+  // JSON array of menu_items.id values; empty means all items.
+  targetItemIds: text("target_item_ids").default("[]"),
   startDate: text("start_date"),
   endDate: text("end_date"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

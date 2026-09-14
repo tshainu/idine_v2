@@ -19,7 +19,7 @@ const PROMO_TYPES = [
 ];
 
 const today = new Date().toISOString().split("T")[0];
-const EMPTY_FORM = { name: "", type: "percent", value: 0, minOrderAmount: 0, startDate: today, endDate: "" };
+const EMPTY_FORM = { name: "", type: "percent", value: 0, minOrderAmount: 0, startDate: today, endDate: "", targetItemIds: [] as number[] };
 
 function isActive(p: any) {
   if (!p.isActive) return false;
@@ -45,7 +45,13 @@ export default function PromotionsPage() {
     },
   });
 
+  const { data: menuData } = useQuery({
+    queryKey: ["promotion-menu-items", branchId],
+    queryFn: async () => (await (api as any)["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
+  });
+
   const items: any[] = (data as any)?.promotions || [];
+  const menuItems: any[] = (menuData as any)?.menuItems || [];
 
   const createPromo = useMutation({
     mutationFn: async (body: any) => (await (api as any).promotions.$post({ json: { ...body, branchId } })).json(),
@@ -67,13 +73,15 @@ export default function PromotionsPage() {
   function openCreate() { setForm(EMPTY_FORM); setSelected(null); setModal("create"); }
   function openEdit(p: any) {
     setSelected(p);
-    setForm({ name: p.name, type: p.type, value: p.value, minOrderAmount: p.minOrderAmount, startDate: p.startDate || today, endDate: p.endDate || "" });
+    let targetItemIds: number[] = [];
+    try { targetItemIds = JSON.parse(p.targetItemIds || "[]").map((id: any) => Number(id)); } catch {}
+    setForm({ name: p.name, type: p.type, value: p.value, minOrderAmount: p.minOrderAmount, startDate: p.startDate || today, endDate: p.endDate || "", targetItemIds });
     setModal("edit");
   }
   function closeModal() { setModal(null); setSelected(null); setForm(EMPTY_FORM); }
   function handleSubmit() {
     if (!form.name?.trim()) return;
-    const body = { ...form, value: Number(form.value), minOrderAmount: Number(form.minOrderAmount), endDate: form.endDate || null };
+    const body = { ...form, value: Number(form.value), minOrderAmount: Number(form.minOrderAmount), targetItemIds: JSON.stringify(form.targetItemIds || []), endDate: form.endDate || null };
     if (modal === "create") createPromo.mutate(body);
     else if (modal === "edit" && selected) updatePromo.mutate({ id: selected.id, body });
   }
@@ -129,16 +137,16 @@ export default function PromotionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: SURF }}>
-                  {["Name", "Type", "Discount", "Min Order", "Valid From", "Valid Until", "Status", "Actions"].map(h => (
+                  {["Name", "Items", "Type", "Discount", "Min Order", "Valid From", "Valid Until", "Status", "Actions"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold" style={{ color: MUTED }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-sm" style={{ color: MUTED }}>Loading...</td></tr>
+                  <tr><td colSpan={9} className="text-center py-12 text-sm" style={{ color: MUTED }}>Loading...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-12 text-sm" style={{ color: MUTED }}>No promotions found. Create your first one.</td></tr>
+                  <tr><td colSpan={9} className="text-center py-12 text-sm" style={{ color: MUTED }}>No promotions found. Create your first one.</td></tr>
                 ) : filtered.map((p: any, idx: number) => {
                   const active = isActive(p);
                   const expired = p.endDate && p.endDate < today;
@@ -153,6 +161,7 @@ export default function PromotionsPage() {
                   return (
                     <tr key={p.id} style={{ background: idx % 2 === 0 ? BG : "rgba(26,10,46,0.4)", borderTop: `1px solid ${BORD}` }}>
                       <td className="px-4 py-3 font-medium" style={{ color: TEXT }}>{p.name}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: MUTED }}>{(() => { try { const ids = JSON.parse(p.targetItemIds || "[]"); return ids.length ? `${ids.length} item${ids.length === 1 ? "" : "s"}` : "All items"; } catch { return "All items"; } })()}</td>
                       <td className="px-4 py-3 text-xs capitalize" style={{ color: MUTED }}>{p.type}</td>
                       <td className="px-4 py-3 font-mono font-bold" style={{ color: GOLD }}>{formatValue(p)}</td>
                       <td className="px-4 py-3 font-mono text-xs" style={{ color: MUTED }}>{p.minOrderAmount > 0 ? `Rs. ${p.minOrderAmount}` : "None"}</td>
@@ -211,6 +220,20 @@ export default function PromotionsPage() {
                   </div>
                 </div>
               )}
+              <div>
+                <label className="block text-xs mb-1" style={{ color: MUTED }}>Apply to menu items</label>
+                <p className="text-[10px] mb-2" style={{ color: MUTED }}>Leave all unchecked to apply this promotion to every item.</p>
+                <div className="max-h-40 overflow-y-auto rounded-lg border p-2 space-y-1" style={{ background: BG, borderColor: BORD }}>
+                  {menuItems.length === 0 ? <div className="text-xs p-2" style={{ color: MUTED }}>No menu items found.</div> : menuItems.map(item => {
+                    const selectedItemIds: number[] = form.targetItemIds || [];
+                    const checked = selectedItemIds.includes(Number(item.id));
+                    return <label key={item.id} className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer" style={{ color: TEXT }}>
+                      <input type="checkbox" checked={checked} onChange={() => setForm((f: any) => ({ ...f, targetItemIds: checked ? selectedItemIds.filter(id => id !== Number(item.id)) : [...selectedItemIds, Number(item.id)] }))} />
+                      <span className="text-xs">{item.name}</span>
+                    </label>;
+                  })}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs mb-1" style={{ color: MUTED }}>Start Date</label>

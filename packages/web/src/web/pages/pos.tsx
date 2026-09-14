@@ -1129,7 +1129,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                     </div>
                     {discount > 0 && (
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#000", marginBottom: 3 }}>
-                        <span>Discount</span>
+                        <span>{order?.promotionName ? `Promotion: ${order.promotionName}` : "Discount"}</span>
                         <span>- {num(discount)}</span>
                       </div>
                     )}
@@ -1362,6 +1362,7 @@ export default function POSPage() {
   const [customerId,         setCustomerId]         = useState<number | null>(null);
   const [customerName,       setCustomerName]       = useState("Walk-in Customer");
   const [selectedTableId,    setSelectedTableId]    = useState<number | null>(null);
+  const [selectedPromotion,  setSelectedPromotion]  = useState<any | null>(null);
   const [cartItems,          setCartItems]          = useState<CartItem[]>([]);
   const [categoryId,         setCategoryId]         = useState<number | null>(null);
   const [searchQuery,        setSearchQuery]        = useState("");
@@ -1434,7 +1435,16 @@ export default function POSPage() {
     queryKey: ["users", branchId],
     queryFn: async () => (await api.users.$get({ query: { branchId: String(branchId) } })).json(),
   });
+  const { data: promotionsData } = useQuery({
+    queryKey: ["promotions", branchId],
+    queryFn: async () => (await (api as any).promotions.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30_000,
+  });
   const waiters = ((usersData as any)?.users || []).filter((u: any) => u.role === "waiter" || u.role === "manager");
+  const activePromotions: any[] = ((promotionsData as any)?.promotions || []).filter((p: any) => {
+    const now = new Date().toISOString().slice(0, 10);
+    return p.isActive && (!p.startDate || p.startDate <= now) && (!p.endDate || p.endDate >= now);
+  });
 
   // Printer setup settings — for category→printer routing
   const { data: printerSettingsData } = useQuery({
@@ -1490,7 +1500,7 @@ export default function POSPage() {
           json: {
             type: orderType, status: apiStatus, tableId: selectedTableId,
             waiterId: selectedWaiterId, customerId, customerName,
-            subtotal, total: subtotal,
+            subtotal, discount: promotionDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount),
           },
         });
 
@@ -1574,7 +1584,7 @@ export default function POSPage() {
         json: {
           branchId, type: orderType, status: apiStatus, tableId: selectedTableId,
           waiterId: selectedWaiterId, customerId, customerName,
-          subtotal, total: subtotal, orderNumber, placedBy: getUser()?.name || null,
+          subtotal, discount: promotionDiscount, promotionId: selectedPromotion?.id ?? null, promotionName: selectedPromotion?.name ?? null, total: Math.max(0, subtotal - promotionDiscount), orderNumber, placedBy: getUser()?.name || null,
         },
       })).json();
       const orderId = (order as any).order.id;
@@ -1703,6 +1713,7 @@ export default function POSPage() {
     setCustomerId(order.customerId ?? null);
     setCustomerName(order.customerName || "Walk-in Customer");
     setSelectedTableId(order.tableId ?? null);
+    setSelectedPromotion((promotionsData as any)?.promotions?.find((p: any) => p.id === order.promotionId) || null);
     setCartItems((items || []).map((i: any) => ({
       cartKey: String(i.id), menuItemId: i.menuItemId, name: i.name, price: i.price, qty: i.qty,
       discount: i.discount ?? 0, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
@@ -1719,6 +1730,7 @@ export default function POSPage() {
     setCustomerName("Walk-in Customer"); setCustomerId(null);
     setSelectedOrderId(null); setSelectedWaiterId(null); setSelectedWaiterName(null);
     setModifyOrderId(null); setModifyOriginalItems([]);
+    setSelectedPromotion(null);
   }
   function showToast(msg: string) { setToast(msg); }
 
@@ -1842,7 +1854,20 @@ export default function POSPage() {
     const modCost = item.modifiers.reduce((s, m) => s + m.price, 0);
     return (item.qty * (item.price + modCost)) - item.discount;
   }
-  const total = cartItems.reduce((s, i) => s + itemTotal(i), 0);
+  const cartSubtotal = cartItems.reduce((s, i) => s + itemTotal(i), 0);
+  const promotionDiscount = (() => {
+    if (!selectedPromotion) return 0;
+    let ids: number[] = [];
+    try { ids = JSON.parse(selectedPromotion.targetItemIds || "[]").map((id: any) => Number(id)); } catch {}
+    const eligible = ids.length === 0 ? cartItems : cartItems.filter(i => i.menuItemId != null && ids.includes(Number(i.menuItemId)));
+    const eligibleTotal = eligible.reduce((s, i) => s + itemTotal(i), 0);
+    if (cartSubtotal < Number(selectedPromotion.minOrderAmount || 0)) return 0;
+    if (selectedPromotion.type === "percent") return Math.min(eligibleTotal, eligibleTotal * Number(selectedPromotion.value || 0) / 100);
+    if (selectedPromotion.type === "flat") return Math.min(eligibleTotal, Number(selectedPromotion.value || 0));
+    if (selectedPromotion.type === "bogo") return eligible.reduce((s, i) => s + Math.floor(i.qty / 2) * i.price, 0);
+    return 0;
+  })();
+  const total = Math.max(0, cartSubtotal - promotionDiscount);
 
   // ── Customer Display: mirror live cart to localStorage for the popup window
   const customerWinRef = useRef<Window | null>(null);
@@ -2262,7 +2287,15 @@ export default function POSPage() {
             }
           </div>
 
-          {/* Total payable (no Calendar/Eye icons) */}
+          {/* Promotion and total payable */}
+          <div className="flex items-center gap-2 px-3 py-2 border-t" style={{ background: SURF, borderColor: BORD }}>
+            <span className="text-xs font-semibold" style={{ color: MUTED }}>Promotion</span>
+            <select value={selectedPromotion?.id || ""} onChange={e => setSelectedPromotion(activePromotions.find(p => p.id === Number(e.target.value)) || null)} className="flex-1 px-2 py-1.5 rounded border text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
+              <option value="">No promotion</option>
+              {activePromotions.map(p => <option key={p.id} value={p.id}>{p.name} — {p.type === "percent" ? `${p.value}% off` : p.type === "flat" ? `Rs. ${p.value} off` : "Buy 1 Get 1"}</option>)}
+            </select>
+            {promotionDiscount > 0 && <span className="text-xs font-bold" style={{ color: "var(--color-success)" }}>- {promotionDiscount.toFixed(2)}</span>}
+          </div>
           <div className="flex items-center px-3 py-2.5 border-t" style={{ background: SURF, borderColor: BORD }}>
             <span className="ml-auto font-bold text-base" style={{ color: TEXT }}>
               Total Payable: <span style={{ color: GOLD }}>{total.toFixed(2)}</span>
