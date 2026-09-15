@@ -1033,7 +1033,14 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const offerDiscount = items.reduce((s, it) => s + Math.max(0, Number(it.promotionOriginalPrice || 0) - Number(it.price || 0)) * Number(it.qty || 1), 0);
   const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0) + offerDiscount;
   const lineDiscount  = items.reduce((s, it) => s + Number(it.discount || 0), 0);
-  const discount      = Number(order?.discount || 0) > 0 ? Number(order.discount) : lineDiscount + offerDiscount;
+  const savedDiscount = Number(order?.discount || 0);
+  const configuredDiscount = Number(order?.discountValue || 0);
+  const ruleDiscount = configuredDiscount > 0
+    ? (String(order?.discountType || "").toLowerCase().startsWith("percent")
+      ? subtotal * configuredDiscount / 100
+      : configuredDiscount)
+    : 0;
+  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount + offerDiscount, ruleDiscount);
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.

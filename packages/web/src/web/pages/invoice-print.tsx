@@ -81,7 +81,14 @@ export default function InvoicePrint() {
   // For bill: compute service charge from settings rate (since it's not paid yet)
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
   const lineDiscount  = items.reduce((s: number, i: any) => s + Number(i.discount || 0), 0);
-  const discount      = Number(order.discount || 0) > 0 ? Number(order.discount) : lineDiscount + offerDiscount;
+  const savedDiscount = Number(order.discount || 0);
+  const configuredDiscount = Number(order.discountValue || 0);
+  const ruleDiscount = configuredDiscount > 0
+    ? (String(order.discountType || "").toLowerCase().startsWith("percent")
+      ? subtotal * configuredDiscount / 100
+      : configuredDiscount)
+    : 0;
+  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount + offerDiscount, ruleDiscount);
   const discountLabel = order.discountName || items.find((item: any) => item.promotionName)?.promotionName || "Discount";
 
   // For invoice: use saved value; fall back to live-computed if not stored (old orders)
