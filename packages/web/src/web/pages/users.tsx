@@ -103,7 +103,7 @@ export default function UsersPage() {
 
   function openEdit(u: any) {
     setSelectedUser(u);
-    setForm({ name: u.name, role: u.role, username: u.username });
+    setForm({ name: u.name, role: u.role, username: u.username, defaultOrderType: u.defaultOrderType || "dine-in" });
     setModal("edit");
   }
 
@@ -129,7 +129,7 @@ export default function UsersPage() {
 
   function handleEdit() {
     if (!form.name?.trim() || !form.username?.trim()) return;
-    updateUser.mutate({ id: selectedUser.id, data: { name: form.name.trim(), role: form.role, username: form.username.trim() } });
+    updateUser.mutate({ id: selectedUser.id, data: { name: form.name.trim(), role: form.role, username: form.username.trim(), defaultOrderType: form.defaultOrderType || "dine-in" } });
   }
 
   async function handleChangePassword() {
@@ -490,6 +490,16 @@ export default function UsersPage() {
                   className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                   style={{ background: BG, borderColor: BORD, color: TEXT }}>
                   {roleNames.map(role => <option key={role} value={role}>{role.replace(/[\-_]/g, " ")}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: MUTED }}>Default Billing</label>
+                <select value={form.defaultOrderType || "dine-in"} onChange={e => setForm(p => ({ ...p, defaultOrderType: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
+                  style={{ background: BG, borderColor: BORD, color: TEXT }}>
+                  <option value="dine-in">Dine In</option>
+                  <option value="takeaway">Takeaway</option>
+                  <option value="delivery">Delivery</option>
                 </select>
               </div>
             </div>

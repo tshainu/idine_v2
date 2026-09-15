@@ -7,9 +7,10 @@ export const users = new Hono()
   .get("/", async (c) => {
     const branchId = c.req.query("branchId");
     const query = db.select().from(schema.users);
+    const active = eq(schema.users.isActive, true);
     const all = branchId
-      ? await db.select().from(schema.users).where(eq(schema.users.branchId, parseInt(branchId)))
-      : await db.select().from(schema.users);
+      ? await db.select().from(schema.users).where(and(eq(schema.users.branchId, parseInt(branchId)), active))
+      : await db.select().from(schema.users).where(active);
     const safe = all.map(({ password, ...rest }) => rest);
     return c.json({ users: safe }, 200);
   })
@@ -39,6 +40,7 @@ export const users = new Hono()
   })
   .delete("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
-    await db.update(schema.users).set({ isActive: false }).where(eq(schema.users.id, id));
-    return c.json({ ok: true }, 200);
+    const [user] = await db.update(schema.users).set({ isActive: false }).where(eq(schema.users.id, id)).returning({ id: schema.users.id });
+    if (!user) return c.json({ error: "User not found" }, 404);
+    return c.json({ ok: true, id: user.id }, 200);
   });
