@@ -1028,8 +1028,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const waiterName = order?.waiterName || order?.placedBy || "Unassigned";
   const cashierName = getUser()?.name || "Unassigned";
 
+  // Item totals are stored net of line discounts. Add line discounts back to
+  // get the gross subtotal, then apply the order-level discount exactly once.
   const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
-  const discount      = Number(order?.discount || 0) || items.reduce((s, it) => s + Number(it.discount || 0), 0);
+  const lineDiscount  = items.reduce((s, it) => s + Number(it.discount || 0), 0);
+  const discount      = Number(order?.discount || 0) > 0 ? Number(order.discount) : lineDiscount;
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
@@ -1039,14 +1042,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const serviceCharge = !isDineIn ? 0 : storedSvc > 0
     ? storedSvc
     : parseFloat(((subtotal - discount) * svcRate).toFixed(2));
-  const storedTotal   = Number(order?.total || 0);
-  // Bills are printed before payment finalization and may contain a stored total
-  // that predates service-charge calculation. Always derive the bill total from
-  // the displayed subtotal, discount, and service charge; finalized invoices can
-  // continue using the persisted payment total.
-  const total         = !isInvoice
-    ? parseFloat((subtotal - discount + serviceCharge).toFixed(2))
-    : (storedTotal > 0 ? storedTotal : parseFloat((subtotal - discount + serviceCharge).toFixed(2)));
+  // Always derive the payable amount from the visible receipt values. The
+  // persisted total may predate a discount applied from Order Details.
+  const total         = parseFloat((subtotal - discount + serviceCharge).toFixed(2));
   const amountPaid    = Number(order?.amountPaid || 0);
   const cashGiven     = Number(order?.cashGiven || 0);
   const balance       = Number(order?.balance || 0);
