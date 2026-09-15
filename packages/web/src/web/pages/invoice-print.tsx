@@ -91,12 +91,11 @@ export default function InvoicePrint() {
   const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount + offerDiscount, ruleDiscount);
   const discountLabel = order.discountName || items.find((item: any) => item.promotionName)?.promotionName || "Discount";
 
-  // For invoice: use saved value; fall back to live-computed if not stored (old orders)
-  const serviceChargeLive = parseFloat(((subtotal - discount) * serviceChargeRate).toFixed(2));
-  // For invoice: use saved value if > 0 (actually paid orders); fall back to live-computed for old/migrated orders
-  const serviceCharge = isBill
-    ? serviceChargeLive
-    : (Number(order.serviceCharge) > 0 ? Number(order.serviceCharge) : serviceChargeLive);
+  // Always calculate from the discounted base. The saved service charge can be
+  // stale when a discount was applied after the original bill/invoice total.
+  const serviceCharge = order.type === "dine-in"
+    ? parseFloat((Math.max(0, subtotal - discount) * serviceChargeRate).toFixed(2))
+    : 0;
 
   // Always derive total from subtotal + service charge so it's consistent
   const total = parseFloat((subtotal - discount + serviceCharge).toFixed(2));

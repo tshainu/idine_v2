@@ -1050,10 +1050,12 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   // guest sees what they will actually be charged.
   const svcRate       = parseFloat(String(settings?.serviceCharge || "0").replace("%", "")) / 100 || 0;
   const isDineIn       = order?.type === "dine-in";
-  const storedSvc     = Number(order?.serviceCharge || 0);
-  const serviceCharge = !isDineIn ? 0 : storedSvc > 0
-    ? storedSvc
-    : parseFloat(((subtotal - discount) * svcRate).toFixed(2));
+  // Always calculate from the discounted base. A previously saved service
+  // charge may have been recorded before a discount was applied, which made
+  // the invoice disagree with the bill.
+  const serviceCharge = !isDineIn
+    ? 0
+    : parseFloat((Math.max(0, subtotal - discount) * svcRate).toFixed(2));
   // Always derive the payable amount from the visible receipt values. The
   // persisted total may predate a discount applied from Order Details.
   const total         = parseFloat((subtotal - discount + serviceCharge).toFixed(2));
