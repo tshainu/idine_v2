@@ -519,9 +519,13 @@ function FinalizeModal({
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
   const isDineIn = order?.type === "dine-in";
 
-  const subtotal      = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
-  const itemDiscount  = items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0);
-  const [extraDiscount, setExtraDiscount] = useState(initialDiscount);
+  // Order-item totals are already net of line discounts. Reconstruct the gross
+  // subtotal first, then apply line discounts and the managed order discount
+  // exactly once before calculating the dine-in service charge.
+  const itemDiscount  = items.reduce((s: number, i: any) => s + Number(i.discount ?? 0), 0);
+  const subtotal       = items.reduce((s: number, i: any) => s + Number(i.total ?? i.qty * i.price) + Number(i.discount ?? 0), 0);
+  const managedDiscount = Number(order?.discountName ? order?.discount || 0 : Math.max(0, Number(order?.discount || 0) - itemDiscount));
+  const [extraDiscount, setExtraDiscount] = useState(initialDiscount || managedDiscount);
   const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
   const afterDiscount = Math.max(0, subtotal - itemDiscount - extraDiscount);
   const serviceCharge = isDineIn ? parseFloat((afterDiscount * serviceChargeRate).toFixed(2)) : 0;
