@@ -397,6 +397,12 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
   const [editId, setEditId] = useState<number | null>(null);
   const [editData, setEditData] = useState<typeof emptyPrinter>({ ...emptyPrinter });
   const [editCats, setEditCats] = useState<number[]>([]);
+  async function persistPrinterCategories(next: Record<string, number[]>) {
+    const current = (settingsData as any)?.settings?.printerSetup;
+    let existing: Record<string, unknown> = {};
+    try { existing = current ? JSON.parse(current) : {}; } catch { /* use defaults */ }
+    await api.settings.$post({ json: { branchId, settings: { printerSetup: JSON.stringify({ ...existing, ...cfg, printerCategories: next }) } } });
+  }
 
   const { data: printersData } = useQuery({
     queryKey: ["printers", branchId],
@@ -430,7 +436,11 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
       (await api.printers.$post({ json: { ...data, branchId, port: Number(data.port), isActive: true } })).json(),
     onSuccess: (res: any, vars) => {
       const newId = String(res?.printer?.id);
-      if (newId) setPrinterCategories(pc => ({ ...pc, [newId]: vars.cats }));
+      if (newId) {
+        const next = { ...printerCategories, [newId]: vars.cats };
+        setPrinterCategories(next);
+        void persistPrinterCategories(next);
+      }
       qc.invalidateQueries({ queryKey: ["printers", branchId] });
       setShowAdd(false);
       setNewPrinter({ ...emptyPrinter });
@@ -441,7 +451,9 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
     mutationFn: async ({ id, data, cats }: { id: number; data: typeof emptyPrinter; cats: number[] }) =>
       (await (api.printers as any)[":id"].$patch({ param: { id: String(id) }, json: { ...data, port: Number(data.port) } })).json(),
     onSuccess: (_res: any, vars) => {
-      setPrinterCategories(pc => ({ ...pc, [String(vars.id)]: vars.cats }));
+      const next = { ...printerCategories, [String(vars.id)]: vars.cats };
+      setPrinterCategories(next);
+      void persistPrinterCategories(next);
       qc.invalidateQueries({ queryKey: ["printers", branchId] });
       setEditId(null);
     },
@@ -450,7 +462,10 @@ function PrinterSetup({ onBack }: { onBack: () => void }) {
     mutationFn: async (id: number) =>
       (await (api.printers as any)[":id"].$delete({ param: { id: String(id) } })).json(),
     onSuccess: (_res: any, id: number) => {
-      setPrinterCategories(pc => { const n = { ...pc }; delete n[String(id)]; return n; });
+      const next = { ...printerCategories };
+      delete next[String(id)];
+      setPrinterCategories(next);
+      void persistPrinterCategories(next);
       qc.invalidateQueries({ queryKey: ["printers", branchId] });
     },
   });

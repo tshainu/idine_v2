@@ -1807,7 +1807,7 @@ export default function POSPage() {
     setSelectedTableId(order.tableId ?? null);
     setCartItems((items || []).map((i: any) => ({
       cartKey: String(i.id), menuItemId: i.menuItemId, name: i.name, price: i.price, qty: i.qty,
-      discount: i.discount ?? 0, promotionName: i.promotionName ?? null, promotionOriginalPrice: i.promotionOriginalPrice ?? null, printerId: i.printerId ?? null, categoryId: i.categoryId ?? null, modifiers: [],
+      discount: i.discount ?? 0, promotionName: i.promotionName ?? null, promotionOriginalPrice: i.promotionOriginalPrice ?? null, printerId: i.printerId ?? categoryPrinterMap[i.categoryId ?? -1] ?? null, categoryId: i.categoryId ?? null, modifiers: [],
       note: i.note || undefined,
     })));
     setModifyOriginalItems((items || []).map((i: any) => ({ menuItemId: i.menuItemId ?? null, name: i.name, qty: i.qty })));
@@ -1843,7 +1843,7 @@ export default function POSPage() {
       const ex = prev.find(i => i.cartKey === cartKey);
       if (ex) return prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + 1 } : i);
       const originalPrice = orderType === "dine-in" ? (item.priceDineIn || item.price) : orderType === "takeaway" ? (item.priceTakeaway || item.price) : (item.priceDelivery || item.price);
-      return [...prev, { cartKey, menuItemId: item.sourceMenuItemId ?? item.id, name, price: priceByType, qty: 1, discount: 0, promotionName: item.promotionName ?? null, promotionOriginalPrice: item.promotionName ? originalPrice : null, printerId: item.printerId ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
+      return [...prev, { cartKey, menuItemId: item.sourceMenuItemId ?? item.id, name, price: priceByType, qty: 1, discount: 0, promotionName: item.promotionName ?? null, promotionOriginalPrice: item.promotionName ? originalPrice : null, printerId: item.printerId ?? categoryPrinterMap[item.categoryId ?? -1] ?? null, categoryId: item.categoryId ?? null, modifiers: [] }];
     });
   }
   function changeQty(cartKey: string, delta: number) {
