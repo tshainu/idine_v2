@@ -1031,6 +1031,12 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
    * printer (or no configured printer) falls back to the print dialog.
    */
   async function handlePrint() {
+    // Invoices must be printed by the Windows print helper/browser dialog. Do not
+    // send them automatically to a configured network thermal printer.
+    if (isInvoice) {
+      triggerPrint(printId);
+      return;
+    }
     const printer = resolvePrinter(printerSetup, printers, isInvoice ? "invoice" : "bill");
     if (!printer || !isNetworkPrinter(printer.connection)) {
       triggerPrint(printId);

@@ -18,8 +18,13 @@ export default function ReportsPage() {
     queryKey: ["reports-orders", branchId],
     queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
   });
+  const { data: settlementsData } = useQuery({
+    queryKey: ["settlements-report", branchId],
+    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}`)).json(),
+  });
 
   const orders: any[] = (ordersData as any)?.orders || [];
+  const settlements: any[] = (settlementsData as any)?.settlements || [];
 
   // Last 30 days daily revenue
   const days30: { label: string; rev: number; count: number }[] = [];
@@ -85,6 +90,36 @@ export default function ReportsPage() {
                 <div className="text-xs mt-0.5" style={{ color: MUTED }}>{c.label}</div>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-2xl p-5 border" style={{ background: SURF, borderColor: BORD }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-semibold text-sm" style={{ color: TEXT }}>Settlement Report</div>
+                <div className="text-[11px] mt-1" style={{ color: MUTED }}>Register settlements recorded by staff</div>
+              </div>
+              <div className="text-xs font-semibold" style={{ color: GOLD }}>{settlements.length} settlement{settlements.length === 1 ? "" : "s"}</div>
+            </div>
+            {settlements.length === 0 ? <div className="text-center py-6 text-xs" style={{ color: DIM }}>No settlements recorded</div> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="border-b" style={{ borderColor: BORD }}>
+                    {['Settled date & time', 'Staff', 'Billed amount', 'Settled amount', 'Difference', 'Justification'].map(h => <th key={h} className="text-left py-2 pr-3 font-medium" style={{ color: DIM }}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>{settlements.slice(0, 50).map((row: any) => {
+                    const difference = Number(row.settledAmount || 0) - Number(row.billedAmount || 0);
+                    return <tr key={row.id} className="border-b" style={{ borderColor: BORD }}>
+                      <td className="py-2 pr-3" style={{ color: TEXT }}>{new Date(row.settlementDate).toLocaleString()}</td>
+                      <td className="py-2 pr-3" style={{ color: MUTED }}>{row.settledByName || "—"}</td>
+                      <td className="py-2 pr-3" style={{ color: TEXT }}>LKR {Number(row.billedAmount || 0).toLocaleString()}</td>
+                      <td className="py-2 pr-3" style={{ color: GOLD }}>LKR {Number(row.settledAmount || 0).toLocaleString()}</td>
+                      <td className="py-2 pr-3" style={{ color: difference === 0 ? "var(--color-success)" : "var(--color-danger)" }}>LKR {difference.toLocaleString()}</td>
+                      <td className="py-2 max-w-xs" style={{ color: MUTED }}>{row.justification || "—"}</td>
+                    </tr>;
+                  })}</tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* 30-day revenue chart */}

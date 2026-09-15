@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { getUser } from "../lib/store";
 import { Spinner } from "./ui/spinner";
 import { X, Search, Printer, QrCode, RotateCcw, FileText, ChevronDown, ChevronUp, Check, AlertTriangle } from "lucide-react";
 
@@ -221,59 +222,90 @@ export function SelfOrderQRModal({ branchId, onClose }: { branchId: number; onCl
 //  REGISTRY — Today's Register Summary
 // ════════════════════════════════════════════════════════════════════════════
 export function RegistryModal({ branchId, onClose }: { branchId: number; onClose: () => void }) {
+  const qc = useQueryClient();
+  const user = getUser();
+  const [showSettlement, setShowSettlement] = useState(false);
+  const [settledAmount, setSettledAmount] = useState("");
+  const [justification, setJustification] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["orders", branchId, "registry"],
     queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
     refetchInterval: 15000,
   });
-
+  const { data: settlementData } = useQuery({
+    queryKey: ["settlements", branchId],
+    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}`)).json(),
+    refetchInterval: 15000,
+  });
   const summary = useMemo(() => {
     const orders = (data as any)?.orders || [];
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const startTs = start.getTime();
     const isToday = (o: any) => {
       const raw = o.createdAt ?? 0;
-      let ms: number;
-      if (typeof raw === "number") {
-        ms = raw < 1e12 ? raw * 1000 : raw;
-      } else {
-        ms = new Date(raw).getTime();
-      }
+      const ms = typeof raw === "number" ? (raw < 1e12 ? raw * 1000 : raw) : new Date(raw).getTime();
       return !isNaN(ms) && ms >= startTs;
     };
     const today = orders.filter(isToday);
-    const completed = today.filter((o: any) => o.status === "completed");
+    const completed = today.filter((o: any) => ["completed", "paid"].includes(o.status));
     const cancelled = today.filter((o: any) => o.status === "cancelled");
-    const running = today.filter((o: any) => o.status !== "completed" && o.status !== "cancelled");
+    const running = today.filter((o: any) => !["completed", "paid", "cancelled"].includes(o.status));
     const gross = completed.reduce((s: number, o: any) => s + Number(o.total || 0), 0);
     const byType = (t: string) => completed.filter((o: any) => o.type === t);
     const sumType = (t: string) => byType(t).reduce((s: number, o: any) => s + Number(o.total || 0), 0);
-    const avg = completed.length ? gross / completed.length : 0;
     return {
       totalOrders: today.length, completedCount: completed.length, cancelledCount: cancelled.length,
-      runningCount: running.length, gross, avg,
+      runningCount: running.length, gross, avg: completed.length ? gross / completed.length : 0,
       dineIn: { c: byType("dine-in").length, v: sumType("dine-in") },
       takeaway: { c: byType("takeaway").length, v: sumType("takeaway") },
       delivery: { c: byType("delivery").length, v: sumType("delivery") },
     };
   }, [data]);
-
+  const settlements = (settlementData as any)?.settlements || [];
+  const todaySettlement = settlements.find((row: any) => {
+    const d = new Date(row.settlementDate);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const openSettlement = () => {
+    setSettledAmount(summary.gross.toFixed(2));
+    setJustification("");
+    setShowSettlement(true);
+  };
+  const settlementMutation = useMutation({
+    mutationFn: async () => {
+      const amount = Number(settledAmount);
+      if (!Number.isFinite(amount) || amount < 0) throw new Error("Enter a valid settled amount.");
+      if (Math.abs(amount - summary.gross) > 0.005 && justification.trim().length < 3) {
+        throw new Error("Justification is required when the settled amount differs from billed amount.");
+      }
+      const res = await fetch("/api/settlements", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          branchId, billedAmount: summary.gross, settledAmount: amount,
+          justification, settledById: user?.id ?? null, settledByName: user?.name ?? user?.username ?? null,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Settlement failed.");
+      return body;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["settlements", branchId] }); setShowSettlement(false); },
+  });
   const Stat = ({ label, value, accent }: { label: string; value: string; accent?: string }) => (
     <div className="rounded-lg border px-4 py-3" style={{ background: SURF2, borderColor: BORD }}>
       <div className="text-[11px] uppercase tracking-wide" style={{ color: DIM }}>{label}</div>
       <div className="text-lg font-bold mt-1" style={{ color: accent || TEXT }}>{value}</div>
     </div>
   );
-
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-
   return (
     <Shell title="Register — Today's Summary" onClose={onClose} width={580}>
       {isLoading ? <div className="flex justify-center p-12"><Spinner /></div> : (
         <div className="p-5 overflow-y-auto">
           <div className="text-xs mb-4" style={{ color: MUTED }}>{today}</div>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <Stat label="Gross Sales" value={money(summary.gross)} accent={GOLD} />
+            <Stat label="Billed Amount" value={money(summary.gross)} accent={GOLD} />
             <Stat label="Completed Sales" value={String(summary.completedCount)} />
             <Stat label="Avg. Sale Value" value={money(summary.avg)} />
             <Stat label="Total Orders" value={String(summary.totalOrders)} />
@@ -289,22 +321,39 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
               { label: "Take Away", d: summary.takeaway, color: "var(--color-gold)" },
               { label: "Delivery", d: summary.delivery, color: "var(--color-info)" },
             ].map((row, i) => (
-              <div key={row.label} className="flex items-center justify-between px-4 py-2.5"
-                style={{ background: i % 2 ? SURF2 : SURF, borderTop: i ? `1px solid ${BORD}` : "none" }}>
-                <span className="flex items-center gap-2 text-xs" style={{ color: TEXT }}>
-                  <span className="w-2 h-2 rounded-full" style={{ background: row.color }} /> {row.label}
-                </span>
+              <div key={row.label} className="flex items-center justify-between px-4 py-2.5" style={{ background: i % 2 ? SURF2 : SURF, borderTop: i ? `1px solid ${BORD}` : "none" }}>
+                <span className="flex items-center gap-2 text-xs" style={{ color: TEXT }}><span className="w-2 h-2 rounded-full" style={{ background: row.color }} /> {row.label}</span>
                 <span className="text-xs" style={{ color: MUTED }}>{row.d.c} orders</span>
                 <span className="text-xs font-bold" style={{ color: TEXT }}>{money(row.d.v)}</span>
               </div>
             ))}
+          </div>
+          <div className="mt-4 rounded-lg border p-3" style={{ background: SURF2, borderColor: todaySettlement ? "var(--color-success)" : BORD }}>
+            {todaySettlement ? (
+              <div className="flex items-center justify-between text-xs"><div><div className="font-semibold" style={{ color: "var(--color-success)" }}>Settled</div><div style={{ color: MUTED }}>{fmtTime(todaySettlement.settlementDate)} · {todaySettlement.settledByName || "Staff"}</div></div><div className="text-right"><div style={{ color: TEXT }}>Billed {money(todaySettlement.billedAmount)}</div><div style={{ color: GOLD }}>Settled {money(todaySettlement.settledAmount)}</div></div></div>
+            ) : (
+              <button onClick={openSettlement} className="w-full rounded-md py-2 text-xs font-bold" style={{ background: GOLD, color: "#111" }}>Settle Register</button>
+            )}
+          </div>
+        </div>
+      )}
+      {showSettlement && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: "#00000099" }}>
+          <div className="w-80 rounded-xl border p-5 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
+            <div className="flex items-center justify-between mb-4"><span className="text-sm font-bold" style={{ color: GOLD }}>Settle Register</span><button onClick={() => setShowSettlement(false)} style={{ color: MUTED }}><X size={15} /></button></div>
+            <label className="block text-xs mb-1" style={{ color: MUTED }}>Amount billed</label>
+            <input readOnly value={money(summary.gross)} className="w-full rounded border px-3 py-2 text-sm mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} />
+            <label className="block text-xs mb-1" style={{ color: MUTED }}>Settled amount</label>
+            <input type="number" min="0" step="0.01" value={settledAmount} onChange={e => setSettledAmount(e.target.value)} className="w-full rounded border px-3 py-2 text-sm mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} />
+            {Math.abs(Number(settledAmount || 0) - summary.gross) > 0.005 && <><label className="block text-xs mb-1" style={{ color: MUTED }}>Justification *</label><textarea value={justification} onChange={e => setJustification(e.target.value)} rows={3} placeholder="Explain the difference" className="w-full rounded border px-3 py-2 text-xs mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} /></>}
+            {settlementMutation.error && <div className="text-xs mb-3" style={{ color: "var(--color-danger)" }}>{(settlementMutation.error as Error).message}</div>}
+            <button disabled={settlementMutation.isPending} onClick={() => settlementMutation.mutate()} className="w-full rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{settlementMutation.isPending ? "Saving…" : "Confirm Settlement"}</button>
           </div>
         </div>
       )}
     </Shell>
   );
 }
-
 // ════════════════════════════════════════════════════════════════════════════
 //  REFUND MODAL
 // ════════════════════════════════════════════════════════════════════════════

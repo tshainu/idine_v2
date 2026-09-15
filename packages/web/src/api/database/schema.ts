@@ -214,6 +214,19 @@ export const orders = sqliteTable("orders", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// Cashier/register settlements recorded from the POS registry summary.
+export const registerSettlements = sqliteTable("register_settlements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  settlementDate: integer("settlement_date", { mode: "timestamp" }).notNull(),
+  billedAmount: real("billed_amount").notNull().default(0),
+  settledAmount: real("settled_amount").notNull().default(0),
+  justification: text("justification"),
+  settledById: integer("settled_by_id").references(() => users.id),
+  settledByName: text("settled_by_name"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Order Items
 export const orderItems = sqliteTable("order_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
