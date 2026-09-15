@@ -344,18 +344,22 @@ export async function printKotToConfiguredPrinters(
 
 /** Sends a short self-test ticket so staff can verify a printer without an order. */
 export async function printTest(config: PrinterConfig): Promise<PrintResult> {
-  return printKot(
-    {
-      orderNumber: "TEST-0001",
-      tableName: "T1",
-      waiterName: "Printer test",
-      customerName: "iDine v2",
-      items: [
-        { name: "Chicken Fried Rice", qty: 2, notes: "less spicy" },
-        { name: "Lime Juice", qty: 1 },
-      ],
-    },
-    { ...config, alsoQueueOnServer: false },
-    undefined,
-  );
+  const payload: KotPayload = {
+    orderNumber: "TEST-0001",
+    tableName: "T1",
+    waiterName: "Printer test",
+    customerName: "iDine v2",
+    items: [
+      { name: "Chicken Fried Rice", qty: 2, notes: "less spicy" },
+      { name: "Lime Juice", qty: 1 },
+    ],
+  };
+
+  // After Sync POS, KOT printers live in kotPrinters; the legacy host field is
+  // intentionally empty. Test the first configured KOT printer in that case.
+  if (config.transport === "lan" && config.kotPrinters.some((p) => p.enabled && p.host)) {
+    return printKotToConfiguredPrinters(payload, { ...config, alsoQueueOnServer: false }, () => null, undefined);
+  }
+
+  return printKot(payload, { ...config, alsoQueueOnServer: false }, undefined);
 }
