@@ -40,6 +40,7 @@ const NAV: NavSection[] = [
     id: "sales", type: "group", label: "Sales", icon: TrendingUp,
     items: [
       { path: "/sales",       label: "List of Sales", icon: TrendingUp },
+      { path: "/discounts",   label: "Discount",      icon: Tag },
     ],
   },
   {

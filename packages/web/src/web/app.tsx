@@ -7,6 +7,7 @@ import KDS from "./pages/kds";
 import Admin from "./pages/admin";
 import Home from "./pages/home";
 import Sales from "./pages/sales";
+import Discounts from "./pages/discounts";
 import Purchase from "./pages/purchase";
 import PurchasesList from "./pages/purchases/index";
 import PurchaseItems from "./pages/purchases/items";
@@ -49,6 +50,7 @@ function App() {
         <Route path="/admin" component={Admin} />
         <Route path="/home" component={Home} />
         <Route path="/sales" component={Sales} />
+        <Route path="/discounts" component={Discounts} />
         <Route path="/purchase" component={Purchase} />
         <Route path="/purchases" component={PurchasesList} />
         <Route path="/purchases/items" component={PurchaseItems} />

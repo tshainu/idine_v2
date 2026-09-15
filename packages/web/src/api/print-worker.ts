@@ -172,7 +172,7 @@ export function buildBill(job: any): Buffer {
   const svc  = Number(payload.serviceCharge || 0).toFixed(2);
 
   parts.push(text(`${"Subtotal:".padEnd(30)}${sub.padStart(10)}`));
-  if (Number(disc) > 0) parts.push(text(`${"Discount:".padEnd(30)}-${disc.padStart(9)}`));
+  if (Number(disc) > 0) parts.push(text(`${(payload.discountName ? `Discount: ${String(payload.discountName).slice(0, 20)}` : "Discount:").padEnd(30)}-${disc.padStart(9)}`));
   // Service charge must print on the bill — it is part of what the guest pays.
   if (Number(svc) > 0) {
     const label = payload.serviceChargeLabel || "Service Charge:";

@@ -19,7 +19,8 @@ export const users = sqliteTable("users", {
   userId: text("user_id"),       // shared per-business identifier, e.g. "ELE5236"
   username: text("username"),    // unique login name within the business
   password: text("password"),    // Bun.password hash
-  role: text("role").notNull().default("waiter"), // superadmin | admin | waiter | cashier | kitchen
+  role: text("role").notNull().default("waiter"), // superadmin | admin | manager | waiter | cashier | kitchen
+  defaultOrderType: text("default_order_type").notNull().default("dine-in"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
@@ -198,6 +199,9 @@ export const orders = sqliteTable("orders", {
   placedBy: text("placed_by"), // name of the logged-in staff member who placed the order
   subtotal: real("subtotal").notNull().default(0),
   discount: real("discount").notNull().default(0),
+  discountName: text("discount_name"),
+  discountType: text("discount_type"),
+  discountValue: real("discount_value").notNull().default(0),
   promotionId: integer("promotion_id").references(() => promotions.id),
   promotionName: text("promotion_name"),
   serviceCharge: real("service_charge").notNull().default(0),
@@ -212,6 +216,16 @@ export const orders = sqliteTable("orders", {
   source: text("source").notNull().default("pos"), // pos | qr
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const discounts = sqliteTable("discounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("percent"),
+  value: real("value").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 // Cashier/register settlements recorded from the POS registry summary.

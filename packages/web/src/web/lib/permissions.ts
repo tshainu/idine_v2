@@ -34,7 +34,7 @@ export function hasPrivilege(role: string | null | undefined, privilege: string,
 }
 
 export const ROUTE_PRIVILEGE: Record<string, FeaturePrivilege> = {
-  "/home": "Dashboard", "/pos": "POS", "/kds": "KDS", "/admin": "Admin", "/sales": "Sales", "/purchase": "Purchases",
+  "/home": "Dashboard", "/pos": "POS", "/kds": "KDS", "/admin": "Admin", "/sales": "Sales", "/discounts": "Sales", "/purchase": "Purchases",
   "/purchases": "Purchases", "/purchases/items": "Purchase Items", "/purchases/suppliers": "Suppliers", "/products": "Menu Items",
   "/combo-promo": "Combo & Promo", "/expenses": "Expenses", "/reports": "Reports", "/reports/sales": "Sales Reports", "/reports/menu": "Menu Reports",
   "/reports/inventory": "Inventory Reports", "/reports/pl": "Profit & Loss Reports", "/reports/staff": "Staff Reports", "/reports/customers": "Customer Reports",

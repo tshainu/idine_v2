@@ -31,6 +31,7 @@ import { shifts } from "./routes/shifts";
 import { deviceTokens } from "./routes/device-tokens";
 import { kdsTokens } from "./routes/kds-tokens";
 import { settlements } from "./routes/settlements";
+import { discounts } from "./routes/discounts";
 
 const app = new Hono()
   .basePath("api")
@@ -67,7 +68,8 @@ const app = new Hono()
   .route("/shifts", shifts)
   .route("/device-tokens", deviceTokens)
   .route("/kds-tokens", kdsTokens)
-  .route("/settlements", settlements);
+  .route("/settlements", settlements)
+  .route("/discounts", discounts);
 
 export type AppType = typeof app;
 export default app;

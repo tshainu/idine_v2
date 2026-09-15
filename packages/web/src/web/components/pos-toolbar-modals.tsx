@@ -237,10 +237,15 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}`)).json(),
     refetchInterval: 15000,
   });
+  const settlements = (settlementData as any)?.settlements || [];
+  const todaySettlement = settlements
+    .filter((row: any) => new Date(row.settlementDate).toDateString() === new Date().toDateString())
+    .sort((a: any, b: any) => new Date(b.settlementDate).getTime() - new Date(a.settlementDate).getTime())[0];
   const summary = useMemo(() => {
     const orders = (data as any)?.orders || [];
     const start = new Date(); start.setHours(0, 0, 0, 0);
-    const startTs = start.getTime();
+    const settlementTs = todaySettlement ? new Date(todaySettlement.settlementDate).getTime() : 0;
+    const startTs = Math.max(start.getTime(), settlementTs);
     const isToday = (o: any) => {
       const raw = o.createdAt ?? 0;
       const ms = typeof raw === "number" ? (raw < 1e12 ? raw * 1000 : raw) : new Date(raw).getTime();
@@ -260,13 +265,7 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
       takeaway: { c: byType("takeaway").length, v: sumType("takeaway") },
       delivery: { c: byType("delivery").length, v: sumType("delivery") },
     };
-  }, [data]);
-  const settlements = (settlementData as any)?.settlements || [];
-  const todaySettlement = settlements.find((row: any) => {
-    const d = new Date(row.settlementDate);
-    const now = new Date();
-    return d.toDateString() === now.toDateString();
-  });
+  }, [data, todaySettlement]);
   const openSettlement = () => {
     setSettledAmount(summary.gross.toFixed(2));
     setJustification("");
@@ -329,11 +328,8 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
             ))}
           </div>
           <div className="mt-4 rounded-lg border p-3" style={{ background: SURF2, borderColor: todaySettlement ? "var(--color-success)" : BORD }}>
-            {todaySettlement ? (
-              <div className="flex items-center justify-between text-xs"><div><div className="font-semibold" style={{ color: "var(--color-success)" }}>Settled</div><div style={{ color: MUTED }}>{fmtTime(todaySettlement.settlementDate)} · {todaySettlement.settledByName || "Staff"}</div></div><div className="text-right"><div style={{ color: TEXT }}>Billed {money(todaySettlement.billedAmount)}</div><div style={{ color: GOLD }}>Settled {money(todaySettlement.settledAmount)}</div></div></div>
-            ) : (
-              <button onClick={openSettlement} className="w-full rounded-md py-2 text-xs font-bold" style={{ background: GOLD, color: "#111" }}>Settle Register</button>
-            )}
+            <div className="flex items-center justify-between text-xs mb-2"><div><div className="font-semibold" style={{ color: todaySettlement ? "var(--color-success)" : TEXT }}>{todaySettlement ? "New register session" : "Not settled"}</div>{todaySettlement && <div style={{ color: MUTED }}>Last settled {fmtTime(todaySettlement.settlementDate)} · {todaySettlement.settledByName || "Staff"}</div>}</div><div className="text-right">{todaySettlement && <><div style={{ color: TEXT }}>Previous billed {money(todaySettlement.billedAmount)}</div><div style={{ color: GOLD }}>Previous settled {money(todaySettlement.settledAmount)}</div></>}</div></div>
+            <button disabled={summary.gross <= 0} onClick={openSettlement} className="w-full rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>Settle Current Register</button>
           </div>
         </div>
       )}

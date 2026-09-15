@@ -352,12 +352,34 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
   onCreateInvoice: () => void;
   onPrintBill: () => void;
 }) {
-  const subtotal = items.reduce((s: number, i: any) => s + (i.total ?? i.qty * i.price), 0);
+  const qc = useQueryClient();
+  const [discountId, setDiscountId] = useState("");
+  const { data: discountData } = useQuery({
+    queryKey: ["discounts", order.branchId],
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${order.branchId}`)).json(),
+  });
+  const discounts: any[] = (discountData as any)?.discounts || [];
+  const subtotal = items.reduce((s: number, i: any) => s + i.qty * i.price, 0);
   const tax      = 0;
   const charge   = 0;
   const tips     = 0;
-  const discount = items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0);
+  const discount = Number(order.discount || items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0));
   const total    = subtotal - discount + tax + charge + tips;
+  const applyDiscount = useMutation({
+    mutationFn: async () => {
+      const selected = discounts.find(d => String(d.id) === discountId);
+      if (!selected) throw new Error("Select a discount first.");
+      const base = items.reduce((s: number, i: any) => s + Math.max(0, i.qty * i.price - Number(i.discount || 0)), 0);
+      const amount = selected.type === "percent" ? base * Number(selected.value) / 100 : Number(selected.value);
+      const nextDiscount = Math.min(base, Math.max(0, amount));
+      const res = await fetch(`/api/orders/${order.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        discount: Number(nextDiscount.toFixed(2)), discountName: selected.name, discountType: selected.type, discountValue: Number(selected.value),
+        subtotal: Number(base.toFixed(2)), total: Number((base - nextDiscount + Number(order.serviceCharge || 0)).toFixed(2)),
+      }) });
+      const body = await res.json(); if (!res.ok) throw new Error(body.error || "Could not apply discount"); return body;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["order-detail", order.id] }); qc.invalidateQueries({ queryKey: ["orders", order.branchId] }); setDiscountId(""); },
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "#00000099" }}>
@@ -433,6 +455,14 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
             <span style={{ color: TEXT }}>Total Payable</span>
             <span style={{ color: GOLD }}>{total.toFixed(2)}</span>
           </div>
+          {order.discountName && <div className="text-[11px] mt-2" style={{ color: GOLD }}>Applied discount: {order.discountName} ({order.discountType === "percent" ? `${order.discountValue}%` : `LKR ${Number(order.discountValue || 0).toFixed(2)}`})</div>}
+          <div className="flex items-center gap-2 mt-3">
+            <select value={discountId} onChange={e => setDiscountId(e.target.value)} className="flex-1 rounded border px-2 py-2 text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
+              <option value="">Select discount…</option>{discounts.map(d => <option key={d.id} value={d.id}>{d.name} — {d.type === "percent" ? `${d.value}%` : `LKR ${Number(d.value).toFixed(2)}`}</option>)}
+            </select>
+            <button disabled={!discountId || applyDiscount.isPending} onClick={() => applyDiscount.mutate()} className="rounded px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{applyDiscount.isPending ? "Applying…" : "Apply"}</button>
+          </div>
+          {applyDiscount.error && <div className="text-[11px] mt-1" style={{ color: "var(--color-danger)" }}>{(applyDiscount.error as Error).message}</div>}
         </div>
 
         {/* Actions */}
@@ -1060,7 +1090,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         cashierName,
         receiptDate: `${dateStr} ${timeStr}`,
         items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, discount: it.discount || 0, promotionName: it.promotionName || null, promotionOriginalPrice: it.promotionOriginalPrice || null })),
-        subtotal, discount, serviceCharge, total,
+        subtotal, discount, discountName: order?.discountName || null, serviceCharge, total,
         serviceChargeLabel: "Service Charge:",
         paymentMethod: isInvoice ? paymentMethod : "",
       },
@@ -1169,7 +1199,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                     </div>
                     {discount > 0 && (
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#000", marginBottom: 3 }}>
-                        <span>{order?.promotionName ? `Promotion: ${order.promotionName}` : "Discount"}</span>
+                        <span>{order?.discountName ? `Discount: ${order.discountName}` : order?.promotionName ? `Promotion: ${order.promotionName}` : "Discount"}</span>
                         <span>- {num(discount)}</span>
                       </div>
                     )}
@@ -1396,7 +1426,7 @@ export default function POSPage() {
 
   // ── State
   const [selectedOrderId,    setSelectedOrderId]    = useState<number | null>(null);
-  const [orderType,          setOrderType]          = useState<OrderType>("dine-in");
+  const [orderType,          setOrderType]          = useState<OrderType>((currentUser?.defaultOrderType as OrderType) || "dine-in");
   const [selectedWaiterId,   setSelectedWaiterId]   = useState<number | null>(null);
   const [selectedWaiterName, setSelectedWaiterName] = useState<string | null>(null);
   const [customerId,         setCustomerId]         = useState<number | null>(null);
