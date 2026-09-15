@@ -398,7 +398,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
             ["Order Number", order.orderNumber],
             ["Waiter",       order.waiterName || "—"],
             ["Customer",     order.customerName || "Walk-in"],
-            ["Table",        order.tableId ? `Table ${order.tableId}` : "—"],
+            ["Table",        order.tableId ? `Table ${order.tableName || order.tableMasterName || order.tableId}` : "—"],
             ["Status",       order.status],
           ].map(([k, v]) => (
             <div key={k}>
@@ -1949,6 +1949,8 @@ export default function POSPage() {
   const modalOrder      = modalOrderData.order  ?? {};
   const modalItems      = modalOrderData.items  ?? [];
   const modalWaiterName = modalOrder.waiterName || modalOrder.placedBy || waiters.find((waiter: any) => waiter.id === modalOrder.waiterId)?.name || "Unassigned";
+  const modalTable = tables.find((table: any) => String(table.id) === String(modalOrder.tableId));
+  const modalTableName = modalTable?.name || modalTable?.tableName || modalOrder.tableName || modalOrder.tableMasterName || null;
   const finalizeOrderData = (finalizeDetailData as any) ?? {};
   const finalizeOrder     = finalizeOrderData.order ?? {};
   const finalizeItems     = finalizeOrderData.items ?? [];
@@ -2604,7 +2606,7 @@ export default function POSPage() {
       {/* Order Details modal */}
       {detailsOrderId && modalOrder.id && (
         <OrderDetailsModal
-          order={{ ...modalOrder, waiterName: modalWaiterName }} items={modalItems}
+          order={{ ...modalOrder, waiterName: modalWaiterName, tableName: modalTableName }} items={modalItems}
           onClose={() => setDetailsOrderId(null)}
           onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }}
           onPrintBill={() => { setDetailsOrderId(null); setInvoicePreviewMode("bill"); setInvoicePreviewId(detailsOrderId); }} />
