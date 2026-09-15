@@ -2196,7 +2196,7 @@ export default function POSPage() {
                       </div>
                     </div>
                     <div className="text-xs mt-0.5 truncate" style={{ color: MUTED }}>{order.customerName}</div>
-                    {order.tableId && <div className="text-[10px] mt-0.5" style={{ color: DIM }}>Table {order.tableId}</div>}
+                    {order.tableId && <div className="text-[10px] mt-0.5" style={{ color: DIM }}>Table {order.tableName || tables.find((table: any) => table.id === order.tableId)?.name || order.tableId}</div>}
                   </button>
                 ))
             }

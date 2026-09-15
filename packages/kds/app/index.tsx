@@ -24,7 +24,9 @@ async function api<T>(path: string, options: RequestInit = {}, query?: Record<st
   return data;
 }
 
-function orderStart(order: Order) { return order.updatedAt || order.createdAt; }
+// KDS time measures how long the kitchen has had the order. Status changes,
+// item edits, and polling updates must not reset or advance that timer.
+function orderStart(order: Order) { return order.createdAt; }
 function elapsed(order: Order) { const sec = Math.max(0, Math.floor((Date.now() - new Date(orderStart(order)).getTime()) / 1000)); return sec >= 60 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${sec}s`; }
 function urgency(order: Order) { const min = (Date.now() - new Date(orderStart(order)).getTime()) / 60000; return min >= 15 ? C.danger : min >= 8 ? C.warning : C.success; }
 
