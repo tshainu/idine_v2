@@ -70,11 +70,15 @@ export default function InvoicePrint() {
   );
 
   // ── Financials ──────────────────────────────────────────────────────────────
-  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total), 0);
+  // Order-item totals are net of line discounts. Restore those line discounts
+  // so the invoice subtotal is gross before the order-level discount.
+  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total || 0) + Number(i.discount || 0), 0);
 
   // For bill: compute service charge from settings rate (since it's not paid yet)
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
-  const discount      = Number(order.discount || 0);
+  const lineDiscount  = items.reduce((s: number, i: any) => s + Number(i.discount || 0), 0);
+  const discount      = Number(order.discount || 0) > 0 ? Number(order.discount) : lineDiscount;
+  const discountLabel = order.discountName || "Discount";
 
   // For invoice: use saved value; fall back to live-computed if not stored (old orders)
   const serviceChargeLive = parseFloat(((subtotal - discount) * serviceChargeRate).toFixed(2));
@@ -295,7 +299,7 @@ export default function InvoicePrint() {
           {/* Totals */}
           <div style={{ paddingTop: 2 }}>
             <Row label="Subtotal" value={`LKR ${subtotal.toFixed(2)}`} />
-            {discount > 0 && <Row label="Discount" value={`- LKR ${discount.toFixed(2)}`} color="#000" />}
+            {discount > 0 && <Row label={discountLabel} value={`- LKR ${discount.toFixed(2)}`} color="#000" />}
             {(serviceCharge > 0 || serviceChargeRate > 0) && <Row label={`Service Charge${serviceChargeRate > 0 ? ` (${(serviceChargeRate*100).toFixed(0)}%)` : ''}`} value={`LKR ${serviceCharge.toFixed(2)}`} />}
           </div>
 
