@@ -1030,9 +1030,10 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
 
   // Item totals are stored net of line discounts. Add line discounts back to
   // get the gross subtotal, then apply the order-level discount exactly once.
-  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
+  const offerDiscount = items.reduce((s, it) => s + Math.max(0, Number(it.promotionOriginalPrice || 0) - Number(it.price || 0)) * Number(it.qty || 1), 0);
+  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0) + offerDiscount;
   const lineDiscount  = items.reduce((s, it) => s + Number(it.discount || 0), 0);
-  const discount      = Number(order?.discount || 0) > 0 ? Number(order.discount) : lineDiscount;
+  const discount      = Number(order?.discount || 0) > 0 ? Number(order.discount) : lineDiscount + offerDiscount;
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
@@ -1197,7 +1198,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                     </div>
                     {discount > 0 && (
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#000", marginBottom: 3 }}>
-                        <span>{order?.discountName ? `Discount: ${order.discountName}` : order?.promotionName ? `Promotion: ${order.promotionName}` : "Discount"}</span>
+                        <span>{order?.discountName ? `Discount: ${order.discountName}` : items.find((item: any) => item.promotionName)?.promotionName ? `Offer: ${items.find((item: any) => item.promotionName).promotionName}` : "Discount"}</span>
                         <span>- {num(discount)}</span>
                       </div>
                     )}

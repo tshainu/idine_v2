@@ -72,13 +72,17 @@ export default function InvoicePrint() {
   // ── Financials ──────────────────────────────────────────────────────────────
   // Order-item totals are net of line discounts. Restore those line discounts
   // so the invoice subtotal is gross before the order-level discount.
-  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total || 0) + Number(i.discount || 0), 0);
+  const offerDiscount = items.reduce((s: number, i: any) => {
+    const saving = Math.max(0, Number(i.promotionOriginalPrice || 0) - Number(i.price || 0));
+    return s + saving * Number(i.qty || 1);
+  }, 0);
+  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total || 0) + Number(i.discount || 0), 0) + offerDiscount;
 
   // For bill: compute service charge from settings rate (since it's not paid yet)
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
   const lineDiscount  = items.reduce((s: number, i: any) => s + Number(i.discount || 0), 0);
-  const discount      = Number(order.discount || 0) > 0 ? Number(order.discount) : lineDiscount;
-  const discountLabel = order.discountName || "Discount";
+  const discount      = Number(order.discount || 0) > 0 ? Number(order.discount) : lineDiscount + offerDiscount;
+  const discountLabel = order.discountName || items.find((item: any) => item.promotionName)?.promotionName || "Discount";
 
   // For invoice: use saved value; fall back to live-computed if not stored (old orders)
   const serviceChargeLive = parseFloat(((subtotal - discount) * serviceChargeRate).toFixed(2));
@@ -280,7 +284,10 @@ export default function InvoicePrint() {
           {items.map((it: any, i: number) => (
             <div key={i}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "3px 0" }}>
-                <span style={{ flex: 1, lineHeight: 1.4, paddingRight: 4, fontSize: 12 }}>{it.name}</span>
+                <span style={{ flex: 1, lineHeight: 1.4, paddingRight: 4, fontSize: 12 }}>
+                  {it.name}
+                  {it.promotionName && <div style={{ fontSize: 10, fontStyle: "italic" }}>{it.promotionName}{it.promotionOriginalPrice ? ` (Original: ${Number(it.promotionOriginalPrice).toFixed(2)})` : ""}</div>}
+                </span>
                 <span style={{ width: 28, textAlign: "center", fontSize: 12 }}>{it.qty}</span>
                 <span style={{ width: 72, textAlign: "right", fontSize: 12, fontWeight: 600 }}>
                   {Number(it.total).toFixed(2)}

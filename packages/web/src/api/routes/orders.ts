@@ -126,6 +126,22 @@ export const orders = new Hono()
     const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
     if (!order) return c.json({ error: "Not found" }, 404);
     const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, id));
+    const menuIds = [...new Set(items.map((item) => item.menuItemId).filter((value): value is number => typeof value === "number"))];
+    const menuRows = menuIds.length
+      ? await db.select({ id: schema.menuItems.id, name: schema.menuItems.name, isPromo: schema.menuItems.isPromo, originalPrice: schema.menuItems.originalPrice })
+        .from(schema.menuItems)
+        .where(inArray(schema.menuItems.id, menuIds))
+      : [];
+    const menuById = new Map(menuRows.map((menu) => [menu.id, menu]));
+    const enrichedItems = items.map((item) => {
+      const menu = item.menuItemId ? menuById.get(item.menuItemId) : undefined;
+      const isOffer = Boolean(menu?.isPromo && Number(menu.originalPrice || 0) > Number(item.price || 0));
+      return {
+        ...item,
+        promotionName: item.promotionName || (isOffer ? menu?.name : null),
+        promotionOriginalPrice: item.promotionOriginalPrice || (isOffer ? menu?.originalPrice : null),
+      };
+    });
     let waiterName = order.placedBy || null;
     if (order.waiterId) {
       const [waiter] = await db
@@ -139,7 +155,7 @@ export const orders = new Hono()
       const [table] = await db.select({ name: schema.tables.name }).from(schema.tables).where(eq(schema.tables.id, order.tableId));
       tableName = table?.name ?? null;
     }
-    return c.json({ order: { ...order, waiterName, tableName }, items }, 200);
+    return c.json({ order: { ...order, waiterName, tableName }, items: enrichedItems }, 200);
   })
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
