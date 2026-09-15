@@ -25,14 +25,20 @@ export default function InvoicePrint() {
     if (!id) return;
     (async () => {
       try {
-        const [orderRes, branchRes, settingsRes] = await Promise.all([
+        const [orderRes, branchRes] = await Promise.all([
           (await api.orders[":id"].$get({ param: { id } })).json() as any,
           (await api.branches.$get()).json() as any,
-          fetch("/api/settings?branchId=1").then(r => r.json()) as any,
+        ]);
+        const receiptBranchId = orderRes.order?.branchId || branchRes.branches?.[0]?.id || 1;
+        const [settingsRes, tablesRes] = await Promise.all([
+          fetch(`/api/settings?branchId=${receiptBranchId}`).then(r => r.json()) as any,
+          fetch(`/api/tables?branchId=${receiptBranchId}`).then(r => r.json()) as any,
         ]);
         setOrder(orderRes.order);
         setItems(orderRes.items || []);
         setBranch(branchRes.branches?.[0] || null);
+        const receiptTable = (tablesRes?.tables || []).find((table: any) => String(table.id) === String(orderRes.order?.tableId));
+        if (receiptTable) orderRes.order.tableName = receiptTable.name || receiptTable.tableName || orderRes.order.tableName;
         const s = settingsRes?.settings as Record<string, string> || {};
         setSettings(s);
         if (s.invoiceHeader) setInvoiceHeader(s.invoiceHeader);
@@ -109,6 +115,7 @@ export default function InvoicePrint() {
   try { payments = JSON.parse(order.paymentsJson || "[]"); } catch {}
 
   const footerText = settings.invoiceFooter || "Thank you for visiting us!\niDine POS";
+  const receiptTableName = order.tableName || order.tableMasterName || (order.tableId ? `T${order.tableId}` : "");
 
   // ── Components ──────────────────────────────────────────────────────────────
   const Divider = ({ dashed }: { dashed?: boolean }) => (
@@ -262,7 +269,7 @@ export default function InvoicePrint() {
             {order.tableId && (
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#000" }}>Table</span>
-                <span>{order.tableId}</span>
+                <span>{receiptTableName}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between" }}>

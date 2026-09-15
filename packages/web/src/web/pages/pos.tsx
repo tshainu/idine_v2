@@ -1008,12 +1008,19 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
     queryKey: ["printers", branchId],
     queryFn: async () => (await api.printers.$get({ query: { branchId: String(branchId) } })).json() as any,
   });
+  const { data: tablesRaw } = useQuery({
+    queryKey: ["receipt-tables", branchId],
+    queryFn: async () => (await api.tables.$get({ query: { branchId: String(branchId) } })).json() as any,
+  });
   const printers: PrinterRow[] = (printersRaw as any)?.printers || [];
+  const receiptTables: any[] = (tablesRaw as any)?.tables || [];
   const printerSetup = parsePrinterSetup(settings);
   const [printMsg, setPrintMsg] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
   const order = (data as any)?.order;
   const items: any[] = (data as any)?.items || [];
+  const receiptTable = receiptTables.find((table: any) => String(table.id) === String(order?.tableId));
+  const receiptTableName = receiptTable?.name || receiptTable?.tableName || order?.tableName || order?.tableMasterName || (order?.tableId ? `T${order.tableId}` : "");
   // Plain number, no currency symbol, no trailing ".00" on whole numbers
   const num = (n: number) => {
     const v = Number(n || 0);
@@ -1097,7 +1104,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
         phone: settings?.outletPhone || "",
         orderNumber: order?.orderNumber,
         type: order?.type,
-        tableName: order?.tableName || (order?.tableId ? `T${order.tableId}` : ""),
+        tableName: receiptTableName,
         waiterName: order?.waiterName || "",
         cashierName,
         receiptDate: `${dateStr} ${timeStr}`,
@@ -1177,7 +1184,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   )}
                   {order.tableId && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>
-                      Table: <strong style={{ color: "#000" }}>{order.tableId}</strong>
+                      Table: <strong style={{ color: "#000" }}>{receiptTableName}</strong>
                     </div>
                   )}
 
