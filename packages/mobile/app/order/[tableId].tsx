@@ -73,7 +73,7 @@ function runningOrderDelta(existing: OrderItem[], cart: CartLine[]): OrderItem[]
 
 export default function TakeOrderScreen() {
   const router = useRouter();
-  const { tableId: rawId } = useLocalSearchParams<{ tableId: string }>();
+  const { tableId: rawId, edit: editParam } = useLocalSearchParams<{ tableId: string; edit?: string }>();
   const tableId = Number(rawId);
   const { branchId, waiterId, waiterName } = useSession();
 
@@ -270,6 +270,14 @@ export default function TakeOrderScreen() {
       setLoadingEdit(false);
     }
   }
+
+  // Home → Open Orders → Add new items must edit the current invoice rather
+  // than create a second order for the same table.
+  useEffect(() => {
+    if (editParam !== "1" || !openOrder || editMode || loadingEdit) return;
+    beginEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam, openOrder?.id]);
 
   async function submit() {
     if (!cart.length && !editMode) return;

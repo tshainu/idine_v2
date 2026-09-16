@@ -78,7 +78,7 @@ async function queueJobs(input: {
       customerName: input.order.customerName,
       customerPhone: input.customerPhone ?? null,
       type: input.order.type,
-      items: toKotItems(items),
+      items: toKotItems(items, input.deltas),
       mode: input.type === "reprint" ? "update" : "new",
       printedAt: new Date(),
     };

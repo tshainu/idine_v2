@@ -286,7 +286,7 @@ export default function DashboardScreen() {
                   onPress={() => {
                     const target = selectedOrder.tableId;
                     closeOrderModal(true);
-                    router.push(`/order/${target}`);
+                    router.push(`/order/${target}?edit=1`);
                   }}
                 >
                   <Ionicons name="add-circle-outline" size={18} color={c.primaryDark} />
