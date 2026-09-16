@@ -184,6 +184,8 @@ function Compose({ branchId, channel, bal, qc }: any) {
   const { data: templatesData } = useQuery({
     queryKey: ["msg-templates", branchId],
     queryFn: async () => (await api.messaging.templates.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const audienceValue = audience === "tag"

@@ -203,31 +203,57 @@ function Templates({ branchId, qc }: any) {
   const { data } = useQuery({
     queryKey: ["msg-templates", branchId],
     queryFn: async () => (await api.messaging.templates.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const templates: any[] = (data as any)?.templates || [];
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["msg-templates"] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["msg-templates", branchId] });
 
   const create = useMutation({
     mutationFn: async () => (await api.messaging.templates.$post({ json: { ...form, branchId } })).json(),
-    onSuccess: () => { invalidate(); reset(); },
+    onSuccess: (res: any) => {
+      if (res?.template) {
+        qc.setQueryData(["msg-templates", branchId], (current: any) => ({
+          templates: [res.template, ...((current?.templates || []).filter((t: any) => t.id !== res.template.id))],
+        }));
+      }
+      invalidate(); reset();
+    },
   });
   const update = useMutation({
     mutationFn: async () => (await api.messaging.templates[":id"].$patch({
       param: { id: String(editing.id) },
       json: { name: form.name, channel: form.channel, kind: form.kind, body: form.body },
     })).json(),
-    onSuccess: () => { invalidate(); reset(); },
+    onSuccess: (res: any) => {
+      if (res?.template) {
+        qc.setQueryData(["msg-templates", branchId], (current: any) => ({
+          templates: (current?.templates || []).map((t: any) => t.id === res.template.id ? res.template : t),
+        }));
+      }
+      invalidate(); reset();
+    },
   });
   const toggle = useMutation({
     mutationFn: async (t: any) => (await api.messaging.templates[":id"].$patch({
       param: { id: String(t.id) }, json: { isActive: !t.isActive },
     })).json(),
-    onSuccess: invalidate,
+    onSuccess: (_res: any, t: any) => {
+      qc.setQueryData(["msg-templates", branchId], (current: any) => ({
+        templates: (current?.templates || []).map((row: any) => row.id === t.id ? { ...row, isActive: !row.isActive } : row),
+      }));
+      invalidate();
+    },
   });
   const remove = useMutation({
     mutationFn: async (id: number) => (await api.messaging.templates[":id"].$delete({ param: { id: String(id) } })).json(),
-    onSuccess: invalidate,
+    onSuccess: (_res: any, id: number) => {
+      qc.setQueryData(["msg-templates", branchId], (current: any) => ({
+        templates: (current?.templates || []).filter((row: any) => row.id !== id),
+      }));
+      invalidate();
+    },
   });
 
   function reset() {
