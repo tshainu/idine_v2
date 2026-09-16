@@ -100,11 +100,16 @@ export const orders = new Hono()
   })
   .post("/", async (c) => {
     const body = await c.req.json();
-    // Use client-provided orderNumber if present, else generate from ID
-    if (body.orderNumber && body.orderNumber !== "TEMP") {
+    // Keep a client number only when it is not already used. Mobile/POS clients
+    // can race while both calculating today's next sequence, so the backend
+    // must be the final collision guard.
+    const [numberConflict] = body.orderNumber && body.orderNumber !== "TEMP"
+      ? await db.select({ id: schema.orders.id }).from(schema.orders).where(eq(schema.orders.orderNumber, body.orderNumber)).limit(1)
+      : [];
+    if (body.orderNumber && body.orderNumber !== "TEMP" && !numberConflict) {
       const [order] = await db.insert(schema.orders).values(body).returning();
-        await syncTableStatus(order.tableId);
-    pushOutbox("orders", "insert", order.id, order, order.branchId ?? undefined);
+      await syncTableStatus(order.tableId);
+      pushOutbox("orders", "insert", order.id, order, order.branchId ?? undefined);
       return c.json({ order }, 201);
     }
     // Fallback: insert with TEMP then update
