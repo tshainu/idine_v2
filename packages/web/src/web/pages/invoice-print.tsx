@@ -76,13 +76,9 @@ export default function InvoicePrint() {
   );
 
   // ── Financials ──────────────────────────────────────────────────────────────
-  // Order-item totals are net of line discounts. Restore those line discounts
-  // so the invoice subtotal is gross before the order-level discount.
-  const offerDiscount = items.reduce((s: number, i: any) => {
-    const saving = Math.max(0, Number(i.promotionOriginalPrice || 0) - Number(i.price || 0));
-    return s + saving * Number(i.qty || 1);
-  }, 0);
-  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total || 0) + Number(i.discount || 0), 0) + offerDiscount;
+  // Item totals already contain the actual selling price, including promo
+  // prices. The original promo price is display-only and is not billable.
+  const subtotal = items.reduce((s: number, i: any) => s + Number(i.total || 0) + Number(i.discount || 0), 0);
 
   // For bill: compute service charge from settings rate (since it's not paid yet)
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
@@ -94,7 +90,7 @@ export default function InvoicePrint() {
       ? subtotal * configuredDiscount / 100
       : configuredDiscount)
     : 0;
-  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount + offerDiscount, ruleDiscount);
+  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount, ruleDiscount);
   const discountLabel = order.discountName || items.find((item: any) => item.promotionName)?.promotionName || "Discount";
 
   // Always calculate from the discounted base. The saved service charge can be

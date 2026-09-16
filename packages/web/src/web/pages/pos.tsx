@@ -1039,10 +1039,10 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const waiterName = order?.waiterName || order?.placedBy || "Unassigned";
   const cashierName = getUser()?.name || "Unassigned";
 
-  // Item totals are stored net of line discounts. Add line discounts back to
-  // get the gross subtotal, then apply the order-level discount exactly once.
-  const offerDiscount = items.reduce((s, it) => s + Math.max(0, Number(it.promotionOriginalPrice || 0) - Number(it.price || 0)) * Number(it.qty || 1), 0);
-  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0) + offerDiscount;
+  // Item totals are stored at the actual selling price, including promotional
+  // prices. Promotion original prices are display-only and must not be added
+  // back into the bill subtotal.
+  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
   const lineDiscount  = items.reduce((s, it) => s + Number(it.discount || 0), 0);
   const savedDiscount = Number(order?.discount || 0);
   const configuredDiscount = Number(order?.discountValue || 0);
@@ -1051,7 +1051,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
       ? subtotal * configuredDiscount / 100
       : configuredDiscount)
     : 0;
-  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount + offerDiscount, ruleDiscount);
+  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount, ruleDiscount);
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
