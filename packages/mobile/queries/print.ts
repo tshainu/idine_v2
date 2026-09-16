@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "../lib/http";
 import type { Order, OrderItem } from "../lib/types";
 import { kotPreviewText, type KotItem, type KotPayload } from "../lib/escpos";
-import { loadPrinterConfig, printKotToConfiguredPrinters } from "../lib/printer";
+import { loadPrinterConfig, printKotToConfiguredPrinters, syncPrinterConfigFromPos } from "../lib/printer";
 
 // Items are grouped per kitchen station (printerId) so the hot kitchen, bar and
 // dessert counter each get only their own lines.
@@ -118,7 +118,10 @@ export function useSendKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      const config = await loadPrinterConfig();
+      let config = await loadPrinterConfig();
+      if (input.branchId) {
+        try { config = await syncPrinterConfigFromPos(input.branchId); } catch { /* use last saved config */ }
+      }
       const groups = groupByPrinter(input.items);
       // One combined ticket for the waiter's own printer; the server queue splits per station.
       const payload: KotPayload = {
@@ -172,7 +175,10 @@ export function useReprintKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      const config = await loadPrinterConfig();
+      let config = await loadPrinterConfig();
+      if (input.branchId) {
+        try { config = await syncPrinterConfigFromPos(input.branchId); } catch { /* use last saved config */ }
+      }
       const nonce = String(Date.now());
       const payload: KotPayload = {
         orderNumber: input.order.orderNumber,
