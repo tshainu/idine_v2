@@ -8,10 +8,12 @@ export const settlements = new Hono()
     const branchId = Number(c.req.query("branchId"));
     const from = c.req.query("from");
     const to = c.req.query("to");
+    const settledById = Number(c.req.query("settledById"));
     const conditions = [] as any[];
     if (branchId) conditions.push(eq(schema.registerSettlements.branchId, branchId));
     if (from) conditions.push(gte(schema.registerSettlements.settlementDate, new Date(from)));
     if (to) conditions.push(lt(schema.registerSettlements.settlementDate, new Date(to)));
+    if (settledById) conditions.push(eq(schema.registerSettlements.settledById, settledById));
     const rows = conditions.length
       ? await db.select().from(schema.registerSettlements).where(and(...conditions)).orderBy(desc(schema.registerSettlements.settlementDate))
       : await db.select().from(schema.registerSettlements).orderBy(desc(schema.registerSettlements.settlementDate));

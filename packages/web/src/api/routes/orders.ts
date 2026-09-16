@@ -50,9 +50,11 @@ export const orders = new Hono()
     const branchId = c.req.query("branchId");
     const status = c.req.query("status");
     const source = c.req.query("source");
+    const placedBy = c.req.query("placedBy");
     const conditions: any[] = [];
     if (branchId) conditions.push(eq(schema.orders.branchId, parseInt(branchId)));
     if (source) conditions.push(eq(schema.orders.source, source));
+    if (placedBy) conditions.push(eq(schema.orders.placedBy, placedBy));
     // Only filter by status when the caller explicitly asks for one — previously this
     // silently excluded ALL cancelled orders by default, which broke cancelled-order
     // counts on Registry/Reports/Sales pages that fetch orders without a status filter.

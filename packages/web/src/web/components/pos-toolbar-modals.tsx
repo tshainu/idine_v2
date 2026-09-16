@@ -228,13 +228,13 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
   const [settledAmount, setSettledAmount] = useState("");
   const [justification, setJustification] = useState("");
   const { data, isLoading } = useQuery({
-    queryKey: ["orders", branchId, "registry"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["orders", branchId, "registry", user?.id ?? user?.name ?? "all"],
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
     refetchInterval: 15000,
   });
   const { data: settlementData } = useQuery({
-    queryKey: ["settlements", branchId],
-    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}`)).json(),
+    queryKey: ["settlements", branchId, user?.id ?? "all"],
+    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
     refetchInterval: 15000,
   });
   const settlements = (settlementData as any)?.settlements || [];
@@ -291,6 +291,13 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["settlements", branchId] }); setShowSettlement(false); },
   });
+  const printSettlement = () => {
+    const w = window.open("", "_blank", "width=420,height=700");
+    if (!w) return;
+    const cashier = String(user?.name || user?.username || "Staff").replace(/[<>&]/g, "");
+    w.document.write(`<!doctype html><html><head><title>Register Settlement</title><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:12px monospace;color:#000}h2{text-align:center;font-size:15px;margin:0 0 8px}.row{display:flex;justify-content:space-between;margin:5px 0}hr{border:0;border-top:1px dashed #000}.total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:6px}</style></head><body><h2>REGISTER SETTLEMENT</h2><p>${today}</p><p>Cashier: ${cashier}</p><hr><div class="row"><span>Completed sales</span><b>${summary.completedCount}</b></div><div class="row"><span>Dine in</span><b>${money(summary.dineIn.v)}</b></div><div class="row"><span>Takeaway</span><b>${money(summary.takeaway.v)}</b></div><div class="row"><span>Delivery</span><b>${money(summary.delivery.v)}</b></div><div class="row total"><span>TOTAL</span><b>${money(summary.gross)}</b></div><p style="text-align:center;margin-top:12px">Printed ${new Date().toLocaleString()}</p><script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.close();
+  };
   const Stat = ({ label, value, accent }: { label: string; value: string; accent?: string }) => (
     <div className="rounded-lg border px-4 py-3" style={{ background: SURF2, borderColor: BORD }}>
       <div className="text-[11px] uppercase tracking-wide" style={{ color: DIM }}>{label}</div>
@@ -329,7 +336,10 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
           </div>
           <div className="mt-4 rounded-lg border p-3" style={{ background: SURF2, borderColor: todaySettlement ? "var(--color-success)" : BORD }}>
             <div className="flex items-center justify-between text-xs mb-2"><div><div className="font-semibold" style={{ color: todaySettlement ? "var(--color-success)" : TEXT }}>{todaySettlement ? "New register session" : "Not settled"}</div>{todaySettlement && <div style={{ color: MUTED }}>Last settled {fmtTime(todaySettlement.settlementDate)} · {todaySettlement.settledByName || "Staff"}</div>}</div><div className="text-right">{todaySettlement && <><div style={{ color: TEXT }}>Previous billed {money(todaySettlement.billedAmount)}</div><div style={{ color: GOLD }}>Previous settled {money(todaySettlement.settledAmount)}</div></>}</div></div>
-            <button disabled={summary.gross <= 0} onClick={openSettlement} className="w-full rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>Settle Current Register</button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={printSettlement} className="rounded-md py-2 text-xs font-bold" style={{ background: SURF, color: TEXT, border: `1px solid ${BORD}` }}>Print 3-inch Summary</button>
+              <button disabled={summary.gross <= 0} onClick={openSettlement} className="rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>Settle Current Register</button>
+            </div>
           </div>
         </div>
       )}

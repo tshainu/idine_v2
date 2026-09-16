@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import { getBranchId } from "../../lib/store";
+import { getBranchId, getUser } from "../../lib/store";
 import { ReportLayout, GOLD, SURF, BORD, MUTED, DIM, TEXT, DataTable, ViewToggle, ColDef } from "./layout";
 import { Trophy } from "lucide-react";
 
@@ -32,12 +32,13 @@ const TABLE_COLS: ColDef[] = [
 
 export default function StaffReport() {
   const branchId = getBranchId();
+  const user = getUser();
   const [period, setPeriod] = useState<Period>("month");
   const [view, setView] = useState<View>("summary");
 
   const { data: ordersData } = useQuery({
-    queryKey: ["report-orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
   });
   const { data: usersData } = useQuery({
     queryKey: ["users", branchId],

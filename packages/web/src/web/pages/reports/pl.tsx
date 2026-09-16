@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import { getBranchId } from "../../lib/store";
+import { getBranchId, getUser } from "../../lib/store";
 import { ReportLayout, DataTable, ViewToggle, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
 import type { ColDef } from "./layout";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -33,13 +33,14 @@ const PURCHASE_COLS: ColDef[] = [
 
 export default function PLReport() {
   const branchId = getBranchId();
+  const user = getUser();
   const [period, setPeriod] = useState<Period>("month");
   const [view, setView] = useState<"summary" | "table">("summary");
   const [tableTab, setTableTab] = useState<"orders" | "expenses" | "purchases">("orders");
 
   const { data: ordersData } = useQuery({
-    queryKey: ["report-orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
   });
   const { data: expData } = useQuery({
     queryKey: ["expenses", branchId],

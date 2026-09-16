@@ -312,7 +312,11 @@ export async function printKotToConfiguredPrinters(
   queueOnServer?: () => Promise<void>,
 ): Promise<PrintResult> {
   const printers = config.kotPrinters.filter((p) => p.enabled && p.host);
-  if (config.transport !== "lan" || !printers.length) {
+  // A synced Printer Setup can provide multiple station IPs even when the
+  // older single-printer transport setting is still "server". Prefer those
+  // explicit station printers so mobile KOT does not get stranded on the VPS
+  // queue (the VPS cannot reach 192.168.x.x kitchen printers).
+  if (!printers.length) {
     return printKot(payload, config, queueOnServer);
   }
 
@@ -327,7 +331,7 @@ export async function printKotToConfiguredPrinters(
   }
 
   const results = await Promise.all([...byPrinter.values()].map(({ printer, items }) =>
-    printKot({ ...payload, items }, { ...config, host: printer.host, port: printer.port, alsoQueueOnServer: false }),
+    printKot({ ...payload, items }, { ...config, transport: "lan", host: printer.host, port: printer.port, alsoQueueOnServer: false }),
   ));
   const failed = results.find((r) => !r.ok);
   if (failed) {

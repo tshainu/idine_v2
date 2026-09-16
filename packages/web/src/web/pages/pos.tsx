@@ -1489,8 +1489,12 @@ export default function POSPage() {
 
   // ── Queries
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
-    queryKey: ["orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["orders", branchId, getUser()?.id ?? getUser()?.name ?? "all"],
+    queryFn: async () => {
+      const user = getUser();
+      const scope = user?.role === "admin" ? {} : (user?.name ? { placedBy: String(user.name) } : {});
+      return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
+    },
     refetchInterval: 10000,
   });
   // Loaded so the running-orders search can also match a customer's mobile number

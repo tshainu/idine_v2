@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { getBranchId } from "../lib/store";
+import { getBranchId, getUser } from "../lib/store";
 import { Sidebar } from "../components/layout/sidebar";
 
 const GOLD = "var(--color-gold)";
@@ -13,14 +13,16 @@ const TEXT = "var(--color-text)";
 
 export default function ReportsPage() {
   const branchId = getBranchId();
+  const user = getUser();
+  const cashierScope = user?.role === "admin" ? "" : (user?.name ? `&placedBy=${encodeURIComponent(user.name)}` : "");
 
   const { data: ordersData } = useQuery({
-    queryKey: ["reports-orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["reports-orders", branchId, user?.id ?? user?.name ?? "all"],
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(cashierScope ? { placedBy: user.name } : {}) } })).json(),
   });
   const { data: settlementsData } = useQuery({
-    queryKey: ["settlements-report", branchId],
-    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}`)).json(),
+    queryKey: ["settlements-report", branchId, user?.id ?? "all"],
+    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && user?.role !== "admin" ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
   });
 
   const orders: any[] = (ordersData as any)?.orders || [];

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import { getBranchId } from "../../lib/store";
+import { getBranchId, getUser } from "../../lib/store";
 import { ReportLayout, DataTable, ViewToggle, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
 import type { ColDef } from "./layout";
 
@@ -20,12 +20,13 @@ const TABLE_COLS: ColDef[] = [
 
 export default function MenuReport() {
   const branchId = getBranchId();
+  const user = getUser();
   const [tab, setTab] = useState<"top10" | "least" | "profitable" | "matrix">("top10");
   const [view, setView] = useState<"summary" | "table">("summary");
 
   const { data: ordersData, isLoading } = useQuery({
-    queryKey: ["report-orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
   });
   const { data: menuData } = useQuery({
     queryKey: ["menu-items", branchId],
