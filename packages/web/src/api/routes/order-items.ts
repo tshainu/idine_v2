@@ -4,10 +4,14 @@ import * as schema from "../database/schema";
 import { eq, inArray } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 
-function authoritativePrice(menu: any, orderType: string | null | undefined, requested: number): number {
+function authoritativePrice(menu: any, orderType: string | null | undefined, requested: number, promotionName?: string | null): number {
   if (!menu) return Number(requested || 0);
   const field = orderType === "takeaway" ? "priceTakeaway" : orderType === "delivery" ? "priceDelivery" : "priceDineIn";
   const configured = Number(menu[field] || menu.price || 0);
+  // A promo line deliberately carries a lower selling price than the base
+  // menu item. Keep that explicit offer price and retain the original price
+  // separately for bill/invoice display.
+  if (promotionName && Number(requested || 0) > 0 && Number(requested) < configured) return Number(requested);
   return configured > 0 ? configured : Number(requested || 0);
 }
 
@@ -45,7 +49,7 @@ export const orderItems = new Hono()
     const [menu] = body.menuItemId
       ? await db.select().from(schema.menuItems).where(eq(schema.menuItems.id, Number(body.menuItemId)))
       : [];
-    const price = authoritativePrice(menu, order?.type, Number(body.price || 0));
+    const price = authoritativePrice(menu, order?.type, Number(body.price || 0), body.promotionName);
     const total = lineTotal(price, body);
     const [item] = await db.insert(schema.orderItems).values({ ...body, price, total }).returning();
     pushOutbox("order_items", "insert", item.id, item);
@@ -61,7 +65,7 @@ export const orderItems = new Hono()
     const orderById = new Map(orders.map((o) => [o.id, o]));
     const menuById = new Map(menus.map((m) => [m.id, m]));
     const withTotals = items.map((i: any) => {
-      const price = authoritativePrice(menuById.get(Number(i.menuItemId)), orderById.get(Number(i.orderId))?.type, Number(i.price || 0));
+      const price = authoritativePrice(menuById.get(Number(i.menuItemId)), orderById.get(Number(i.orderId))?.type, Number(i.price || 0), i.promotionName);
       return { ...i, price, total: lineTotal(price, i) };
     });
     const created = await db.insert(schema.orderItems).values(withTotals).returning();
@@ -78,7 +82,7 @@ export const orderItems = new Hono()
     const [menu] = existing.menuItemId
       ? await db.select().from(schema.menuItems).where(eq(schema.menuItems.id, existing.menuItemId))
       : [];
-    const nextPrice = authoritativePrice(menu, order?.type, body.price ?? existing.price);
+    const nextPrice = authoritativePrice(menu, order?.type, body.price ?? existing.price, body.promotionName ?? existing.promotionName);
     const nextQty = body.qty ?? existing.qty;
     const patch = {
       ...body,
