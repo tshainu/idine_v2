@@ -444,8 +444,8 @@ export const messageCampaigns = sqliteTable("message_campaigns", {
   kind: text("kind").notNull().default("promo"),     // promo | festival | event | custom
   body: text("body").notNull(),
   senderId: text("sender_id"),
-  audience: text("audience").notNull().default("all"), // all | tag | selection
-  audienceValue: text("audience_value"),               // tag name, or JSON array of customer ids
+  audience: text("audience").notNull().default("all"), // all | tag | selection | phones
+  audienceValue: text("audience_value"),               // tag, customer ids, or JSON phone array
   scheduledAt: integer("scheduled_at", { mode: "timestamp" }), // null = send now
   status: text("status").notNull().default("draft"), // draft | scheduled | sending | sent | failed
   totalCount: integer("total_count").notNull().default(0),

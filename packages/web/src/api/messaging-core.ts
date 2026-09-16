@@ -357,12 +357,35 @@ export async function sendMessage(args: SendArgs): Promise<SendResult> {
 
 // ── Audience resolution (shared by campaigns and the UI preview) ────────────
 
-/** Customers a campaign will actually reach, opt-outs already removed. */
+/** Customers or direct phone recipients a campaign will actually reach. */
 export async function resolveAudience(
   branchId: number,
   audience: string,
   audienceValue?: string | null,
 ): Promise<(typeof schema.customers.$inferSelect)[]> {
+  if (audience === "phones") {
+    let rawPhones: unknown = audienceValue ?? "";
+    try {
+      rawPhones = JSON.parse(String(audienceValue ?? ""));
+    } catch {
+      // Comma-separated input is also accepted for compatibility with the UI.
+    }
+    const phones = (Array.isArray(rawPhones) ? rawPhones : String(rawPhones).split(","))
+      .map((value) => normalizePhone(String(value ?? "")))
+      .filter((phone, index, list) => Boolean(phone) && list.indexOf(phone) === index);
+
+    // Direct recipients intentionally have no customer record, so customer
+    // opt-out rules do not apply. They are still normalized and de-duplicated.
+    return phones.map((phone) => ({
+      id: null,
+      branchId,
+      name: "Customer",
+      phone,
+      smsOptOut: false,
+      loyaltyPoints: 0,
+    } as any));
+  }
+
   const all = await db.select().from(schema.customers).where(eq(schema.customers.branchId, branchId));
 
   let list = all;

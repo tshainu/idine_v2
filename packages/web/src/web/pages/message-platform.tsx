@@ -162,9 +162,10 @@ function Stat({ label, value, bad }: { label: string; value: any; bad?: boolean 
 // ── Compose: single, group or bulk send ─────────────────────────────────────
 
 function Compose({ branchId, channel, bal, qc }: any) {
-  const [audience, setAudience] = useState<"all" | "tag" | "selection">("all");
+  const [audience, setAudience] = useState<"all" | "tag" | "selection" | "phones">("all");
   const [tag, setTag] = useState("");
   const [selection, setSelection] = useState<number[]>([]);
+  const [phoneNumbers, setPhoneNumbers] = useState("");
   const [body, setBody] = useState("");
   const [senderId, setSenderId] = useState<string>("");
   const [name, setName] = useState("");
@@ -185,7 +186,13 @@ function Compose({ branchId, channel, bal, qc }: any) {
     queryFn: async () => (await api.messaging.templates.$get({ query: { branchId: String(branchId) } })).json(),
   });
 
-  const audienceValue = audience === "tag" ? tag : audience === "selection" ? JSON.stringify(selection) : "";
+  const audienceValue = audience === "tag"
+    ? tag
+    : audience === "selection"
+      ? JSON.stringify(selection)
+      : audience === "phones"
+        ? phoneNumbers
+        : "";
 
   const { data: audienceData } = useQuery({
     queryKey: ["msg-audience", branchId, audience, audienceValue, body, channel],
@@ -257,6 +264,7 @@ function Compose({ branchId, channel, bal, qc }: any) {
               <option value="all">All customers</option>
               <option value="tag">A customer group</option>
               <option value="selection">Pick customers</option>
+              <option value="phones">Send to phone numbers</option>
             </select>
           </Field>
           {audience === "tag" && (
@@ -265,6 +273,16 @@ function Compose({ branchId, channel, bal, qc }: any) {
                 <option value="">Select a group…</option>
                 {tags.map(t => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
               </select>
+            </Field>
+          )}
+          {audience === "phones" && (
+            <Field label="Phone numbers">
+              <input
+                value={phoneNumbers}
+                onChange={e => setPhoneNumbers(e.target.value)}
+                placeholder="0771234567, 0712345678, +94771234567"
+                style={inp}
+              />
             </Field>
           )}
           {channel === "sms" && (
@@ -288,6 +306,13 @@ function Compose({ branchId, channel, bal, qc }: any) {
                 {c.smsOptOut && <span style={{ color: BAD }}>· opted out</span>}
               </label>
             ))}
+          </div>
+        )}
+
+        {audience === "phones" && (
+          <div className="mt-2 text-[11px]" style={{ color: DIM }}>
+            Enter customer numbers separated by commas. Sri Lankan local and international formats are accepted;
+            invalid and duplicate numbers are removed automatically.
           </div>
         )}
 
@@ -371,7 +396,7 @@ function Compose({ branchId, channel, bal, qc }: any) {
             </div>
           )}
           {(aud.preview || []).slice(0, 6).map((p: any) => (
-            <div key={p.id} className="rounded-lg p-2.5" style={{ background: BG, border: `1px solid ${BORD}` }}>
+            <div key={`${p.id ?? "direct"}-${p.phone}`} className="rounded-lg p-2.5" style={{ background: BG, border: `1px solid ${BORD}` }}>
               <div className="text-[10px] mb-1" style={{ color: GOLD }}>{p.name} · {p.phone}</div>
               <div className="text-[11px] whitespace-pre-wrap" style={{ color: TEXT }}>{p.rendered || "—"}</div>
             </div>
