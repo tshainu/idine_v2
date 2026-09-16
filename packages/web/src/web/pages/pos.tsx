@@ -1492,7 +1492,7 @@ export default function POSPage() {
     queryKey: ["orders", branchId, getUser()?.id ?? getUser()?.name ?? "all"],
     queryFn: async () => {
       const user = getUser();
-      const scope = user?.role === "admin" ? {} : (user?.name ? { placedBy: String(user.name) } : {});
+      const scope = String(user?.role || "").toLowerCase() === "admin" ? {} : (user?.name ? { placedBy: String(user.name) } : {});
       return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
     },
     refetchInterval: 10000,
@@ -1910,7 +1910,14 @@ export default function POSPage() {
   });
 
   // ── Derived data
-  const orders      = (ordersData as any)?.orders || [];
+  const sessionUser = getUser();
+  const isAdminSession = String(sessionUser?.role || "").toLowerCase() === "admin";
+  const sessionOwner = String(sessionUser?.name || "").trim().toLowerCase();
+  const orders = ((ordersData as any)?.orders || []).filter((order: any) => {
+    if (isAdminSession) return true;
+    const owner = String(order.placedBy || order.waiterName || "").trim().toLowerCase();
+    return Boolean(sessionOwner) && owner === sessionOwner;
+  });
   const categories  = ((categoriesData as any)?.categories || []).filter((c: any) => c.isActive);
   const allMenuItems = (menuData as any)?.menuItems || [];
   const promoMenuItems = ((promoLinksData as any[]) || []).flatMap(({ promo, items }) => items.map((link: any) => {
