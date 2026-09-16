@@ -8,6 +8,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-aud
 import { Colors, Fonts, Radius, Shadow, Space } from "../constants/theme";
 import { useSession } from "../hooks/use-session";
 import { useOrders } from "../queries/orders";
+import { useTables } from "../queries/tables";
 import { lkr, elapsed } from "../lib/format";
 import type { Order } from "../lib/types";
 
@@ -17,7 +18,7 @@ const c = Colors.light;
 // until a human acknowledges it, not fire one notification chime and vanish.
 const RING = require("../assets/ready_alert.mp3");
 const VIBRATE_PATTERN = [0, 700, 400];
-const POLL_MS = 5_000;
+const POLL_MS = 3_000;
 
 type ReadyAlertApi = {
   /** Stops the ring and marks every currently ringing order as seen. */
@@ -38,6 +39,7 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
   // Branch-wide poll: orders raised at the POS carry no waiterId, and those must
   // still ring for whoever is on the floor.
   const orders = useOrders(branchId, { poll: POLL_MS });
+  const tables = useTables(branchId);
 
   const [alerting, setAlerting] = useState<Order[]>([]);
   const seen = useRef<Set<number>>(new Set());
@@ -147,6 +149,11 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
   const api = useMemo<ReadyAlertApi>(() => ({ acknowledge, ringing }), [acknowledge, ringing]);
 
   const first = alerting[0];
+  const tableName = useCallback((tableId: number | null | undefined) => {
+    if (!tableId) return "—";
+    const table = (tables.data ?? []).find((t) => String(t.id) === String(tableId));
+    return table?.name ?? `Table ${tableId}`;
+  }, [tables.data]);
 
   return (
     <Ctx.Provider value={api}>
@@ -163,14 +170,14 @@ export function ReadyAlertProvider({ children }: { children: React.ReactNode }) 
             </Text>
             <Text style={s.sub}>
               {alerting.length > 1
-                ? alerting.map((o) => `Table ${o.tableId ?? "—"} · ${o.orderNumber}`).join(", ")
-                : `Table ${first?.tableId ?? "—"} · ${first?.orderNumber ?? ""} is ready for pickup`}
+                ? alerting.map((o) => `${tableName(o.tableId)} · ${o.orderNumber}`).join(", ")
+                : `${tableName(first?.tableId)} · ${first?.orderNumber ?? ""} is ready for pickup`}
             </Text>
 
             {first ? (
               <View style={s.meta}>
                 <Text style={s.metaLine}>
-                  Table {first.tableId ?? "—"} · {first.items?.length ?? 0} items · {lkr(first.total)}
+                  {tableName(first.tableId)} · {first.items?.length ?? 0} items · {lkr(first.total)}
                 </Text>
                 <Text style={s.metaLine}>Placed {elapsed(first.createdAt)}</Text>
               </View>
