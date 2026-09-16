@@ -1944,15 +1944,24 @@ export default function POSPage() {
     o.status !== "refunded" && o.status !== "partially_refunded"
   );
   const customersById = new Map(((allCustomersData as any)?.customers || []).map((c: any) => [c.id, c]));
+  const tablesById = new Map(tables.map((table: any) => [String(table.id), table]));
   const filteredOrders = runningOrders.filter((o: any) => {
-    if (!orderSearch) return true;
-    const q = orderSearch.toLowerCase();
-    const customerPhone = (customersById.get(o.customerId) as any)?.phone || "";
-    return (
-      o.orderNumber?.toLowerCase().includes(q) ||
-      o.customerName?.toLowerCase().includes(q) ||
-      customerPhone.toLowerCase().includes(q)
-    );
+    const rawQuery = orderSearch.trim().toLowerCase();
+    if (!rawQuery) return true;
+    const customer = customersById.get(o.customerId) as any;
+    const table = tablesById.get(String(o.tableId)) as any;
+    const tableText = [o.tableName, o.tableMasterName, o.tableNumber, table?.name, table?.tableName, o.tableId]
+      .filter((value) => value !== null && value !== undefined)
+      .join(" ")
+      .toLowerCase();
+    const customerText = [o.customerName, customer?.name].filter(Boolean).join(" ").toLowerCase();
+    const phoneText = [o.customerPhone, customer?.phone, customer?.mobile, customer?.contactNumber]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const phoneQuery = rawQuery.replace(/\D/g, "");
+    const phoneMatches = phoneQuery.length >= 3 && phoneText.replace(/\D/g, "").includes(phoneQuery);
+    return [o.orderNumber, tableText, customerText].some((value) => String(value || "").includes(rawQuery)) || phoneMatches;
   });
 
   // Modal data
