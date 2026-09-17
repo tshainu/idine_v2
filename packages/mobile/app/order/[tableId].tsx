@@ -74,7 +74,7 @@ function runningOrderDelta(existing: OrderItem[], cart: CartLine[]): OrderItem[]
 
 export default function TakeOrderScreen() {
   const router = useRouter();
-  const { tableId: rawId, edit: editParam } = useLocalSearchParams<{ tableId: string; edit?: string }>();
+  const { tableId: rawId, edit: editParam, new: newParam } = useLocalSearchParams<{ tableId: string; edit?: string; new?: string }>();
   const tableId = Number(rawId);
   const { branchId, waiterId, waiterName } = useSession();
 
@@ -117,9 +117,15 @@ export default function TakeOrderScreen() {
     : (customerSearch.data ?? []).slice(0, 6);
 
   useEffect(() => {
+    if (newParam === "1") {
+      setCustomerId(null);
+      setCustomerName("");
+      setCustomerPhone("");
+      return;
+    }
     setCustomerId(openOrder?.customerId ?? null);
     setCustomerName(openOrder?.customerName ?? "");
-  }, [openOrder?.id, openOrder?.customerId, openOrder?.customerName]);
+  }, [newParam, openOrder?.id, openOrder?.customerId, openOrder?.customerName]);
 
   useEffect(() => {
     if (!customerId || customerPhone) return;
@@ -346,9 +352,8 @@ export default function TakeOrderScreen() {
       }
 
       const res = await sendToKitchen.mutateAsync({
-        // A table with an open order must keep the same invoice/order number.
-        // The send mutation appends only these new cart lines to that order.
-        existingOrderId: openOrder?.id,
+        // This is the explicit New Order path. Never pass the table's open order
+        // here: the server must create a new invoice/order number for this round.
         tableId,
         tableName: printTableName,
         lines: cart,

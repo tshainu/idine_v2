@@ -94,7 +94,7 @@ export default function TablesScreen() {
               <TableTile
                 key={table.id}
                 table={table}
-                onPress={() => router.push(`/order/${table.id}`)}
+                onPress={() => router.push(`/order/${table.id}?new=1`)}
               />
             ))}
           </View>
