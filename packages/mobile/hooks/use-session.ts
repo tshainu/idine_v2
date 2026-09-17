@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clearSession, loadSession, saveSession, type WaiterSession } from "../lib/session";
 
 const KEY = ["session"];
+const QUERY_CACHE_KEY = "idine-waiter-query-cache-v1";
 
 /**
  * The signed-in waiter, read through react-query so every screen shares one
@@ -32,14 +34,18 @@ export function useSessionActions() {
       // restaurant read before installing the new identity so no prior order
       // briefly appears under the new account.
       qc.clear();
+      await AsyncStorage.removeItem(QUERY_CACHE_KEY);
       await saveSession(s);
       qc.setQueryData(KEY, s);
     },
     signOut: async () => {
       await clearSession();
-      qc.setQueryData(KEY, null);
       // Drop every cached restaurant read so the next waiter starts clean.
       qc.clear();
+      await AsyncStorage.removeItem(QUERY_CACHE_KEY);
+      // Set this after clear(): otherwise clearing the query cache removes the
+      // null session and the persisted cache can immediately restore the old one.
+      qc.setQueryData(KEY, null);
     },
   };
 }

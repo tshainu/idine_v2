@@ -33,9 +33,15 @@ export default function MoreScreen() {
           text: "Sign out",
           style: "destructive",
           onPress: async () => {
-            await signOut();
-            router.dismissAll();
-            router.replace("/");
+            try {
+              await signOut();
+              // Replace the current tab stack, rather than leaving a protected
+              // screen underneath it. The login route will now ask for the full
+              // User ID, username, and password because the session and PIN are gone.
+              router.replace("/");
+            } catch (error) {
+              Alert.alert("Could not sign out", (error as Error)?.message ?? "Please try again.");
+            }
           },
         },
       ],
