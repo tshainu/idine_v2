@@ -1474,6 +1474,7 @@ export default function POSPage() {
   const [invoiceOrderId,     setInvoiceOrderId]     = useState<number | null>(null);
   // finalizeOrderId = open FinalizeModal; finalizeIsQuick = was a quick-invoice (mark completed on submit)
   const [finalizeOrderId,    setFinalizeOrderId]    = useState<number | null>(null);
+  const [finalizeRequestKey, setFinalizeRequestKey] = useState(0);
   const [finalizeIsQuick,    setFinalizeIsQuick]    = useState(false);
   const [cancelConfirmId,    setCancelConfirmId]    = useState<number | null>(null);
   const [modifyOrderId,      setModifyOrderId]      = useState<number | null>(null);
@@ -1588,9 +1589,11 @@ export default function POSPage() {
 
   // Fetch details for the Finalize Sale modal — own query, keyed only by finalizeOrderId
   const { data: finalizeDetailData, isLoading: finalizeLoading } = useQuery({
-    queryKey: ["finalize-order-detail", finalizeOrderId],
+    queryKey: ["finalize-order-detail", finalizeOrderId, finalizeRequestKey],
     queryFn: async () => (await api.orders[":id"].$get({ param: { id: String(finalizeOrderId) } })).json(),
     enabled: !!finalizeOrderId,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // ── Mutations
@@ -1742,6 +1745,7 @@ export default function POSPage() {
       if (status === "quick-invoice" && newOrderId) {
         // Open Finalize Sale modal immediately; mark as quick so Submit → completed
         setFinalizeIsQuick(true);
+        setFinalizeRequestKey(k => k + 1);
         setFinalizeOrderId(newOrderId);
       }
       if (res?.isModify) {
@@ -2270,7 +2274,7 @@ export default function POSPage() {
             </div>
             <div className="grid grid-cols-2 gap-1">
               {can("Print Invoice") && <Btn icon={Receipt} label="Invoice"
-                onClick={() => { if (selectedOrderId) { setFinalizeIsQuick(false); setFinalizeOrderId(selectedOrderId); } }} />}
+                onClick={() => { if (selectedOrderId) { setFinalizeIsQuick(false); setFinalizeRequestKey(k => k + 1); setFinalizeOrderId(selectedOrderId); } }} />}
               {can("Print Bill") && <Btn icon={Printer} label="Bill"
                 onClick={() => { if (selectedOrderId) { setInvoicePreviewMode("bill"); setInvoicePreviewId(selectedOrderId); } }} />}
             </div>
@@ -2640,7 +2644,7 @@ export default function POSPage() {
         <OrderDetailsModal
           order={{ ...modalOrder, waiterName: modalWaiterName, tableName: modalTableName }} items={modalItems}
           onClose={() => setDetailsOrderId(null)}
-          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeOrderId(detailsOrderId); }}
+          onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeRequestKey(k => k + 1); setFinalizeOrderId(detailsOrderId); }}
           onPrintBill={() => { setDetailsOrderId(null); setInvoicePreviewMode("bill"); setInvoicePreviewId(detailsOrderId); }} />
       )}
 

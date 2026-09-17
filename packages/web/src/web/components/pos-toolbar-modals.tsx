@@ -237,14 +237,27 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && !["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
     refetchInterval: 15000,
   });
+  const toMs = (value: any) => {
+    const n = typeof value === "number" ? value : Number(value);
+    if (Number.isFinite(n) && n > 0) return n < 1e12 ? n * 1000 : n;
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const paymentParts = (order: any): { method: string; amount: number }[] => {
+    try {
+      const parsed = typeof order.paymentsJson === "string" ? JSON.parse(order.paymentsJson) : order.paymentsJson;
+      if (Array.isArray(parsed) && parsed.length) return parsed.map((p: any) => ({ method: String(p.method || "Card"), amount: Number(p.amount || 0) })).filter((p: any) => p.amount > 0);
+    } catch { /* fall back to the stored payment method/total */ }
+    return [{ method: String(order.paymentMethod || "Card"), amount: Number(order.total || 0) }];
+  };
   const settlements = (settlementData as any)?.settlements || [];
   const todaySettlement = settlements
-    .filter((row: any) => new Date(row.settlementDate).toDateString() === new Date().toDateString())
-    .sort((a: any, b: any) => new Date(b.settlementDate).getTime() - new Date(a.settlementDate).getTime())[0];
+    .filter((row: any) => new Date(toMs(row.settlementDate)).toDateString() === new Date().toDateString())
+    .sort((a: any, b: any) => toMs(b.settlementDate) - toMs(a.settlementDate))[0];
   const summary = useMemo(() => {
     const orders = (data as any)?.orders || [];
     const start = new Date(); start.setHours(0, 0, 0, 0);
-    const settlementTs = todaySettlement ? new Date(todaySettlement.settlementDate).getTime() : 0;
+    const settlementTs = todaySettlement ? toMs(todaySettlement.settlementDate) : 0;
     const startTs = Math.max(start.getTime(), settlementTs);
     const isToday = (o: any) => {
       const raw = o.createdAt ?? 0;
@@ -252,17 +265,16 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
       return !isNaN(ms) && ms >= startTs;
     };
     const today = orders.filter(isToday);
-    const completed = today.filter((o: any) => ["completed", "paid"].includes(o.status));
+    const completed = today.filter((o: any) => ["completed", "billed", "paid"].includes(o.status));
     const cancelled = today.filter((o: any) => o.status === "cancelled");
-    const running = today.filter((o: any) => !["completed", "paid", "cancelled"].includes(o.status));
+    const running = today.filter((o: any) => !["completed", "billed", "paid", "cancelled"].includes(o.status));
     const gross = completed.reduce((s: number, o: any) => s + Number(o.total || 0), 0);
-    const cash = completed.filter((o: any) => String(o.paymentMethod || "").toLowerCase() === "cash")
-      .reduce((s: number, o: any) => s + Number(o.total || 0), 0);
-    const card = gross - cash;
+    const cash = completed.reduce((s: number, o: any) => s + paymentParts(o).filter(p => p.method.toLowerCase() === "cash").reduce((ps, p) => ps + p.amount, 0), 0);
+    const card = completed.reduce((s: number, o: any) => s + paymentParts(o).filter(p => p.method.toLowerCase() !== "cash").reduce((ps, p) => ps + p.amount, 0), 0);
     const byType = (t: string) => completed.filter((o: any) => o.type === t);
     const sumType = (t: string) => byType(t).reduce((s: number, o: any) => s + Number(o.total || 0), 0);
     return {
-      totalOrders: today.length, completedCount: completed.length, cancelledCount: cancelled.length,
+      totalOrders: completed.length, completedCount: completed.length, cancelledCount: cancelled.length,
       runningCount: running.length, gross, avg: completed.length ? gross / completed.length : 0,
       sales: completed.slice().sort((a: any, b: any) => Number(a.createdAt || 0) - Number(b.createdAt || 0)),
       cash, card,
@@ -302,7 +314,7 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     const cashier = String(user?.name || user?.username || "Staff").replace(/[<>&]/g, "");
     const orderRows = summary.sales.map((order: any) => {
       const number = String(order.orderNumber || "—").replace(/[<>&]/g, "");
-      const method = String(order.paymentMethod || "card").replace(/[<>&]/g, "").toUpperCase();
+      const method = paymentParts(order).map(p => `${p.method} ${money(p.amount)}`).join(" + ").replace(/[<>&]/g, "").toUpperCase();
       return `<div class="sale"><span>${number}<small>${method}</small></span><b>${money(Number(order.total || 0))}</b></div>`;
     }).join("");
     w.document.write(`<!doctype html><html><head><title>Register Settlement</title><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:11px monospace;color:#000}h2{text-align:center;font-size:15px;margin:0 0 8px}.row,.sale{display:flex;justify-content:space-between;margin:5px 0}.sale{border-bottom:1px dotted #888;padding-bottom:3px}.sale small{display:block;font-size:9px;color:#444}hr{border:0;border-top:1px dashed #000}.total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:6px}.section{font-weight:bold;margin:8px 0 4px}</style></head><body><h2>REGISTER SETTLEMENT</h2><p>${today}</p><p>Cashier: ${cashier}</p><hr><div class="section">ORDERS</div>${orderRows || "<p>No completed orders</p>"}<hr><div class="row"><span>Cash</span><b>${money(summary.cash)}</b></div><div class="row"><span>Card</span><b>${money(summary.card)}</b></div><div class="row total"><span>TOTAL COLLECTIONS</span><b>${money(summary.gross)}</b></div><p style="text-align:center;margin-top:12px">Printed ${new Date().toLocaleString()}</p><script>window.onload=()=>window.print()</script></body></html>`);
@@ -348,7 +360,7 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
           <div className="rounded-lg border overflow-hidden" style={{ borderColor: BORD }}>
             {summary.sales.length === 0 ? <div className="p-3 text-xs" style={{ color: DIM }}>No completed orders in this register session.</div> : summary.sales.map((order: any, index: number) => (
               <div key={order.id} className="flex items-center justify-between px-3 py-2 text-xs" style={{ background: index % 2 ? SURF2 : SURF, borderTop: index ? `1px solid ${BORD}` : "none" }}>
-                <span style={{ color: TEXT }}>{order.orderNumber || "—"}<span className="ml-2 uppercase text-[10px]" style={{ color: MUTED }}>{order.paymentMethod || "card"}</span></span>
+                <span style={{ color: TEXT }}>{order.orderNumber || "—"}<span className="ml-2 uppercase text-[10px]" style={{ color: MUTED }}>{paymentParts(order).map(p => p.method).join(" + ")}</span></span>
                 <span className="font-semibold" style={{ color: GOLD }}>{money(Number(order.total || 0))}</span>
               </div>
             ))}
