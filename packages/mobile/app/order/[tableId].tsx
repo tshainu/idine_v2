@@ -325,9 +325,9 @@ export default function TakeOrderScreen() {
       }
 
       const res = await sendToKitchen.mutateAsync({
-        // A new round from a running table is a separate order/KOT. Existing
-        // orders are edited from the Open orders editor above.
-        existingOrderId: undefined,
+        // A table with an open order must keep the same invoice/order number.
+        // The send mutation appends only these new cart lines to that order.
+        existingOrderId: openOrder?.id,
         tableId,
         tableName: printTableName,
         lines: cart,
