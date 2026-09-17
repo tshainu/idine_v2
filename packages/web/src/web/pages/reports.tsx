@@ -14,7 +14,8 @@ const TEXT = "var(--color-text)";
 export default function ReportsPage() {
   const branchId = getBranchId();
   const user = getUser();
-  const cashierScope = user?.role === "admin" ? "" : (user?.name ? `&placedBy=${encodeURIComponent(user.name)}` : "");
+  const allAccess = ["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase());
+  const cashierScope = allAccess ? "" : (user?.name ? `&placedBy=${encodeURIComponent(user.name)}` : "");
 
   const { data: ordersData } = useQuery({
     queryKey: ["reports-orders", branchId, user?.id ?? user?.name ?? "all"],
@@ -22,7 +23,7 @@ export default function ReportsPage() {
   });
   const { data: settlementsData } = useQuery({
     queryKey: ["settlements-report", branchId, user?.id ?? "all"],
-    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && user?.role !== "admin" ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
+    queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && !allAccess ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
   });
 
   const orders: any[] = (ordersData as any)?.orders || [];

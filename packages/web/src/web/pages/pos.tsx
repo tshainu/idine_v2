@@ -1912,7 +1912,7 @@ export default function POSPage() {
 
   // ── Derived data
   const sessionUser = getUser();
-  const isAdminSession = String(sessionUser?.role || "").toLowerCase() === "admin";
+  const isAdminSession = ["admin", "manager", "superadmin"].includes(String(sessionUser?.role || "").toLowerCase());
   const sessionOwner = String(sessionUser?.name || "").trim().toLowerCase();
   const orders = ((ordersData as any)?.orders || []).filter((order: any) => {
     if (isAdminSession) return true;
@@ -2233,7 +2233,7 @@ export default function POSPage() {
                       </div>
                     </div>
                     <div className="text-xs mt-0.5 truncate" style={{ color: MUTED }}>{order.customerName}</div>
-                    {order.tableId && <div className="text-[10px] mt-0.5" style={{ color: DIM }}>Table {order.tableName || tables.find((table: any) => table.id === order.tableId)?.name || order.tableId}</div>}
+                    {order.tableId && <div className="text-[10px] mt-0.5" style={{ color: DIM }}>Table {tables.find((table: any) => Number(table.id) === Number(order.tableId))?.name || order.tableName || order.tableId}</div>}
                   </button>
                 ))
             }

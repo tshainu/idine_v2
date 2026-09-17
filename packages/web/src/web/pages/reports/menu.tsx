@@ -26,7 +26,7 @@ export default function MenuReport() {
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
   });
   const { data: menuData } = useQuery({
     queryKey: ["menu-items", branchId],
