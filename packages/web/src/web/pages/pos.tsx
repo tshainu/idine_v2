@@ -1374,7 +1374,7 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
             {/* Meta */}
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Order #: {kot.orderNumber}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Time: {now.toLocaleTimeString("en-GB")}</div>
-            {kot.tableId && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Table: {kot.tableId}</div>}
+            {(kot.tableName || kot.tableId) && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Table: {kot.tableName || kot.tableId}</div>}
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Placed By: {kot.placedBy || "—"}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Waiter: {kot.waiterName || "—"}</div>
             {kot.customerName && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Customer: {kot.customerName}</div>}
@@ -1801,7 +1801,9 @@ export default function POSPage() {
       return {
         orderId, itemIds: printItems.map((it: any) => it.id),
         orderNumber: order.orderNumber,
-        type: order.type, tableId: order.tableId, waiterName: waiter?.name || null,
+        type: order.type, tableId: order.tableId,
+        tableName: tables.find((table: any) => Number(table.id) === Number(order.tableId))?.name || null,
+        waiterName: waiter?.name || null,
         placedBy: order.placedBy || null,
         customerName: order.customerName !== "Walk-in Customer" ? order.customerName : null,
         items: printItems.map((it: any) => ({
@@ -2066,7 +2068,8 @@ export default function POSPage() {
           osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.4);
         });
       } catch {}
-      showToast(`New QR order from Table ${fresh[0].tableId || "?"}!`);
+      const freshTable = tables.find((table: any) => Number(table.id) === Number(fresh[0].tableId));
+      showToast(`New QR order from Table ${freshTable?.name || fresh[0].tableId || "?"}!`);
       setQrOrdersSeen(prev => { const n = new Set(prev); fresh.forEach((o: any) => n.add(o.id)); return n; });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2731,7 +2734,7 @@ export default function POSPage() {
       {/* Print KOT preview — auto-print is suspended; shows items, Print opens the native browser print dialog */}
       {pendingKot && (
         <KotOverlay
-          kot={pendingKot}
+          kot={{ ...pendingKot, tableName: pendingKot.tableName || tables.find((table: any) => Number(table.id) === Number(pendingKot.tableId))?.name || null }}
           onClose={() => setPendingKot(null)}
           onPrinted={() => {
             if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);

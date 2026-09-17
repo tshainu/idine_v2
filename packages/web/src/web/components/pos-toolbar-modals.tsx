@@ -699,7 +699,8 @@ export function QROrdersModal({ branchId, onClose }: { branchId: number; onClose
 
   function getTableName(tableId: number | null) {
     if (!tableId) return "—";
-    return tables.find(t => t.id === tableId)?.name || `#${tableId}`;
+    const table = tables.find(t => Number(t.id) === Number(tableId));
+    return table?.name || `#${tableId}`;
   }
 
   async function assignWaiter(order: any) {
