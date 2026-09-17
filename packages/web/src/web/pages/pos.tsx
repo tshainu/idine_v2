@@ -2679,6 +2679,7 @@ export default function POSPage() {
       {/* Finalize Sale modal — for Invoice (running order) and Quick Invoice */}
       {finalizeOrderId && (finalizeLoading || finalizeOrder.id) && (
         <FinalizeModal
+          key={finalizeOrderId}
           order={finalizeOrder}
           items={finalizeItems}
           loading={finalizeLoading}
