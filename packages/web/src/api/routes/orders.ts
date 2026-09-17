@@ -35,12 +35,12 @@ function waiterShortId(name: string | null | undefined): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-async function generateOrderNumber(waiterName: string | null | undefined): Promise<string> {
+async function generateOrderNumber(queryDb: any, waiterName: string | null | undefined): Promise<string> {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const dayPrefix = `${mm}${dd}`;
-  const today = await db
+  const today = await queryDb
     .select({ orderNumber: schema.orders.orderNumber })
     .from(schema.orders)
     .where(like(schema.orders.orderNumber, `${dayPrefix}%`));
@@ -117,15 +117,18 @@ export const orders = new Hono()
     const body = await c.req.json();
     // The server owns the sequence. Ignore client-generated numbers so POS and
     // Waiter always share one daily sequence that restarts at 001 each morning.
-    const [order] = await db.insert(schema.orders).values({
-      ...body,
-      orderNumber: "TEMP",
-    }).returning();
-    const orderNumber = await generateOrderNumber(body.placedBy);
-    const [updated] = await db.update(schema.orders)
-      .set({ orderNumber })
-      .where(eq(schema.orders.id, order.id))
-      .returning();
+    const updated = await db.transaction(async (tx) => {
+      const [order] = await tx.insert(schema.orders).values({
+        ...body,
+        orderNumber: "TEMP",
+      }).returning();
+      const orderNumber = await generateOrderNumber(tx, body.placedBy);
+      const [next] = await tx.update(schema.orders)
+        .set({ orderNumber })
+        .where(eq(schema.orders.id, order.id))
+        .returning();
+      return next;
+    });
     await syncTableStatus(updated.tableId);
     pushOutbox("orders", "insert", updated.id, updated, updated.branchId ?? undefined);
     return c.json({ order: updated }, 201);
