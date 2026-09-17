@@ -18,7 +18,7 @@ export default function ReportsPage() {
 
   const { data: ordersData } = useQuery({
     queryKey: ["reports-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(cashierScope ? { placedBy: user.name } : {}) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(cashierScope ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {}) } })).json(),
   });
   const { data: settlementsData } = useQuery({
     queryKey: ["settlements-report", branchId, user?.id ?? "all"],

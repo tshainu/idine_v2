@@ -197,6 +197,7 @@ export const orders = sqliteTable("orders", {
   customerName: text("customer_name").default("Walk-in Customer"),
   notes: text("notes"),
   placedBy: text("placed_by"), // name of the logged-in staff member who placed the order
+  cashierId: integer("cashier_id").references(() => users.id), // immutable logged-in cashier owner
   subtotal: real("subtotal").notNull().default(0),
   discount: real("discount").notNull().default(0),
   discountName: text("discount_name"),

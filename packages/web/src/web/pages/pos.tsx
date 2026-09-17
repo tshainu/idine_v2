@@ -1492,7 +1492,7 @@ export default function POSPage() {
     queryKey: ["orders", branchId, getUser()?.id ?? getUser()?.name ?? "all"],
     queryFn: async () => {
       const user = getUser();
-      const scope = String(user?.role || "").toLowerCase() === "admin" ? {} : (user?.name ? { placedBy: String(user.name) } : {});
+      const scope = String(user?.role || "").toLowerCase() === "admin" ? {} : (user?.id ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {});
       return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
     },
     refetchInterval: 10000,
@@ -1693,7 +1693,8 @@ export default function POSPage() {
         json: {
           branchId, type: orderType, status: apiStatus, tableId: selectedTableId,
           waiterId: selectedWaiterId, customerId, customerName,
-          subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0), total: subtotal, orderNumber, placedBy: getUser()?.name || null,
+          subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0), total: subtotal, orderNumber,
+          placedBy: getUser()?.name || null, cashierId: getUser()?.id || null,
         },
       })).json();
       const orderId = (order as any).order.id;
@@ -1915,6 +1916,7 @@ export default function POSPage() {
   const sessionOwner = String(sessionUser?.name || "").trim().toLowerCase();
   const orders = ((ordersData as any)?.orders || []).filter((order: any) => {
     if (isAdminSession) return true;
+    if (sessionUser?.id && order.cashierId != null) return Number(order.cashierId) === Number(sessionUser.id);
     const owner = String(order.placedBy || order.waiterName || "").trim().toLowerCase();
     return Boolean(sessionOwner) && owner === sessionOwner;
   });

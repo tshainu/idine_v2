@@ -229,7 +229,7 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
   const [justification, setJustification] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["orders", branchId, "registry", user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
     refetchInterval: 15000,
   });
   const { data: settlementData } = useQuery({

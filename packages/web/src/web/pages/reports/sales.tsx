@@ -54,7 +54,7 @@ export default function SalesReport() {
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.name ? {} : { placedBy: String(user.name) }) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(user?.role === "admin" || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
   });
   const allOrders: any[] = (ordersData as any)?.orders || [];
 

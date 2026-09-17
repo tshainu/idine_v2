@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, isNull, or } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
 import { triggerSalesTemplate } from "../sales-messaging";
@@ -51,10 +51,17 @@ export const orders = new Hono()
     const status = c.req.query("status");
     const source = c.req.query("source");
     const placedBy = c.req.query("placedBy");
+    const cashierId = Number(c.req.query("cashierId"));
     const conditions: any[] = [];
     if (branchId) conditions.push(eq(schema.orders.branchId, parseInt(branchId)));
     if (source) conditions.push(eq(schema.orders.source, source));
-    if (placedBy) conditions.push(eq(schema.orders.placedBy, placedBy));
+    if (cashierId) {
+      conditions.push(placedBy
+        ? or(eq(schema.orders.cashierId, cashierId), and(isNull(schema.orders.cashierId), eq(schema.orders.placedBy, placedBy)))
+        : eq(schema.orders.cashierId, cashierId));
+    } else if (placedBy) {
+      conditions.push(eq(schema.orders.placedBy, placedBy));
+    }
     // Only filter by status when the caller explicitly asks for one — previously this
     // silently excluded ALL cancelled orders by default, which broke cancelled-order
     // counts on Registry/Reports/Sales pages that fetch orders without a status filter.
