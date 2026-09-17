@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { api } from "../lib/api";
-import { getBranchId } from "../lib/store";
+import { getBranchId, getUser } from "../lib/store";
 import { Sidebar } from "../components/layout/sidebar";
 import { Utensils, Package, Coffee, ShoppingCart } from "lucide-react";
 
@@ -45,10 +45,19 @@ function MiniBar({ pct, color }: { pct: number; color: string }) {
 export default function HomePage() {
   const branchId = getBranchId();
   const [, navigate] = useLocation();
+  const sessionUser = getUser();
+  const allAccess = ["admin", "manager", "superadmin"].includes(String(sessionUser?.role || "").toLowerCase());
 
   const { data: ordersData } = useQuery({
-    queryKey: ["home-orders", branchId],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId) } })).json(),
+    queryKey: ["home-orders", branchId, allAccess ? "all" : (sessionUser?.id ?? sessionUser?.name ?? "cashier")],
+    queryFn: async () => {
+      const scope = allAccess
+        ? {}
+        : (sessionUser?.id
+          ? { cashierId: String(sessionUser.id), placedBy: String(sessionUser.name || "") }
+          : { placedBy: String(sessionUser?.name || "") });
+      return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
+    },
     refetchInterval: 30000,
   });
   const { data: menuData } = useQuery({
@@ -56,7 +65,14 @@ export default function HomePage() {
     queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
   });
 
-  const orders: any[] = (ordersData as any)?.orders || [];
+  const rawOrders: any[] = (ordersData as any)?.orders || [];
+  // Keep a client-side guard as a second line of defense for older API builds
+  // or legacy rows that do not yet have cashierId populated.
+  const orders: any[] = allAccess ? rawOrders : rawOrders.filter((order: any) => {
+    if (sessionUser?.id && order.cashierId != null) return Number(order.cashierId) === Number(sessionUser.id);
+    const owner = String(order.placedBy || order.waiterName || "").trim().toLowerCase();
+    return Boolean(sessionUser?.name) && owner === String(sessionUser.name).trim().toLowerCase();
+  });
   const menuItems: any[] = (menuData as any)?.menuItems || [];
   // Sales metrics must represent finalized invoices only. Cancelled and
   // open/kitchen orders remain in `orders` for status visibility, but must not
