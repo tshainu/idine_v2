@@ -155,6 +155,9 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   b.line(rule(width));
 
   for (const item of payload.items) {
+    if (item.delta != null && item.delta < 0) {
+      b.bold(true).line("+----------+").line("| CANCELED |").line("+----------+").bold(false);
+    }
     const baseLabel = item.variationName ? `${item.name} (${item.variationName})` : item.name;
     const label = item.delta != null && item.delta < 0 ? `CANCELED ${baseLabel}` : baseLabel;
     const wrapped = wrap(label, nameWidth);
@@ -204,6 +207,11 @@ export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): str
   lines.push(`Waiter: ${payload.waiterName || "—"}`);
   lines.push(rule(width));
   for (const item of payload.items) {
+    if (item.delta != null && item.delta < 0) {
+      lines.push("+----------+");
+      lines.push("| CANCELED |");
+      lines.push("+----------+");
+    }
     const baseLabel = item.variationName ? `${item.name} (${item.variationName})` : item.name;
     const label = item.delta != null && item.delta < 0 ? `CANCELED ${baseLabel}` : baseLabel;
     const wrapped = wrap(label, width - 4);

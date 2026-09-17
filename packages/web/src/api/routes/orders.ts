@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and, desc, inArray, isNull, or } from "drizzle-orm";
+import { eq, and, desc, inArray, isNull, or, like } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
 import { triggerSalesTemplate } from "../sales-messaging";
@@ -35,14 +35,20 @@ function waiterShortId(name: string | null | undefined): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-function generateOrderNumber(orderId: number, waiterName: string | null | undefined): string {
+async function generateOrderNumber(waiterName: string | null | undefined): Promise<string> {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const dayPrefix = `${mm}${dd}`;
-  // The database id is monotonic and cannot collide when two waiters place
-  // orders at the same time; counting today's rows was race-prone.
-  return `${dayPrefix}${waiterShortId(waiterName)}-${String(orderId).padStart(5, "0")}`;
+  const today = await db
+    .select({ orderNumber: schema.orders.orderNumber })
+    .from(schema.orders)
+    .where(like(schema.orders.orderNumber, `${dayPrefix}%`));
+  const maxToday = today.reduce((max, row) => {
+    const match = /-(\d+)$/.exec(row.orderNumber || "");
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  return `${dayPrefix}${waiterShortId(waiterName)}-${String(maxToday + 1).padStart(3, "0")}`;
 }
 
 export const orders = new Hono()
@@ -109,24 +115,13 @@ export const orders = new Hono()
   })
   .post("/", async (c) => {
     const body = await c.req.json();
-    // Keep a client number only when it is not already used. Mobile/POS clients
-    // can race while both calculating today's next sequence, so the backend
-    // must be the final collision guard.
-    const [numberConflict] = body.orderNumber && body.orderNumber !== "TEMP"
-      ? await db.select({ id: schema.orders.id }).from(schema.orders).where(eq(schema.orders.orderNumber, body.orderNumber)).limit(1)
-      : [];
-    if (body.orderNumber && body.orderNumber !== "TEMP" && !numberConflict) {
-      const [order] = await db.insert(schema.orders).values(body).returning();
-      await syncTableStatus(order.tableId);
-      pushOutbox("orders", "insert", order.id, order, order.branchId ?? undefined);
-      return c.json({ order }, 201);
-    }
-    // Fallback: insert with TEMP then update
+    // The server owns the sequence. Ignore client-generated numbers so POS and
+    // Waiter always share one daily sequence that restarts at 001 each morning.
     const [order] = await db.insert(schema.orders).values({
       ...body,
       orderNumber: "TEMP",
     }).returning();
-    const orderNumber = generateOrderNumber(order.id, body.placedBy);
+    const orderNumber = await generateOrderNumber(body.placedBy);
     const [updated] = await db.update(schema.orders)
       .set({ orderNumber })
       .where(eq(schema.orders.id, order.id))
