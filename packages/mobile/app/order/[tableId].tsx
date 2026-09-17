@@ -97,6 +97,7 @@ export default function TakeOrderScreen() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [optionsLine, setOptionsLine] = useState<CartLine | null>(null);
   const [picking, setPicking] = useState<MenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -571,6 +572,16 @@ export default function TakeOrderScreen() {
         }}
       />
 
+      <CartLineOptions
+        line={optionsLine}
+        modifiers={modifiers.data ?? []}
+        onClose={() => setOptionsLine(null)}
+        onSave={(lineKey, mods, note) => {
+          setCart((prev) => prev.map((line) => line.key === lineKey ? { ...line, modifiers: mods, note } : line));
+          setOptionsLine(null);
+        }}
+      />
+
       {/* Cart opens as a contained screen modal from the title-bar action. */}
       <Modal visible={cartOpen} animationType="slide" transparent onRequestClose={() => setCartOpen(false)}>
         <View style={s.cartModal}>
@@ -603,6 +614,16 @@ export default function TakeOrderScreen() {
                     <Text style={s.cartLinePrice}>
                       {lkr(line.unitPrice + line.modifiers.reduce((sum, modifier) => sum + modifier.price, 0))} each
                     </Text>
+                    <View style={s.cartLineActions}>
+                      <TouchableOpacity style={s.cartLineAction} onPress={() => setOptionsLine(line)} activeOpacity={0.75}>
+                        <Ionicons name="options-outline" size={14} color={c.primaryDark} />
+                        <Text style={s.cartLineActionText}>{line.modifiers.length ? "Edit modifier" : "Add modifier"}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={s.cartLineAction} onPress={() => setOptionsLine(line)} activeOpacity={0.75}>
+                        <Ionicons name="create-outline" size={14} color={c.primaryDark} />
+                        <Text style={s.cartLineActionText}>{line.note ? "Edit note" : "Add note"}</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <QtyStepper qty={line.qty} onChange={(quantity) => setQty(line.key, quantity)} compact />
                 </View>
@@ -818,6 +839,90 @@ function ItemSheet({ item, modifiers, onClose, onAdd }: {
   );
 }
 
+function CartLineOptions({ line, modifiers, onClose, onSave }: {
+  line: CartLine | null;
+  modifiers: Modifier[];
+  onClose: () => void;
+  onSave: (lineKey: string, mods: { id: number; name: string; price: number }[], note: string) => void;
+}) {
+  const [selected, setSelected] = useState<number[]>([]);
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if (!line) return;
+    setSelected(line.modifiers.map((modifier) => modifier.id));
+    setNote(line.note || "");
+  }, [line]);
+
+  const groups = useMemo(() => {
+    const grouped = new Map<string, Modifier[]>();
+    for (const modifier of modifiers) {
+      const group = modifier.groupName || "Extras";
+      if (!grouped.has(group)) grouped.set(group, []);
+      grouped.get(group)!.push(modifier);
+    }
+    return [...grouped.entries()];
+  }, [modifiers]);
+
+  if (!line) return null;
+  const chosen = modifiers.filter((modifier) => selected.includes(modifier.id));
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <View style={s.modalBg}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+          <View style={s.optionsSheet}>
+            <View style={s.sheetHead}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.sheetTitle} numberOfLines={1}>Customize {line.name}</Text>
+                <Text style={s.cartDrawerSub}>These details will print on the KOT.</Text>
+              </View>
+              <TouchableOpacity onPress={onClose} style={s.cartClose} activeOpacity={0.7}>
+                <Ionicons name="close" size={22} color={c.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 330 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {groups.map(([group, list]) => (
+                <View key={group}>
+                  <Text style={s.groupLabel}>{group}</Text>
+                  <View style={s.optRow}>
+                    {list.map((modifier) => {
+                      const active = selected.includes(modifier.id);
+                      return (
+                        <TouchableOpacity
+                          key={modifier.id}
+                          activeOpacity={0.8}
+                          onPress={() => setSelected((prev) => active ? prev.filter((id) => id !== modifier.id) : [...prev, modifier.id])}
+                          style={[s.opt, active && { backgroundColor: c.primarySoft, borderColor: c.primary }]}
+                        >
+                          <Text style={[s.optText, active && { color: c.primaryDark }]}>{modifier.name}</Text>
+                          {modifier.price ? <Text style={[s.optPrice, active && { color: c.primaryDark }]}>+{lkr(modifier.price)}</Text> : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+              <Text style={s.groupLabel}>Kitchen note</Text>
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder="e.g. no chilli, less salt"
+                placeholderTextColor={c.mutedSoft}
+                style={s.noteInput}
+                multiline
+              />
+            </ScrollView>
+            <View style={s.sheetFoot}>
+              <PrimaryButton label="Save item details" icon="checkmark" onPress={() => onSave(line.key, chosen, note.trim())} />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+  );
+}
+
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.background },
   searchWrap: {
@@ -935,6 +1040,10 @@ const s = StyleSheet.create({
     shadowColor: c.chrome, shadowOpacity: 0.28, shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 }, elevation: 16,
   },
+  optionsSheet: {
+    backgroundColor: c.card, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl,
+    padding: Space.lg, paddingBottom: Space.xxl,
+  },
   cartDrawerSub: { fontFamily: Fonts.regular, fontSize: 12, color: c.muted, marginTop: 2 },
   cartClose: {
     width: 38, height: 38, borderRadius: Radius.pill,
@@ -993,4 +1102,7 @@ const s = StyleSheet.create({
   cartLineMeta: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.muted, marginTop: 1 },
   cartLineNote: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.warning, marginTop: 1, fontStyle: "italic" },
   cartLinePrice: { fontFamily: Fonts.regular, fontSize: 11.5, color: c.mutedSoft, marginTop: 2 },
+  cartLineActions: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm, marginTop: Space.sm },
+  cartLineAction: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: Space.sm, paddingVertical: 6, borderRadius: Radius.sm, backgroundColor: c.primarySoft, borderWidth: 1, borderColor: c.primary },
+  cartLineActionText: { fontFamily: Fonts.medium, fontSize: 10.5, color: c.primaryDark },
 });

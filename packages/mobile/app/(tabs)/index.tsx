@@ -296,17 +296,33 @@ export default function DashboardScreen() {
             </ScrollView>
 
             <View style={s.modalFooter}>
-              <TouchableOpacity style={s.cancelOrderButton} onPress={cancelSelectedOrder} activeOpacity={0.8} disabled={savingOrder}>
-                <Ionicons name="close-circle-outline" size={18} color={c.destructive} />
-                <Text style={s.cancelOrderText}>Cancel order</Text>
-              </TouchableOpacity>
-              <PrimaryButton
-                label="Save changes & send KOT"
-                icon="send-outline"
-                loading={savingOrder}
-                onPress={saveOrderChanges}
-                style={{ flex: 1 }}
-              />
+              {selectedOrder?.tableId ? (
+                <TouchableOpacity
+                  style={s.newOrderButton}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const target = selectedOrder.tableId;
+                    closeOrderModal(true);
+                    router.push(`/order/${target}?new=1`);
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={c.primaryDark} />
+                  <Text style={s.newOrderText}>New order for this table</Text>
+                </TouchableOpacity>
+              ) : null}
+              <View style={s.modalFooterActions}>
+                <TouchableOpacity style={s.cancelOrderButton} onPress={cancelSelectedOrder} activeOpacity={0.8} disabled={savingOrder}>
+                  <Ionicons name="close-circle-outline" size={18} color={c.destructive} />
+                  <Text style={s.cancelOrderText}>Cancel order</Text>
+                </TouchableOpacity>
+                <PrimaryButton
+                  label="Save changes & send KOT"
+                  icon="send-outline"
+                  loading={savingOrder}
+                  onPress={saveOrderChanges}
+                  style={{ flex: 1 }}
+                />
+              </View>
             </View>
           </View>
         </View>
@@ -406,7 +422,10 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: c.primary, backgroundColor: c.primarySoft,
   },
   addItemsText: { fontFamily: Fonts.semibold, fontSize: 12.5, color: c.primaryDark },
-  modalFooter: { flexDirection: "row", alignItems: "center", gap: Space.md, padding: Space.lg, paddingBottom: Space.xl, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border },
+  modalFooter: { gap: Space.sm, padding: Space.lg, paddingBottom: Space.xl, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border },
+  modalFooterActions: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  newOrderButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, minHeight: 44, borderRadius: Radius.md, borderWidth: 1, borderColor: c.primary, backgroundColor: c.primarySoft },
+  newOrderText: { fontFamily: Fonts.semibold, fontSize: 12.5, color: c.primaryDark },
   cancelOrderButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: Space.sm, minHeight: 48 },
   cancelOrderText: { fontFamily: Fonts.semibold, fontSize: 12, color: c.destructive },
 });
