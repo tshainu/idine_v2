@@ -14,7 +14,7 @@ export const DEFAULT_ROLE_PRIVILEGES: Record<string, Record<string, boolean>> = 
   admin: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, true])),
   manager: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, !["Settings", "Users", "Refund Order", "Void Item", "IDSA"].includes(key)])),
   waiter: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Waiter App", "Kitchen", "Tables", "Print Bill", "Print KOT", "Change Table", "Quick Add Item"].includes(key)])),
-  cashier: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Sales", "Customers", "Print Bill", "Print Invoice", "Apply Discount", "Cancel Order"].includes(key)])),
+  cashier: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Sales", "Customers", "Print Bill", "Print Invoice", "Apply Discount", "Cancel Order", "Edit Placed Order"].includes(key)])),
   kitchen: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["KDS", "Kitchen"].includes(key)])),
   kds: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["KDS", "Kitchen"].includes(key)])),
 };
