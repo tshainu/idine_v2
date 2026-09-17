@@ -58,10 +58,16 @@ export default function HomePage() {
 
   const orders: any[] = (ordersData as any)?.orders || [];
   const menuItems: any[] = (menuData as any)?.menuItems || [];
+  // Sales metrics must represent finalized invoices only. Cancelled and
+  // open/kitchen orders remain in `orders` for status visibility, but must not
+  // contribute money, profit, order counts, or selling-item totals.
+  const isInvoiced = (order: any) => order.status === "completed" || order.status === "billed";
+  const invoicedOrders = orders.filter(isInvoiced);
 
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o: any) => new Date(o.createdAt).toDateString() === today);
-  const todayRevenue = todayOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+  const todayInvoicedOrders = todayOrders.filter(isInvoiced);
+  const todayRevenue = todayInvoicedOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
 
   // 40% margin fallback for profit
   const profitToday = todayRevenue * 0.4;
@@ -74,7 +80,7 @@ export default function HomePage() {
 
   // Top selling item today
   const todayItemMap: Record<string, { name: string; qty: number }> = {};
-  todayOrders.forEach((o: any) => {
+  todayInvoicedOrders.forEach((o: any) => {
     (o.items || []).forEach((it: any) => {
       const key = it.menuItemId || it.name;
       if (!todayItemMap[key]) todayItemMap[key] = { name: it.name || `Item #${key}`, qty: 0 };
@@ -84,18 +90,18 @@ export default function HomePage() {
   const topSellingArr = Object.values(todayItemMap).sort((a, b) => b.qty - a.qty);
   const topSellingItem = topSellingArr[0]?.name || "—";
 
-  // Total orders: takeaway + dine-in today
-  const dineInToday = todayOrders.filter((o: any) => o.type === "dine-in").length;
-  const takeawayToday = todayOrders.filter((o: any) => o.type === "takeaway").length;
-  const totalOrdersCount = dineInToday + takeawayToday;
+  // Total orders: every finalized invoice today, across all order types.
+  const dineInToday = todayInvoicedOrders.filter((o: any) => o.type === "dine-in").length;
+  const takeawayToday = todayInvoicedOrders.filter((o: any) => o.type === "takeaway").length;
+  const deliveryToday = todayInvoicedOrders.filter((o: any) => o.type === "delivery").length;
+  const totalOrdersCount = todayInvoicedOrders.length;
 
   // Order type breakdown (all today)
-  const deliveryToday = todayOrders.filter((o: any) => o.type === "delivery").length;
   const typeTotal = dineInToday + takeawayToday + deliveryToday || 1;
 
   // All item map for top items widget
   const allItemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-  orders.forEach((o: any) => {
+  invoicedOrders.forEach((o: any) => {
     (o.items || []).forEach((it: any) => {
       const key = it.menuItemId || it.name;
       if (!allItemMap[key]) allItemMap[key] = { name: it.name || `Item #${key}`, qty: 0, revenue: 0 };
@@ -117,7 +123,7 @@ export default function HomePage() {
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = new Date(year, month, d).toDateString();
     const rev = orders
-      .filter((o: any) => new Date(o.createdAt).toDateString() === ds)
+      .filter((o: any) => isInvoiced(o) && new Date(o.createdAt).toDateString() === ds)
       .reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
     monthBars.push({ day: d, rev });
   }
@@ -166,7 +172,7 @@ export default function HomePage() {
             <StatCard
               label="Today's Sales"
               value={`LKR ${todayRevenue.toLocaleString()}`}
-              sub={`${todayOrders.length} orders`}
+              sub={`${todayInvoicedOrders.length} invoiced orders`}
               imgSrc="/dashboard-icons/sales.png"
               index={0}
             />
@@ -201,7 +207,7 @@ export default function HomePage() {
             <StatCard
               label="Total Orders"
               value={totalOrdersCount}
-              sub={`Dine-in: ${dineInToday} · Takeaway: ${takeawayToday}`}
+              sub={`Dine-in: ${dineInToday} · Takeaway: ${takeawayToday} · Delivery: ${deliveryToday}`}
               imgSrc="/dashboard-icons/total_orders.png"
               index={5}
             />
