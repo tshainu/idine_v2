@@ -23,9 +23,11 @@ export const menuItems = new Hono()
   .get("/", async (c) => {
     const branchId = c.req.query("branchId");
     const categoryId = c.req.query("categoryId");
+    const includeInactive = c.req.query("includeInactive") === "true";
     const conditions = [];
     if (branchId) conditions.push(eq(schema.menuItems.branchId, parseInt(branchId)));
     if (categoryId) conditions.push(eq(schema.menuItems.categoryId, parseInt(categoryId)));
+    if (!includeInactive) conditions.push(eq(schema.menuItems.isActive, true));
     const items = await db
       .select()
       .from(schema.menuItems)

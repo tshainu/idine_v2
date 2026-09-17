@@ -1,14 +1,18 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 
 export const categories = new Hono()
   .get("/", async (c) => {
     const branchId = c.req.query("branchId");
-    const all = branchId
-      ? await db.select().from(schema.categories).where(eq(schema.categories.branchId, parseInt(branchId))).orderBy(asc(schema.categories.sortOrder))
-      : await db.select().from(schema.categories).orderBy(asc(schema.categories.sortOrder));
+    const includeInactive = c.req.query("includeInactive") === "true";
+    const conditions = [];
+    if (branchId) conditions.push(eq(schema.categories.branchId, parseInt(branchId)));
+    if (!includeInactive) conditions.push(eq(schema.categories.isActive, true));
+    const all = await db.select().from(schema.categories)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(asc(schema.categories.sortOrder));
     return c.json({ categories: all }, 200);
   })
   .post("/", async (c) => {
