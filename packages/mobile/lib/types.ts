@@ -71,6 +71,7 @@ export type OrderItem = {
   printerId: number | null;
   total: number;
   kotPrinted: boolean;
+  isNew?: boolean;
   note: string | null;
   createdAt: number | null;
 };

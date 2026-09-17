@@ -36,7 +36,9 @@ function toKotItems(items: OrderItem[], deltas?: KotDelta[]): KotItem[] {
   }
   const result: KotItem[] = [];
   for (const delta of deltas) {
-    const item = items.find((candidate) => delta.itemId === candidate.id || (!delta.itemId && delta.name === candidate.name));
+    const item = items.find((candidate) => delta.isNew
+      ? delta.name === candidate.name
+      : delta.itemId === candidate.id || (!delta.itemId && delta.name === candidate.name));
     if (!item) continue;
     result.push({
       name: delta.name,

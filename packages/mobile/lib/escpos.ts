@@ -155,12 +155,14 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   b.line(rule(width));
 
   for (const item of payload.items) {
-    const label = item.variationName ? `${item.name} (${item.variationName})` : item.name;
+    const baseLabel = item.variationName ? `${item.name} (${item.variationName})` : item.name;
+    const label = item.delta != null && item.delta < 0 ? `CANCELED ${baseLabel}` : baseLabel;
     const wrapped = wrap(label, nameWidth);
     // Keep normal character width so 58mm tickets still wrap correctly, while
     // doubling height makes item details readable from the kitchen pass.
     b.bold(true).size(1, 2);
-    b.line(`${`${item.qty}x`.padEnd(qtyCol, " ")}${wrapped[0]}`);
+    const qtyLabel = item.delta != null && item.delta > 0 ? `+${item.qty}x` : `${item.qty}x`;
+    b.line(`${qtyLabel.padEnd(qtyCol, " ")}${wrapped[0]}`);
     for (const extra of wrapped.slice(1)) b.line(`${" ".repeat(qtyCol)}${extra}`);
     b.bold(false).size(1, 1);
     if (item.notes) {
@@ -202,9 +204,11 @@ export function kotPreviewText(payload: KotPayload, width: PaperWidth = 32): str
   lines.push(`Waiter: ${payload.waiterName || "—"}`);
   lines.push(rule(width));
   for (const item of payload.items) {
-    const label = item.variationName ? `${item.name} (${item.variationName})` : item.name;
+    const baseLabel = item.variationName ? `${item.name} (${item.variationName})` : item.name;
+    const label = item.delta != null && item.delta < 0 ? `CANCELED ${baseLabel}` : baseLabel;
     const wrapped = wrap(label, width - 4);
-    lines.push(`${`${item.qty}x`.padEnd(4, " ")}${wrapped[0]}`);
+    const qtyLabel = item.delta != null && item.delta > 0 ? `+${item.qty}x` : `${item.qty}x`;
+    lines.push(`${qtyLabel.padEnd(4, " ")}${wrapped[0]}`);
     for (const extra of wrapped.slice(1)) lines.push(`    ${extra}`);
     if (item.notes) for (const l of wrap(`** ${item.notes} **`, width - 4)) lines.push(`    ${l}`);
     lines.push(rule(width));

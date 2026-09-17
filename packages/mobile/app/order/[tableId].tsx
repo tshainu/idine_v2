@@ -66,6 +66,7 @@ function runningOrderDelta(existing: OrderItem[], cart: CartLine[]): OrderItem[]
       id: -(index + 1), orderId: null, menuItemId: line.menuItemId, name: line.name,
       price, qty: line.qty, printerId: line.printerId, total: line.qty * price,
       kotPrinted: false, note: line.note || null, createdAt: null,
+      isNew: true,
     });
   }
   return delta;
@@ -301,8 +302,28 @@ export default function TakeOrderScreen() {
           additions,
         });
         const deltaItems = runningOrderDelta(targetOrder.items ?? [], cart);
-        const print = deltaItems.length
-          ? await reprintKot.mutateAsync({
+        let print = { ok: true, message: "Order details updated." };
+        if (deltaItems.length) {
+          const summary = deltaItems.map((item) => {
+            const qty = Math.abs(item.qty);
+            return item.isNew
+              ? `+ ${item.name} ×${qty}`
+              : item.qty < 0
+                ? `CANCELED ${item.name} ×${qty}`
+                : `+ ${item.name} ×${qty}`;
+          }).join("\n");
+          const shouldPrint = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              "Print updated KOT?",
+              `The order was updated. Print these kitchen changes?\n\n${summary}`,
+              [
+                { text: "Not now", style: "cancel", onPress: () => resolve(false) },
+                { text: "Print updated KOT", onPress: () => resolve(true) },
+              ],
+              { cancelable: false },
+            );
+          });
+          if (shouldPrint) print = await reprintKot.mutateAsync({
               order: res.order,
               items: deltaItems,
               branchId: branchId ?? null,
@@ -311,7 +332,7 @@ export default function TakeOrderScreen() {
               waiterName,
               customerPhone: customerPhone || null,
             })
-          : { ok: true, message: "Order details updated." };
+        }
         setCart([]);
         setEditMode(false);
         setEditingOrder(null);
