@@ -526,6 +526,9 @@ function FinalizeModal({
   const subtotal       = items.reduce((s: number, i: any) => s + Number(i.total ?? i.qty * i.price) + Number(i.discount ?? 0), 0);
   const managedDiscount = Number(order?.discountName ? order?.discount || 0 : Math.max(0, Number(order?.discount || 0) - itemDiscount));
   const [extraDiscount, setExtraDiscount] = useState(initialDiscount || managedDiscount);
+  useEffect(() => {
+    setExtraDiscount(initialDiscount || managedDiscount);
+  }, [order?.id, managedDiscount, initialDiscount]);
   const [discountMode, setDiscountMode] = useState<"fixed" | "percent">("fixed");
   const afterDiscount = Math.max(0, subtotal - itemDiscount - extraDiscount);
   const serviceCharge = isDineIn ? parseFloat((afterDiscount * serviceChargeRate).toFixed(2)) : 0;
