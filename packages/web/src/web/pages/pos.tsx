@@ -2753,37 +2753,17 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Print KOT preview — auto-print is suspended; shows items, Print opens the native browser print dialog */}
+      {/* Print KOT preview — Print opens the normal Windows/browser print dialog */}
       {pendingKot && (
         <KotOverlay
           kot={{ ...pendingKot, tableName: pendingKot.tableName || tables.find((table: any) => Number(table.id) === Number(pendingKot.tableId))?.name || null }}
           onClose={() => setPendingKot(null)}
           onPrint={async () => {
-            const groups = routeKotItems(pendingKot.items || [], kotPrinterSetup, kotPrinters);
-            const networkGroups = groups.filter(g => isNetworkPrinter(g.printer.connection) && !!g.printer.ipAddress);
-            if (!networkGroups.length) {
-              if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);
-              showToast("No network KOT printer is configured; opening browser print.");
-              setPendingKot(null);
-              return true;
-            }
-            const results = await Promise.all(networkGroups.map(group => directPrint({
-              branchId,
-              orderId: pendingKot.orderId,
-              printerId: group.printer.id,
-              type: "kot",
-              idempotencyKey: `kot-${pendingKot.orderId}-${group.printer.id}-${(pendingKot.itemIds || []).join("-")}`,
-              payload: { ...pendingKot, items: group.items },
-            })));
-            const failed = results.find(r => !r.ok);
-            if (failed) {
-              showToast(failed.message || "KOT printing failed; it was queued for retry.");
-              return false;
-            }
+            // Web POS KOTs use the normal Windows/browser print dialog. The
+            // browser/Windows printer selection controls the destination.
             if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);
-            showToast("KOT sent to configured kitchen printer(s).");
             setPendingKot(null);
-            return false;
+            return true;
           }}
         />
       )}
