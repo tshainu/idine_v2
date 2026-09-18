@@ -77,7 +77,7 @@ export default function HomePage() {
   // Sales metrics must represent finalized invoices only. Cancelled and
   // open/kitchen orders remain in `orders` for status visibility, but must not
   // contribute money, profit, order counts, or selling-item totals.
-  const isInvoiced = (order: any) => order.status === "completed" || order.status === "billed";
+  const isInvoiced = (order: any) => ["completed", "billed", "paid"].includes(String(order.status || "").toLowerCase());
   const invoicedOrders = orders.filter(isInvoiced);
 
   const today = new Date().toDateString();
@@ -100,7 +100,7 @@ export default function HomePage() {
     (o.items || []).forEach((it: any) => {
       const key = it.menuItemId || it.name;
       if (!todayItemMap[key]) todayItemMap[key] = { name: it.name || `Item #${key}`, qty: 0 };
-      todayItemMap[key].qty += it.quantity || 1;
+      todayItemMap[key].qty += Number(it.qty ?? it.quantity ?? 1);
     });
   });
   const topSellingArr = Object.values(todayItemMap).sort((a, b) => b.qty - a.qty);
@@ -121,11 +121,11 @@ export default function HomePage() {
     (o.items || []).forEach((it: any) => {
       const key = it.menuItemId || it.name;
       if (!allItemMap[key]) allItemMap[key] = { name: it.name || `Item #${key}`, qty: 0, revenue: 0 };
-      allItemMap[key].qty += it.quantity || 1;
-      allItemMap[key].revenue += (it.price || 0) * (it.quantity || 1);
+      allItemMap[key].qty += Number(it.qty ?? it.quantity ?? 1);
+      allItemMap[key].revenue += (Number(it.price) || 0) * Number(it.qty ?? it.quantity ?? 1);
     });
   });
-  const topItems = Object.values(allItemMap).sort((a, b) => b.qty - a.qty).slice(0, 6);
+  const topItems = Object.values(todayItemMap).sort((a, b) => b.qty - a.qty).slice(0, 6);
   const maxQty = topItems[0]?.qty || 1;
 
   // Revenue this month (daily bars)
