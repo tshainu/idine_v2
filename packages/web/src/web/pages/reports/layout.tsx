@@ -33,7 +33,7 @@ export type ColDef = {
 
 /* ── DataTable ────────────────────────────────────────── */
 export function DataTable({
-  columns, rows, pageSize = 20, title, exportName,
+  columns, rows, pageSize = 50, title, exportName,
 }: {
   columns: ColDef[];
   rows: Record<string, any>[];
@@ -42,6 +42,7 @@ export function DataTable({
   exportName?: string;
 }) {
   const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(pageSize);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -59,8 +60,9 @@ export function DataTable({
       })
     : filtered;
 
-  const totalPages = Math.ceil(sorted.length / pageSize);
-  const slice = sorted.slice(page * pageSize, page * pageSize + pageSize);
+  const effectivePageSize = rowsPerPage === -1 ? Math.max(sorted.length, 1) : rowsPerPage;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / effectivePageSize));
+  const slice = sorted.slice(page * effectivePageSize, page * effectivePageSize + effectivePageSize);
 
   function toggleSort(key: string) {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -89,6 +91,18 @@ export function DataTable({
       <div className="flex items-center justify-between px-4 py-3 border-b gap-3" style={{ borderColor: BORD }}>
         <div className="font-semibold text-sm" style={{ color: TEXT }}>{title || "Data Table"}</div>
         <div className="flex items-center gap-2 flex-1 justify-end">
+          <select
+            value={rowsPerPage}
+            onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(0); }}
+            className="px-2 py-1.5 rounded-lg text-xs border outline-none"
+            style={{ background: BG, borderColor: BORD, color: TEXT }}
+            aria-label="Entries per page"
+          >
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={500}>500</option>
+            <option value={-1}>All</option>
+          </select>
           <input
             value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search…"
@@ -155,10 +169,10 @@ export function DataTable({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {sorted.length > 0 && (totalPages > 1 || rowsPerPage !== -1) && (
         <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: BORD }}>
           <span className="text-xs" style={{ color: DIM }}>
-            {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)} of {sorted.length}
+            {page * effectivePageSize + 1}–{Math.min((page + 1) * effectivePageSize, sorted.length)} of {sorted.length}
           </span>
           <div className="flex gap-1">
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
