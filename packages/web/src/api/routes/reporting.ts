@@ -24,7 +24,8 @@ function paymentsOf(order: any) {
 }
 
 function typeLabel(type: string | null | undefined) {
-  return type === "dine-in" ? "Dine-in" : type === "takeaway" ? "Takeaway" : type === "delivery" ? "Delivery" : type || "—";
+  const normalized = String(type || "").trim().toLowerCase().replace(/[_ ]/g, "-");
+  return normalized === "dine-in" || normalized === "dinein" ? "Dine-in" : normalized === "takeaway" || normalized === "take-away" ? "Takeaway" : normalized === "delivery" || normalized === "deliver" ? "Delivery" : type || "—";
 }
 
 export const reporting = new Hono().get("/", async (c) => {
@@ -60,7 +61,7 @@ export const reporting = new Hono().get("/", async (c) => {
       userName: payload.waiterName || payload.placedBy || order?.placedBy || (order?.cashierId ? userById.get(order.cashierId)?.name : null) || "—",
       tableName: payload.tableName || (order?.tableId ? tableById.get(order.tableId) || `Table ${order.tableId}` : "—"),
       printerName: printer?.name || (job.printerId ? `Printer ${job.printerId}` : "—"), printerId: job.printerId,
-      orderType: typeLabel(order?.type || payload.type), invoiceStatus: isInvoiced(order?.status) ? "Converted to invoice" : String(order?.status || "").toLowerCase() === "cancelled" ? "Cancelled" : "Left / not invoiced",
+      orderType: typeLabel(order?.type || payload.type || payload.orderType || payload.billingType), invoiceStatus: isInvoiced(order?.status) ? "Converted to invoice" : String(order?.status || "").toLowerCase() === "cancelled" ? "Cancelled" : "Left / not invoiced",
       orderStatus: order?.status || "No linked order", items: Array.isArray(payload.items) ? payload.items.map((i: any) => `${i.name || "Item"} ×${i.qty || 1}`).join(", ") : "—",
     };
   });
@@ -83,4 +84,3 @@ export const reporting = new Hono().get("/", async (c) => {
 });
 
 export default reporting;
-
