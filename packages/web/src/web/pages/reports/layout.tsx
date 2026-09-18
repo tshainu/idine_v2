@@ -208,6 +208,31 @@ export function DataTable({
           </div>
         </div>
       )}
+      {filterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl rounded-2xl border p-5" style={{ background: SURF, borderColor: BORD }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold" style={{ color: TEXT }}>Filter report</h2>
+              <button onClick={() => setFilterOpen(false)} className="text-xs" style={{ color: MUTED }}>Close</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
+              {columns.map(c => (
+                <label key={c.key} className="text-xs" style={{ color: MUTED }}>
+                  {c.label}
+                  <select value={draftFilters[c.key] || ""} onChange={e => setDraftFilters(prev => ({ ...prev, [c.key]: e.target.value }))} className="mt-1 w-full rounded-lg border px-2 py-2" style={{ background: SURF, borderColor: BORD, color: TEXT }}>
+                    <option value="">All</option>
+                    {(uniqueValues[c.key] || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => { setFilters({}); setDraftFilters({}); setPage(0); }} className="px-3 py-2 rounded-lg text-xs border" style={{ borderColor: BORD, color: MUTED }}>Clear</button>
+              <button onClick={() => { setFilters(Object.fromEntries(Object.entries(draftFilters).filter(([, v]) => v))); setPage(0); setFilterOpen(false); }} className="px-4 py-2 rounded-lg text-xs font-semibold" style={{ background: GOLD, color: "var(--color-surface)" }}>Apply filters</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
