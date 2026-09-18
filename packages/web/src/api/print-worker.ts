@@ -80,8 +80,20 @@ export function buildKOT(job: any): Buffer {
   parts.push(bold(true));
   parts.push(text(`Order: ${orderNum}`));
   parts.push(bold(false));
-  if (tableInfo) parts.push(text(tableInfo));
-  if (waiter) parts.push(text(waiter));
+  if (tableInfo) {
+    parts.push(itemDetailSize(true));
+    parts.push(bold(true));
+    parts.push(text(tableInfo));
+    parts.push(bold(false));
+    parts.push(itemDetailSize(false));
+  }
+  if (waiter) {
+    parts.push(itemDetailSize(true));
+    parts.push(bold(true));
+    parts.push(text(waiter));
+    parts.push(bold(false));
+    parts.push(itemDetailSize(false));
+  }
   if (payload.customerName) parts.push(text(`Customer: ${payload.customerName}`));
   if (payload.customerPhone) parts.push(text(`Phone: ${payload.customerPhone}`));
   parts.push(text(`Time: ${new Date().toLocaleTimeString("en-GB")}`));

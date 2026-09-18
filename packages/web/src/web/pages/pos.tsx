@@ -1375,8 +1375,8 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
             </div>
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               <span style={{
-                fontSize: 13, fontWeight: 900, letterSpacing: 1.5, color: "#000",
-                border: "2px solid #000", padding: "2px 10px",
+                fontSize: 20, fontWeight: 900, letterSpacing: 1.5, color: "#000",
+                border: "2px solid #000", padding: "4px 14px",
               }}>{typeLabel}</span>
             </div>
             <div style={{ borderTop: "2px solid #000", margin: "8px 0" }} />
@@ -1384,9 +1384,9 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
             {/* Meta */}
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Order #: {kot.orderNumber}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Time: {now.toLocaleTimeString("en-GB")}</div>
-            {(kot.tableName || kot.tableId) && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Table: {kot.tableName || kot.tableId}</div>}
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Placed By: {kot.placedBy || "—"}</div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Waiter: {kot.waiterName || "—"}</div>
+            {(kot.tableName || kot.tableId) && <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Table: {kot.tableName || kot.tableId}</div>}
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Placed By: {kot.placedBy || "—"}</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Waiter: {kot.waiterName || "—"}</div>
             {kot.customerName && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Customer: {kot.customerName}</div>}
 
             <div style={{ borderTop: "2px solid #000", margin: "8px 0" }} />
