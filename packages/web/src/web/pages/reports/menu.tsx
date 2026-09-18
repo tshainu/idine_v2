@@ -5,6 +5,22 @@ import { getBranchId, getUser } from "../../lib/store";
 import { ReportLayout, DataTable, ViewToggle, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
 import type { ColDef } from "./layout";
 
+type DateFilter = "today" | "yesterday" | "week" | "month" | "year" | "custom";
+
+function dateRange(filter: DateFilter, from: string, to: string): [Date, Date] {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (filter === "today") return [startOfDay(now), now];
+  if (filter === "yesterday") {
+    const d = new Date(now); d.setDate(d.getDate() - 1);
+    return [startOfDay(d), new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59)];
+  }
+  if (filter === "week") { const d = new Date(now); d.setDate(d.getDate() - 6); return [startOfDay(d), now]; }
+  if (filter === "month") return [new Date(now.getFullYear(), now.getMonth(), 1), now];
+  if (filter === "year") return [new Date(now.getFullYear(), 0, 1), now];
+  return [from ? new Date(`${from}T00:00:00`) : new Date(0), to ? new Date(`${to}T23:59:59`) : now];
+}
+
 const TABLE_COLS: ColDef[] = [
   { key: "rank",      label: "#",        align: "right" },
   { key: "name",      label: "Item Name" },
@@ -23,6 +39,9 @@ export default function MenuReport() {
   const user = getUser();
   const [tab, setTab] = useState<"top10" | "least" | "profitable" | "matrix">("top10");
   const [view, setView] = useState<"summary" | "table">("summary");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("today");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
@@ -41,6 +60,12 @@ export default function MenuReport() {
   const menuItems: any[] = (menuData as any)?.menuItems || [];
   const categories: any[] = (catsData as any)?.categories || [];
   const isFinalized = (order: any) => ["completed", "billed", "paid"].includes(String(order.status || "").toLowerCase());
+  const [start, end] = dateRange(dateFilter, from, to);
+  const filteredOrders = useMemo(() => allOrders.filter(o => {
+    if (!isFinalized(o)) return false;
+    const created = new Date(o.createdAt);
+    return created >= start && created <= end;
+  }), [allOrders, dateFilter, from, to, start.getTime(), end.getTime()]);
 
   const catMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -50,7 +75,7 @@ export default function MenuReport() {
 
   const itemStats = useMemo(() => {
     const map: Record<string, { id: number; name: string; qty: number; revenue: number; category: string }> = {};
-    allOrders.filter(isFinalized).forEach(o => {
+    filteredOrders.forEach(o => {
       (o.items || []).forEach((it: any) => {
         const key = String(it.menuItemId || it.name);
         if (!map[key]) {
@@ -63,7 +88,7 @@ export default function MenuReport() {
       });
     });
     return Object.values(map);
-  }, [allOrders, menuItems, catMap]);
+  }, [filteredOrders, menuItems, catMap]);
 
   const avgRev = itemStats.reduce((s, i) => s + i.revenue, 0) / (itemStats.length || 1);
   const avgQty = itemStats.reduce((s, i) => s + i.qty, 0) / (itemStats.length || 1);
@@ -127,6 +152,17 @@ export default function MenuReport() {
 
   return (
     <ReportLayout title="Menu Performance">
+      <div className="flex flex-wrap gap-2 items-center mb-4">
+        <span className="text-xs" style={{ color: DIM }}>Period:</span>
+        {([['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year'], ['custom', 'Custom']] as [DateFilter, string][]).map(([key, label]) => (
+          <button key={key} onClick={() => setDateFilter(key)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border" style={{ background: dateFilter === key ? GOLD : "transparent", color: dateFilter === key ? "var(--color-surface)" : MUTED, borderColor: dateFilter === key ? GOLD : BORD }}>{label}</button>
+        ))}
+        {dateFilter === "custom" && <>
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border" style={{ background: SURF, borderColor: BORD, color: TEXT }} />
+          <span className="text-xs" style={{ color: DIM }}>to</span>
+          <input type="date" value={to} onChange={e => setTo(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border" style={{ background: SURF, borderColor: BORD, color: TEXT }} />
+        </>}
+      </div>
       {/* Header row */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
@@ -148,7 +184,7 @@ export default function MenuReport() {
       {/* TABLE VIEW */}
       {view === "table" ? (
         <DataTable
-          title={`All Menu Items (${tableRows.length})`}
+          title={`Menu Items (${tableRows.length})`}
           columns={TABLE_COLS}
           rows={tableRows}
           exportName="menu-report"
