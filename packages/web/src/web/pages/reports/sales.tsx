@@ -31,6 +31,7 @@ const TABLE_COLS: ColDef[] = [
   { key: "orderNumber", label: "Order #" },
   { key: "date", label: "Date" },
   { key: "type", label: "Type" },
+  { key: "paymentMethod", label: "Payment Method" },
   { key: "status", label: "Status", render: (v) => (
     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
       style={{
@@ -110,6 +111,7 @@ export default function SalesReport() {
     orderNumber: o.orderNumber,
     date: new Date(o.createdAt).toLocaleString("en", { dateStyle: "short", timeStyle: "short" }),
     type: o.type,
+    paymentMethod: parts.map((p: any) => String(p.method || "Other")).join(" + "),
     status: o.status,
     customerName: o.customerName || "Walk-in",
     subtotal: o.subtotal,
@@ -172,6 +174,7 @@ export default function SalesReport() {
           title={`All Orders (${orders.length})`}
           columns={TABLE_COLS}
           rows={tableRows}
+          filterKeys={["orderNumber", "date", "type", "paymentMethod", "status", "customerName"]}
           exportName="sales-report"
         />
       ) : (

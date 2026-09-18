@@ -33,13 +33,14 @@ export type ColDef = {
 
 /* ── DataTable ────────────────────────────────────────── */
 export function DataTable({
-  columns, rows, pageSize = 50, title, exportName,
+  columns, rows, pageSize = 50, title, exportName, filterKeys,
 }: {
   columns: ColDef[];
   rows: Record<string, any>[];
   pageSize?: number;
   title?: string;
   exportName?: string;
+  filterKeys?: string[];
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(pageSize);
@@ -55,6 +56,7 @@ export function DataTable({
     columns.every(c => !filters[c.key] || String(r[c.key] ?? "") === filters[c.key])
   );
   const uniqueValues = useMemo(() => Object.fromEntries(columns.map(c => [c.key, [...new Set(rows.map(r => String(r[c.key] ?? "")).filter(Boolean))].sort()])), [rows, columns]);
+  const filterColumns = filterKeys ? columns.filter(c => filterKeys.includes(c.key)) : columns;
 
   const sorted = sortKey
     ? [...filtered].sort((a, b) => {
@@ -216,7 +218,7 @@ export function DataTable({
               <button onClick={() => setFilterOpen(false)} className="text-xs" style={{ color: MUTED }}>Close</button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
-              {columns.map(c => (
+              {filterColumns.map(c => (
                 <label key={c.key} className="text-xs" style={{ color: MUTED }}>
                   {c.label}
                   <select value={draftFilters[c.key] || ""} onChange={e => setDraftFilters(prev => ({ ...prev, [c.key]: e.target.value }))} className="mt-1 w-full rounded-lg border px-2 py-2" style={{ background: SURF, borderColor: BORD, color: TEXT }}>
