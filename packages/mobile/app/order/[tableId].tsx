@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
   FlatList, Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -19,6 +19,7 @@ import { useOpenOrderForTable, useSendToKitchen, useUpdateRunningOrder } from ".
 import { useReprintKot, useSendKot } from "../../queries/print";
 import { lkr, elapsed } from "../../lib/format";
 import { http } from "../../lib/http";
+import { syncPrinterConfigFromPos } from "../../lib/printer";
 import type { CartLine, Customer, MenuItem, Modifier, Order, OrderItem, Variation } from "../../lib/types";
 
 const c = Colors.light;
@@ -104,6 +105,9 @@ export default function TakeOrderScreen() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reasonModal, setReasonModal] = useState<{ summary: string } | null>(null);
+  const [reasonText, setReasonText] = useState("");
+  const reasonResolver = useRef<((reason: string) => void) | null>(null);
   const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
   const [pressedItems, setPressedItems] = useState<Set<number>>(() => new Set());
   const pressedTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -138,6 +142,7 @@ export default function TakeOrderScreen() {
   // carry the same category routing into the server print queue.
   useEffect(() => {
     if (!branchId) return;
+    syncPrinterConfigFromPos(branchId).catch(() => undefined);
     http.get<{ settings: Record<string, string> }>("/settings", { branchId })
       .then(({ settings }) => {
         try {
@@ -154,14 +159,17 @@ export default function TakeOrderScreen() {
         }
       })
       .catch(() => setCategoryPrinterMap({}));
+    const timer = setInterval(() => { syncPrinterConfigFromPos(branchId).catch(() => undefined); }, 60_000);
+    return () => clearInterval(timer);
   }, [branchId]);
 
   useEffect(() => () => {
     for (const timer of pressedTimers.current.values()) clearTimeout(timer);
   }, []);
 
+  const deferredSearch = useDeferredValue(search);
   const items = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = deferredSearch.trim().toLowerCase();
     const categoryNames = new Map(
       (categories.data ?? []).map((category) => [category.id, category.name.toLowerCase()]),
     );
@@ -172,7 +180,7 @@ export default function TakeOrderScreen() {
         const categoryMatch = categoryNames.get(item.categoryId ?? -1)?.includes(term) ?? false;
         return categoryMatch || item.name.toLowerCase().includes(term) || (item.code ?? "").toLowerCase().includes(term);
       });
-  }, [menu.data, categories.data, cat, search]);
+  }, [menu.data, categories.data, cat, deferredSearch]);
 
   const cartTotal = cart.reduce(
     (s, l) => s + (l.unitPrice + l.modifiers.reduce((m, x) => m + x.price, 0)) * l.qty,
@@ -202,7 +210,8 @@ export default function TakeOrderScreen() {
           name: variation ? `${item.name} (${variation.name})` : item.name,
           unitPrice: priceOf(item, variation),
           qty,
-          printerId: item.printerId ?? categoryPrinterMap[item.categoryId ?? -1] ?? null,
+          // POS category routing is authoritative; legacy item printer IDs are fallback only.
+          printerId: categoryPrinterMap[item.categoryId ?? -1] ?? item.printerId ?? null,
           variationName: variation?.name ?? null,
           modifiers: mods.map((m) => ({ id: m.id, name: m.name, price: m.price })),
           note,
@@ -244,6 +253,14 @@ export default function TakeOrderScreen() {
     setCustomerName(customer.name);
     setCustomerPhone(customer.phone ?? "");
     setCustomerOpen(false);
+  }
+
+  function askModificationReason(summary: string): Promise<string> {
+    return new Promise((resolve) => {
+      reasonResolver.current = resolve;
+      setReasonText("");
+      setReasonModal({ summary });
+    });
   }
 
   async function beginEdit() {
@@ -294,6 +311,16 @@ export default function TakeOrderScreen() {
       const targetOrder = editingOrder ?? openOrder;
       if (editMode && targetOrder) {
         const existingIds = new Set((targetOrder.items ?? []).map((item) => item.id));
+        const nextById = new Map(cart.filter((line) => line.orderItemId).map((line) => [line.orderItemId!, line]));
+        const reductions = (targetOrder.items ?? [])
+          .map((item) => ({ item, next: nextById.get(item.id) }))
+          .filter(({ item, next }) => !next || next.qty < item.qty)
+          .map(({ item, next }) => ({ item, qtyAfter: next?.qty ?? 0, qtyReduced: item.qty - (next?.qty ?? 0) }));
+        let modificationReason = "";
+        if (reductions.length) {
+          modificationReason = await askModificationReason(reductions.map(({ item, qtyReduced }) => `${item.name} ×${qtyReduced}`).join("\n"));
+          if (!modificationReason) return;
+        }
         const updates = cart
           .filter((line) => line.orderItemId && existingIds.has(line.orderItemId))
           .map((line) => ({ id: line.orderItemId!, qty: line.qty, note: line.note || null }));
@@ -308,6 +335,22 @@ export default function TakeOrderScreen() {
           removeIds,
           additions,
         });
+        if (reductions.length) {
+          await Promise.all(reductions.map(({ item, qtyAfter, qtyReduced }) => http.post("/modifications", {
+            branchId,
+            orderId: targetOrder.id,
+            orderItemId: item.id,
+            orderNumber: targetOrder.orderNumber,
+            tableName: table?.name ?? printTableName,
+            userId: waiterId,
+            userName: waiterName,
+            itemName: item.name,
+            qtyBefore: item.qty,
+            qtyAfter,
+            qtyReduced,
+            reason: modificationReason,
+          }).catch(() => undefined)));
+        }
         const deltaItems = runningOrderDelta(targetOrder.items ?? [], cart);
         let print = { ok: true, message: "Order details updated." };
         if (deltaItems.length) {
@@ -549,6 +592,10 @@ export default function TakeOrderScreen() {
           columnWrapperStyle={s.menuRow}
           contentContainerStyle={s.groupedGrid}
           keyboardShouldPersistTaps="handled"
+          initialNumToRender={18}
+          maxToRenderPerBatch={18}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === "android"}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <DishTile
@@ -651,6 +698,19 @@ export default function TakeOrderScreen() {
           </View>
         </View>
       </Modal>
+      <Modal visible={!!reasonModal} animationType="fade" transparent onRequestClose={() => { reasonResolver.current?.(""); reasonResolver.current = null; setReasonModal(null); }}>
+        <View style={s.reasonBackdrop}>
+          <View style={s.reasonCard}>
+            <Text style={s.sheetTitle}>Reason for canceled quantity</Text>
+            <Text style={s.reasonSummary}>{reasonModal?.summary}</Text>
+            <TextInput value={reasonText} onChangeText={setReasonText} placeholder="Enter reason" placeholderTextColor={c.mutedSoft} style={s.reasonInput} autoFocus multiline />
+            <View style={s.reasonActions}>
+              <TouchableOpacity onPress={() => { reasonResolver.current?.(""); reasonResolver.current = null; setReasonModal(null); }} style={s.reasonCancel}><Text style={s.reasonCancelText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { const value = reasonText.trim(); if (!value) return; reasonResolver.current?.(value); reasonResolver.current = null; setReasonModal(null); }} style={s.reasonSave}><Text style={s.reasonSaveText}>Save reason</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -666,9 +726,7 @@ const DishTile = memo(function DishTile({ item, inCart, pressed, onPress }: {
     <TouchableOpacity
       style={[s.tile, (inCart > 0 || pressed) && s.tileSelected]}
       activeOpacity={0.85}
-      // Start selection on touch-down instead of waiting for touch-up and
-      // image/list work; this makes every dish respond like the fast juice cards.
-      onPressIn={() => onPress(item)}
+      onPress={() => onPress(item)}
     >
       <View style={s.imgWrap}>
         {uri ? (
@@ -1105,4 +1163,13 @@ const s = StyleSheet.create({
   cartLineActions: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm, marginTop: Space.sm },
   cartLineAction: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: Space.sm, paddingVertical: 6, borderRadius: Radius.sm, backgroundColor: c.primarySoft, borderWidth: 1, borderColor: c.primary },
   cartLineActionText: { fontFamily: Fonts.medium, fontSize: 10.5, color: c.primaryDark },
+  reasonBackdrop: { flex: 1, backgroundColor: "#0B102099", justifyContent: "center", padding: Space.lg },
+  reasonCard: { backgroundColor: c.card, borderRadius: Radius.xl, padding: Space.lg, gap: Space.md },
+  reasonSummary: { fontFamily: Fonts.medium, fontSize: 13, color: c.muted },
+  reasonInput: { backgroundColor: c.background, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border, minHeight: 86, padding: Space.md, fontFamily: Fonts.regular, fontSize: 14, color: c.foreground, textAlignVertical: "top" },
+  reasonActions: { flexDirection: "row", justifyContent: "flex-end", gap: Space.sm },
+  reasonCancel: { paddingHorizontal: Space.md, paddingVertical: 10, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border },
+  reasonCancelText: { fontFamily: Fonts.semibold, color: c.muted },
+  reasonSave: { paddingHorizontal: Space.md, paddingVertical: 10, borderRadius: Radius.md, backgroundColor: c.primary },
+  reasonSaveText: { fontFamily: Fonts.bold, color: c.onPrimary },
 });

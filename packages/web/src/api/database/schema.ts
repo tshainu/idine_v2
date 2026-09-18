@@ -260,6 +260,24 @@ export const orderItems = sqliteTable("order_items", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// Waiter amendments and cancellation reasons for audit/reporting.
+export const orderModifications = sqliteTable("order_modifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  orderId: integer("order_id").references(() => orders.id),
+  orderItemId: integer("order_item_id").references(() => orderItems.id),
+  orderNumber: text("order_number"),
+  tableName: text("table_name"),
+  userId: integer("user_id").references(() => users.id),
+  userName: text("user_name"),
+  itemName: text("item_name").notNull(),
+  qtyBefore: integer("qty_before").notNull().default(0),
+  qtyAfter: integer("qty_after").notNull().default(0),
+  qtyReduced: integer("qty_reduced").notNull().default(0),
+  reason: text("reason").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Print Jobs
 export const printJobs = sqliteTable("print_jobs", {
   id: integer("id").primaryKey({ autoIncrement: true }),

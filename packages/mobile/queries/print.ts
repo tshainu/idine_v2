@@ -120,10 +120,8 @@ export function useSendKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      let config = await loadPrinterConfig();
-      if (input.branchId) {
-        try { config = await syncPrinterConfigFromPos(input.branchId); } catch { /* use last saved config */ }
-      }
+      const config = await loadPrinterConfig();
+      if (input.branchId) syncPrinterConfigFromPos(input.branchId).catch(() => undefined);
       const groups = groupByPrinter(input.items);
       // One combined ticket for the waiter's own printer; the server queue splits per station.
       const payload: KotPayload = {
@@ -145,12 +143,12 @@ export function useSendKot() {
 
       // Mark the printed lines so the next round only prints what is new.
       if (result.ok) {
-        await Promise.all(
+        void Promise.all(
           input.items.map((i) =>
             http.patch(`/order-items/${i.id}`, { kotPrinted: true }).catch(() => undefined),
           ),
         );
-        await http
+        void http
           .patch(`/orders/${input.order.id}`, { kotPrinted: true })
           .catch(() => undefined);
       }
@@ -177,10 +175,8 @@ export function useReprintKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      let config = await loadPrinterConfig();
-      if (input.branchId) {
-        try { config = await syncPrinterConfigFromPos(input.branchId); } catch { /* use last saved config */ }
-      }
+      const config = await loadPrinterConfig();
+      if (input.branchId) syncPrinterConfigFromPos(input.branchId).catch(() => undefined);
       const nonce = String(Date.now());
       const payload: KotPayload = {
         orderNumber: input.order.orderNumber,

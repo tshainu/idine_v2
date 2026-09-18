@@ -7,6 +7,7 @@ import { Colors, Fonts, Radius, Shadow, Space } from "../../constants/theme";
 import { Loading, EmptyState, ErrorBanner } from "../../components/ui";
 import { useSession } from "../../hooks/use-session";
 import { useTables } from "../../queries/tables";
+import { useOrders } from "../../queries/orders";
 import type { Table } from "../../lib/types";
 
 const c = Colors.light;
@@ -15,6 +16,7 @@ export default function TablesScreen() {
   const router = useRouter();
   const { branchId } = useSession();
   const tables = useTables(branchId);
+  const orders = useOrders(branchId, { poll: 10_000 });
   const [zone, setZone] = useState<string>("all");
 
   const zones = useMemo(() => {
@@ -95,6 +97,7 @@ export default function TablesScreen() {
                 key={table.id}
                 table={table}
                 onPress={() => router.push(`/order/${table.id}?new=1`)}
+                runningCount={(orders.data ?? []).filter((order) => order.tableId === table.id && ["pending", "confirmed", "served", "ready", "hold"].includes(order.status)).length}
               />
             ))}
           </View>
@@ -104,10 +107,13 @@ export default function TablesScreen() {
   );
 }
 
-function TableTile({ table, onPress }: { table: Table; onPress: () => void }) {
+function TableTile({ table, onPress, runningCount }: { table: Table; onPress: () => void; runningCount: number }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.82} style={s.tile}>
-      <Text style={s.tileName} numberOfLines={1}>{table.name}</Text>
+      <View style={s.tileNameRow}>
+        <Text style={s.tileName} numberOfLines={1}>{table.name}</Text>
+        {runningCount > 0 ? <View style={s.orderBadge}><Text style={s.orderBadgeText}>{runningCount}</Text></View> : null}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -137,4 +143,7 @@ const s = StyleSheet.create({
     padding: Space.lg, alignItems: "center", justifyContent: "center", ...Shadow.card,
   },
   tileName: { fontFamily: Fonts.bold, fontSize: 22, color: c.foreground, textAlign: "center" },
+  tileNameRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  orderBadge: { minWidth: 24, height: 24, paddingHorizontal: 6, borderRadius: 12, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" },
+  orderBadgeText: { fontFamily: Fonts.bold, fontSize: 12, color: c.onPrimary },
 });

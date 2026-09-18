@@ -88,6 +88,7 @@ const NAV: NavSection[] = [
       { path: "/reports/kot", label: "KOT Report", icon: Receipt },
       { path: "/reports/cashier-sales", label: "Cashier-wide Sales", icon: TrendingUp },
       { path: "/reports/orders", label: "Orders Report", icon: Receipt },
+      { path: "/reports/modifications", label: "Modification Report", icon: Receipt },
     ],
   },
 ];
