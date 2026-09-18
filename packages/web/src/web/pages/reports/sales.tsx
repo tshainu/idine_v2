@@ -81,7 +81,13 @@ export default function SalesReport() {
   const discounts = grossSales * 0.05;
   const netSales = grossSales - discounts;
   const avgBill = completed.length ? grossSales / completed.length : 0;
-  const refunds = orders.filter(o => ["refunded", "partially_refunded"].includes(String(o.status || "").toLowerCase())).reduce((s, o) => s + Math.abs(Number(o.total) || 0), 0);
+  // A refund creates one explicit negative REF- transaction. The original
+  // order is also marked refunded/partially_refunded, so counting by status
+  // alone double-counts refunds and can show a refund when no refund payment
+  // was issued. Count only the generated refund transaction itself.
+  const refunds = orders
+    .filter(o => /^REF-/i.test(String(o.orderNumber || "")) && String(o.status || "").toLowerCase() === "refunded")
+    .reduce((s, o) => s + Math.abs(Number(o.total) || 0), 0);
   const pctChange = prevGross > 0 ? ((grossSales - prevGross) / prevGross) * 100 : null;
 
   const days: { label: string; rev: number }[] = [];
