@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { directPrint, isNetworkPrinter, parsePrinterSetup, resolvePrinter, type PrinterRow } from "../lib/direct-print";
+import { directPrint, isNetworkPrinter, parsePrinterSetup, resolvePrinter, routeKotItems, type PrinterRow } from "../lib/direct-print";
 import { getBranchId, getUser } from "../lib/store";
 import { Spinner } from "../components/ui/spinner";
 import {
@@ -1330,15 +1330,22 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
 }
 
 // ── KOT print preview overlay (mirrors InvoiceOverlay: preview + native browser print dialog) ──
-function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void; onPrinted: () => void }) {
+function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; onPrint: () => Promise<boolean> }) {
   const printId = "idine-kot-printable";
   const typeLabel = kot.type === "dine-in" ? "DINE IN" : kot.type === "takeaway" ? "TAKEAWAY" : kot.type === "delivery" ? "DELIVERY" : (kot.type || "").toUpperCase();
   const now = new Date();
+  const [printing, setPrinting] = useState(false);
 
   /** Open the normal Windows/browser print dialog for the rendered KOT ticket. */
-  function handlePrintKot() {
-    triggerPrint(printId);
-    onPrinted();
+  async function handlePrintKot() {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      const useBrowser = await onPrint();
+      if (useBrowser) triggerPrint(printId);
+    } finally {
+      setPrinting(false);
+    }
   }
 
   return (
@@ -1411,10 +1418,10 @@ function KotOverlay({ kot, onClose, onPrinted }: { kot: any; onClose: () => void
             style={{ color: "#000", borderColor: "#d1d5db", background: "#fff" }}>
             Skip
           </button>
-          <button onClick={handlePrintKot}
+          <button onClick={handlePrintKot} disabled={printing}
             className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
             style={{ background: "#111", color: "#fff" }}>
-            <Printer size={13} /> Print KOT
+            {printing ? <Spinner size={13} /> : <Printer size={13} />} {printing ? "Sending…" : "Print KOT"}
           </button>
         </div>
       </div>
@@ -1565,6 +1572,13 @@ export default function POSPage() {
     queryFn: async () => (await api.settings.$get({ query: { branchId: String(branchId) } })).json(),
     staleTime: 30_000,
   });
+  const { data: printersData } = useQuery({
+    queryKey: ["printers", branchId],
+    queryFn: async () => (await api.printers.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30_000,
+  });
+  const kotPrinters: PrinterRow[] = ((printersData as any)?.printers || []) as PrinterRow[];
+  const kotPrinterSetup = parsePrinterSetup((printerSettingsData as any)?.settings || {});
   // categoryPrinterMap: { [categoryId]: printerId }
   const categoryPrinterMap = useMemo<Record<number, number>>(() => {
     try {
@@ -2744,10 +2758,32 @@ export default function POSPage() {
         <KotOverlay
           kot={{ ...pendingKot, tableName: pendingKot.tableName || tables.find((table: any) => Number(table.id) === Number(pendingKot.tableId))?.name || null }}
           onClose={() => setPendingKot(null)}
-          onPrinted={() => {
+          onPrint={async () => {
+            const groups = routeKotItems(pendingKot.items || [], kotPrinterSetup, kotPrinters);
+            const networkGroups = groups.filter(g => isNetworkPrinter(g.printer.connection) && !!g.printer.ipAddress);
+            if (!networkGroups.length) {
+              if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);
+              showToast("No network KOT printer is configured; opening browser print.");
+              setPendingKot(null);
+              return true;
+            }
+            const results = await Promise.all(networkGroups.map(group => directPrint({
+              branchId,
+              orderId: pendingKot.orderId,
+              printerId: group.printer.id,
+              type: "kot",
+              idempotencyKey: `kot-${pendingKot.orderId}-${group.printer.id}-${(pendingKot.itemIds || []).join("-")}`,
+              payload: { ...pendingKot, items: group.items },
+            })));
+            const failed = results.find(r => !r.ok);
+            if (failed) {
+              showToast(failed.message || "KOT printing failed; it was queued for retry.");
+              return false;
+            }
             if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);
-            showToast("KOT sent to print.");
+            showToast("KOT sent to configured kitchen printer(s).");
             setPendingKot(null);
+            return false;
           }}
         />
       )}

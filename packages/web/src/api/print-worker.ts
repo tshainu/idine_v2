@@ -220,8 +220,11 @@ const MAX_ATTEMPTS = 3;
 
 export async function runPrintWorker(): Promise<void> {
   console.log("[print-worker] started — polling every 3s");
+  let ticking = false;
 
   async function tick() {
+    if (ticking) return;
+    ticking = true;
     try {
       // Pick up jobs: pending OR failed with attempts < MAX_ATTEMPTS
       const jobs = await db
@@ -246,9 +249,17 @@ export async function runPrintWorker(): Promise<void> {
 
         try {
           // Look up the printer
-          const [printer] = job.printerId
+          let [printer] = job.printerId
             ? await db.select().from(schema.printers).where(eq(schema.printers.id, job.printerId))
             : [];
+          // Legacy/mobile jobs may have no printer ID. Route them to the first
+          // active network printer in the same branch instead of dropping them.
+          if (!printer) {
+            const candidates = await db.select().from(schema.printers).where(
+              job.branchId ? eq(schema.printers.branchId, job.branchId) : undefined as any,
+            );
+            printer = candidates.find(p => p.isActive !== false && isNetworkPrinter(p.connection) && !!p.ipAddress);
+          }
 
           if (!printer) throw new Error(`Printer ${job.printerId} not found`);
           if (!isNetworkPrinter(printer.connection) || !printer.ipAddress) {
@@ -281,6 +292,8 @@ export async function runPrintWorker(): Promise<void> {
       }
     } catch (err: any) {
       console.error("[print-worker] tick error:", err.message);
+    } finally {
+      ticking = false;
     }
   }
 

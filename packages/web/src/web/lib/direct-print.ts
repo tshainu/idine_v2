@@ -74,6 +74,7 @@ export async function directPrint(args: {
       return { ok: false, fallback: true, message: data?.error || "Windows printer — using browser dialog." };
     }
     if (data?.ok) return { ok: true, message: `Sent to ${data.printer || "printer"}.` };
+    if (data?.queued) return { ok: true, message: data?.error || "Print job queued for retry." };
     return { ok: false, message: data?.error || "Print failed." };
   } catch (err: any) {
     return { ok: false, message: err?.message || "Could not reach the print service." };
