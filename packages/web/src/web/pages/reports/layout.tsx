@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Sidebar } from "../../components/layout/sidebar";
 import {
   TrendingUp, UtensilsCrossed, Package, DollarSign, Users, Heart,
-  LayoutGrid, Table, ChevronLeft, ChevronRight, Download,
+  LayoutGrid, Table, ChevronLeft, ChevronRight, Download, SlidersHorizontal,
 } from "lucide-react";
 
 export const GOLD = "var(--color-gold)";
@@ -46,10 +46,15 @@ export function DataTable({
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [draftFilters, setDraftFilters] = useState<Record<string, string>>({});
 
   const filtered = rows.filter(r =>
-    columns.some(c => String(r[c.key] ?? "").toLowerCase().includes(search.toLowerCase()))
+    columns.some(c => String(r[c.key] ?? "").toLowerCase().includes(search.toLowerCase())) &&
+    columns.every(c => !filters[c.key] || String(r[c.key] ?? "") === filters[c.key])
   );
+  const uniqueValues = useMemo(() => Object.fromEntries(columns.map(c => [c.key, [...new Set(rows.map(r => String(r[c.key] ?? "")).filter(Boolean))].sort()])), [rows, columns]);
 
   const sorted = sortKey
     ? [...filtered].sort((a, b) => {
@@ -103,6 +108,11 @@ export function DataTable({
             <option value={500}>500</option>
             <option value={-1}>All</option>
           </select>
+          <button onClick={() => { setDraftFilters(filters); setFilterOpen(true); }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+            style={{ borderColor: Object.keys(filters).length ? GOLD : BORD, color: Object.keys(filters).length ? GOLD : MUTED, background: "transparent" }}>
+            <SlidersHorizontal size={12} /> Filter{Object.keys(filters).length ? ` (${Object.keys(filters).length})` : ""}
+          </button>
           <input
             value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search…"
@@ -263,6 +273,6 @@ export function ReportLayout({ title, children }: { title: string; children: Rea
           {children}
         </div>
       </div>
-    </div>
+      </div>
   );
 }

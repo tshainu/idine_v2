@@ -78,7 +78,7 @@ const NAV: NavSection[] = [
   {
     id: "reports", type: "group", label: "Reports", icon: BarChart3,
     items: [
-      { path: "/reports/sales",     label: "Sales Performance",  icon: TrendingUp },
+      { path: "/reports/sales",     label: "Sales Report",        icon: TrendingUp },
       { path: "/reports/menu",      label: "Menu Performance",   icon: UtensilsCrossed },
       { path: "/reports/inventory", label: "Inventory & Stock",  icon: SlidersHorizontal },
       { path: "/reports/pl",        label: "Profit & Loss",      icon: BarChart3 },
@@ -87,6 +87,7 @@ const NAV: NavSection[] = [
       { path: "/reports/settlements", label: "Settlement Report", icon: Receipt },
       { path: "/reports/kot", label: "KOT Report", icon: Receipt },
       { path: "/reports/cashier-sales", label: "Cashier-wide Sales", icon: TrendingUp },
+      { path: "/reports/orders", label: "Orders Report", icon: Receipt },
     ],
   },
 ];
