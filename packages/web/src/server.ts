@@ -52,13 +52,24 @@ const server = Bun.serve({
     const file = Bun.file(filePath);
 
     if (await file.exists()) {
-      return new Response(file);
+      const isIndex = url.pathname === "/" || url.pathname === "/index.html";
+      return new Response(file, isIndex ? {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          Pragma: "no-cache",
+        },
+      } : undefined);
     }
 
     const index = Bun.file(indexPath);
     if (await index.exists()) {
       return new Response(index, {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          Pragma: "no-cache",
+        },
       });
     }
 
