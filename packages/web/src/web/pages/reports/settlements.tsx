@@ -64,13 +64,22 @@ export default function SettlementReport() {
   const orders: any[] = (ordersData as any)?.orders || [];
   const settlementOrders = (settlement: any) => {
     const currentTs = toMs(settlement.settlementDate);
-    const sameDay = settlements.filter(row => new Date(toMs(row.settlementDate)).toDateString() === new Date(currentTs).toDateString());
+    const settlementUserId = settlement.settledById != null ? String(settlement.settledById) : "";
+    const settlementUserName = String(settlement.settledByName || "").trim().toLowerCase();
+    const sameDay = settlements.filter(row => {
+      if (new Date(toMs(row.settlementDate)).toDateString() !== new Date(currentTs).toDateString()) return false;
+      if (settlementUserId) return String(row.settledById ?? "") === settlementUserId;
+      return String(row.settledByName || "").trim().toLowerCase() === settlementUserName;
+    });
     const previous = sameDay.filter(row => toMs(row.settlementDate) < currentTs).sort((a, b) => toMs(b.settlementDate) - toMs(a.settlementDate))[0];
     const dayStart = new Date(currentTs); dayStart.setHours(0, 0, 0, 0);
     const startTs = Math.max(dayStart.getTime(), previous ? toMs(previous.settlementDate) : 0);
     return orders.filter(order => {
       const ts = toMs(order.createdAt);
-      return ts >= startTs && ts <= currentTs && ["completed", "billed", "paid"].includes(String(order.status).toLowerCase());
+      const ownerMatch = settlementUserId
+        ? String(order.cashierId ?? "") === settlementUserId || String(order.placedBy || "").trim().toLowerCase() === settlementUserName
+        : String(order.placedBy || "").trim().toLowerCase() === settlementUserName;
+      return ownerMatch && ts >= startTs && ts <= currentTs && ["completed", "billed", "paid"].includes(String(order.status).toLowerCase());
     }).sort((a, b) => toMs(a.createdAt) - toMs(b.createdAt));
   };
   const filtered = useMemo(() => {
