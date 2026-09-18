@@ -23,6 +23,8 @@ import PLReport from "./pages/reports/pl";
 import StaffReport from "./pages/reports/staff";
 import CustomerAnalytics from "./pages/reports/customers";
 import SettlementReport from "./pages/reports/settlements";
+import KOTReport from "./pages/reports/kot";
+import CashierSalesReport from "./pages/reports/cashier-sales";
 import Kitchen from "./pages/kitchen";
 import Settings from "./pages/settings";
 import Users from "./pages/users";
@@ -67,6 +69,8 @@ function App() {
         <Route path="/reports/staff" component={StaffReport} />
         <Route path="/reports/customers" component={CustomerAnalytics} />
         <Route path="/reports/settlements" component={SettlementReport} />
+        <Route path="/reports/kot" component={KOTReport} />
+        <Route path="/reports/cashier-sales" component={CashierSalesReport} />
         <Route path="/kitchen" component={Kitchen} />
         <Route path="/settings" component={Settings} />
         <Route path="/users" component={Users} />

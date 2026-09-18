@@ -284,7 +284,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-4">
             {/* Top items */}
             <div className="rounded-2xl p-5 border" style={{ background: SURF, borderColor: BORD }}>
-              <div className="font-semibold text-sm mb-4" style={{ color: TEXT }}>Top Selling Items</div>
+              <div className="font-semibold text-sm mb-4" style={{ color: TEXT }}>Top Selling Items <span className="font-normal text-xs" style={{ color: DIM }}>(Today)</span></div>
               {topItems.length === 0 ? (
                 <div className="text-center py-8 text-xs" style={{ color: DIM }}>No sales data yet</div>
               ) : (
