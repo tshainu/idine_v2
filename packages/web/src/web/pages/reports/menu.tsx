@@ -40,6 +40,7 @@ export default function MenuReport() {
   const allOrders: any[] = (ordersData as any)?.orders || [];
   const menuItems: any[] = (menuData as any)?.menuItems || [];
   const categories: any[] = (catsData as any)?.categories || [];
+  const isFinalized = (order: any) => ["completed", "billed", "paid"].includes(String(order.status || "").toLowerCase());
 
   const catMap = useMemo(() => {
     const m: Record<number, string> = {};
@@ -49,15 +50,16 @@ export default function MenuReport() {
 
   const itemStats = useMemo(() => {
     const map: Record<string, { id: number; name: string; qty: number; revenue: number; category: string }> = {};
-    allOrders.filter(o => o.status === "completed" || o.status === "billed").forEach(o => {
+    allOrders.filter(isFinalized).forEach(o => {
       (o.items || []).forEach((it: any) => {
         const key = String(it.menuItemId || it.name);
         if (!map[key]) {
           const mi = menuItems.find((m: any) => m.id === it.menuItemId);
           map[key] = { id: it.menuItemId, name: it.name || `Item #${key}`, qty: 0, revenue: 0, category: mi ? (catMap[mi.categoryId] || "Uncategorized") : "Uncategorized" };
         }
-        map[key].qty += it.quantity || it.qty || 1;
-        map[key].revenue += (it.price || 0) * (it.quantity || it.qty || 1);
+        const qty = Number(it.qty ?? it.quantity ?? 1);
+        map[key].qty += qty;
+        map[key].revenue += (Number(it.price) || 0) * qty;
       });
     });
     return Object.values(map);
