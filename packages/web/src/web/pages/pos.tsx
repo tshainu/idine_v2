@@ -1342,7 +1342,10 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
     setPrinting(true);
     try {
       const useBrowser = await onPrint();
-      if (useBrowser) triggerPrint(printId);
+      if (useBrowser) {
+        triggerPrint(printId);
+        onClose();
+      }
     } finally {
       setPrinting(false);
     }
@@ -2762,7 +2765,6 @@ export default function POSPage() {
             // Web POS KOTs use the normal Windows/browser print dialog. The
             // browser/Windows printer selection controls the destination.
             if (pendingKot.itemIds?.length > 0) markKotPrinted.mutate(pendingKot.itemIds);
-            setPendingKot(null);
             return true;
           }}
         />
