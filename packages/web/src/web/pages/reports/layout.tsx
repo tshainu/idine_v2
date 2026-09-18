@@ -33,7 +33,7 @@ export type ColDef = {
 
 /* ── DataTable ────────────────────────────────────────── */
 export function DataTable({
-  columns, rows, pageSize = 50, title, exportName, filterKeys,
+  columns, rows, pageSize = 50, title, exportName, filterKeys, totalKey,
 }: {
   columns: ColDef[];
   rows: Record<string, any>[];
@@ -41,6 +41,7 @@ export function DataTable({
   title?: string;
   exportName?: string;
   filterKeys?: string[];
+  totalKey?: string;
 }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(pageSize);
@@ -70,6 +71,7 @@ export function DataTable({
   const effectivePageSize = rowsPerPage === -1 ? Math.max(sorted.length, 1) : rowsPerPage;
   const totalPages = Math.max(1, Math.ceil(sorted.length / effectivePageSize));
   const slice = sorted.slice(page * effectivePageSize, page * effectivePageSize + effectivePageSize);
+  const totalAmount = totalKey ? sorted.reduce((sum, row) => sum + (Number(row[totalKey]) || 0), 0) : 0;
 
   function toggleSort(key: string) {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -177,6 +179,14 @@ export function DataTable({
               </tr>
             ))}
           </tbody>
+          {totalKey && (
+            <tfoot>
+              <tr className="border-t-2" style={{ borderColor: GOLD, background: BG }}>
+                <td colSpan={Math.max(columns.length - 1, 1)} className="py-3 px-3 text-right font-bold" style={{ color: TEXT }}>Total Amount</td>
+                <td className="py-3 px-3 text-right font-bold" style={{ color: GOLD }}>LKR {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 

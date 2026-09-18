@@ -175,6 +175,7 @@ export default function SalesReport() {
           columns={TABLE_COLS}
           rows={tableRows}
           filterKeys={["orderNumber", "date", "type", "paymentMethod", "status", "customerName"]}
+          totalKey="total"
           exportName="sales-report"
         />
       ) : (
