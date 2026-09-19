@@ -366,8 +366,8 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
   const discount = Number(order.discount || items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0));
   const total    = subtotal - discount + tax + charge + tips;
   const applyDiscount = useMutation({
-    mutationFn: async () => {
-      const selected = discounts.find(d => String(d.id) === discountId);
+    mutationFn: async (selectedId: number) => {
+      const selected = discounts.find(d => Number(d.id) === selectedId);
       if (!selected) throw new Error("Select a discount first.");
       const base = items.reduce((s: number, i: any) => s + Math.max(0, i.qty * i.price - Number(i.discount || 0)), 0);
       const amount = selected.type === "percent" ? base * Number(selected.value) / 100 : Number(selected.value);
@@ -380,6 +380,14 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["order-detail", order.id] }); qc.invalidateQueries({ queryKey: ["orders", order.branchId] }); setDiscountId(""); },
   });
+  useEffect(() => {
+    if (order.discount || order.discountName || !discounts.length) return;
+    const defaultDiscount = discounts.find(d => d.defaultFor === "all" || d.defaultFor === order.type);
+    if (defaultDiscount) {
+      setDiscountId(String(defaultDiscount.id));
+      applyDiscount.mutate(Number(defaultDiscount.id));
+    }
+  }, [order.id, order.type, order.discount, order.discountName, discounts.length]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "#00000099" }}>
@@ -460,7 +468,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
             <select value={discountId} onChange={e => setDiscountId(e.target.value)} className="flex-1 rounded border px-2 py-2 text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
               <option value="">Select discount…</option>{discounts.map(d => <option key={d.id} value={d.id}>{d.name} — {d.type === "percent" ? `${d.value}%` : `LKR ${Number(d.value).toFixed(2)}`}</option>)}
             </select>
-            <button disabled={!discountId || applyDiscount.isPending} onClick={() => applyDiscount.mutate()} className="rounded px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{applyDiscount.isPending ? "Applying…" : "Apply"}</button>
+            <button disabled={!discountId || applyDiscount.isPending} onClick={() => applyDiscount.mutate(Number(discountId))} className="rounded px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{applyDiscount.isPending ? "Applying…" : "Apply"}</button>
           </div>
           {applyDiscount.error && <div className="text-[11px] mt-1" style={{ color: "var(--color-danger)" }}>{(applyDiscount.error as Error).message}</div>}
         </div>

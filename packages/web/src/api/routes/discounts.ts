@@ -16,11 +16,13 @@ export const discounts = new Hono()
     const name = String(body.name || "").trim();
     const type = body.type === "amount" ? "amount" : "percent";
     const value = Number(body.value);
+    const defaultFor = ["", "all", "dine-in", "takeaway", "delivery"].includes(String(body.defaultFor)) ? String(body.defaultFor) : "";
     const branchId = Number(body.branchId);
     if (!name || !branchId || !Number.isFinite(value) || value < 0 || (type === "percent" && value > 100)) {
       return c.json({ error: "Enter a valid discount name, type, and value." }, 400);
     }
-    const [discount] = await db.insert(schema.discounts).values({ branchId, name, type, value }).returning();
+    if (defaultFor) await db.update(schema.discounts).set({ defaultFor: "" }).where(and(eq(schema.discounts.branchId, branchId), eq(schema.discounts.defaultFor, defaultFor)));
+    const [discount] = await db.insert(schema.discounts).values({ branchId, name, type, value, defaultFor }).returning();
     return c.json({ discount }, 201);
   })
   .patch("/:id", async (c) => {
@@ -30,8 +32,11 @@ export const discounts = new Hono()
     if (body.name !== undefined) patch.name = String(body.name).trim();
     if (body.type !== undefined) patch.type = body.type === "amount" ? "amount" : "percent";
     if (body.value !== undefined) patch.value = Number(body.value);
+    if (body.defaultFor !== undefined) patch.defaultFor = ["", "all", "dine-in", "takeaway", "delivery"].includes(String(body.defaultFor)) ? String(body.defaultFor) : "";
     if (body.isActive !== undefined) patch.isActive = Boolean(body.isActive);
     if (patch.type === "percent" && Number(patch.value) > 100) return c.json({ error: "Percentage cannot exceed 100." }, 400);
+    const [existing] = await db.select({ branchId: schema.discounts.branchId }).from(schema.discounts).where(eq(schema.discounts.id, id));
+    if (patch.defaultFor && existing?.branchId) await db.update(schema.discounts).set({ defaultFor: "" }).where(and(eq(schema.discounts.branchId, existing.branchId), eq(schema.discounts.defaultFor, patch.defaultFor)));
     const [discount] = await db.update(schema.discounts).set(patch).where(eq(schema.discounts.id, id)).returning();
     if (!discount) return c.json({ error: "Discount not found" }, 404);
     return c.json({ discount }, 200);

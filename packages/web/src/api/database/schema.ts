@@ -225,6 +225,7 @@ export const discounts = sqliteTable("discounts", {
   name: text("name").notNull(),
   type: text("type").notNull().default("percent"),
   value: real("value").notNull().default(0),
+  defaultFor: text("default_for").notNull().default(""), // "" | "all" | dine-in | takeaway | delivery
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
