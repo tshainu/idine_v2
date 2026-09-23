@@ -3,6 +3,20 @@ import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, and, asc, inArray, sql } from "drizzle-orm";
 
+function codeBase(name: string): string {
+  const words = String(name || "").toUpperCase().match(/[A-Z0-9]+/g) || [];
+  if (!words.length) return "ITEM";
+  while (words.length > 1 && /^\d+$/.test(words[0])) words.shift();
+  if (words.length === 1) return words[0].slice(0, 3);
+  const last = words[words.length - 1];
+  return words[0][0] + (/^\d/.test(last) ? last : last[0]);
+}
+
+async function generatedCode(branchId: number, name: string): Promise<string> {
+  void branchId;
+  return codeBase(name);
+}
+
 export const menuItems = new Hono()
   .get("/best-sellers", async (c) => {
     const branchId = c.req.query("branchId");
@@ -50,7 +64,11 @@ export const menuItems = new Hono()
   })
   .post("/", async (c) => {
     const body = await c.req.json();
-    const [item] = await db.insert(schema.menuItems).values(body).returning();
+    const values = { ...body };
+    if (!String(values.code || "").trim() && values.branchId && values.name) {
+      values.code = await generatedCode(Number(values.branchId), String(values.name));
+    }
+    const [item] = await db.insert(schema.menuItems).values(values).returning();
     return c.json({ menuItem: item }, 201);
   })
   .patch("/:id", async (c) => {

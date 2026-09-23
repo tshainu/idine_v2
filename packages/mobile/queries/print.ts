@@ -68,8 +68,10 @@ async function queueJobs(input: {
   customerPhone?: string | null;
   deltas?: KotDelta[];
   nonce?: string;
+  itemsOverride?: OrderItem[];
 }) {
-  const groups = groupByPrinter(input.items);
+  const itemsToQueue = input.itemsOverride ?? input.items;
+  const groups = groupByPrinter(itemsToQueue);
   const jobs = [...groups.entries()].map(([printerId, items]) => {
     const payload: KotPayload = {
       orderNumber: input.order.orderNumber,
@@ -120,8 +122,9 @@ export function useSendKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      const config = await loadPrinterConfig();
-      if (input.branchId) syncPrinterConfigFromPos(input.branchId).catch(() => undefined);
+      const config = input.branchId
+        ? await syncPrinterConfigFromPos(input.branchId).catch(() => loadPrinterConfig())
+        : await loadPrinterConfig();
       const groups = groupByPrinter(input.items);
       // One combined ticket for the waiter's own printer; the server queue splits per station.
       const payload: KotPayload = {
@@ -137,8 +140,9 @@ export function useSendKot() {
         printedAt: new Date(),
       };
 
-      const result = await printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async () => {
-        await queueJobs({ ...input, type: "kot" });
+      const result = await printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async (failedItems) => {
+        const selected = failedItems?.length ? input.items.filter((item) => failedItems.some((failed) => failed.name === item.name && failed.qty === item.qty && failed.printerId === item.printerId)) : input.items;
+        await queueJobs({ ...input, type: "kot", itemsOverride: selected });
       });
 
       // Mark the printed lines so the next round only prints what is new.
@@ -175,8 +179,9 @@ export function useReprintKot() {
       customerPhone?: string | null;
       deltas?: KotDelta[];
     }) => {
-      const config = await loadPrinterConfig();
-      if (input.branchId) syncPrinterConfigFromPos(input.branchId).catch(() => undefined);
+      const config = input.branchId
+        ? await syncPrinterConfigFromPos(input.branchId).catch(() => loadPrinterConfig())
+        : await loadPrinterConfig();
       const nonce = String(Date.now());
       const payload: KotPayload = {
         orderNumber: input.order.orderNumber,
@@ -190,8 +195,9 @@ export function useReprintKot() {
         mode: "update",
         printedAt: new Date(),
       };
-      return printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async () => {
-        await queueJobs({ ...input, type: "reprint", nonce });
+      return printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async (failedItems) => {
+        const selected = failedItems?.length ? input.items.filter((item) => failedItems.some((failed) => failed.name === item.name && failed.qty === item.qty && failed.printerId === item.printerId)) : input.items;
+        await queueJobs({ ...input, type: "reprint", nonce, itemsOverride: selected });
       });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["print-jobs"] }),

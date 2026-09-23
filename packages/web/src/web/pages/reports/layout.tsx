@@ -54,9 +54,23 @@ export function DataTable({
 
   const filtered = rows.filter(r =>
     columns.some(c => String(r[c.key] ?? "").toLowerCase().includes(search.toLowerCase())) &&
-    columns.every(c => !filters[c.key] || String(r[c.key] ?? "") === filters[c.key])
+    columns.every(c => {
+      const selected = filters[c.key];
+      if (!selected) return true;
+      const value = String(r[c.key] ?? "");
+      if (/payment/i.test(c.key) || /payment/i.test(c.label)) {
+        return value.split(/\s*\+\s*/).some(part => part.trim().toLowerCase() === selected.trim().toLowerCase());
+      }
+      return value === selected;
+    })
   );
-  const uniqueValues = useMemo(() => Object.fromEntries(columns.map(c => [c.key, [...new Set(rows.map(r => String(r[c.key] ?? "")).filter(Boolean))].sort()])), [rows, columns]);
+  const uniqueValues = useMemo(() => Object.fromEntries(columns.map(c => {
+    const values = new Set(rows.map(r => String(r[c.key] ?? "")).filter(Boolean));
+    if (/payment/i.test(c.key) || /payment/i.test(c.label)) {
+      ["Cash", "Credit Card", "QR Pay", "Check", "Bank Transfer", "Loyalty Point", "Other"].forEach(v => values.add(v));
+    }
+    return [c.key, [...values].sort()];
+  })), [rows, columns]);
   const filterColumns = filterKeys ? columns.filter(c => filterKeys.includes(c.key)) : columns;
 
   const sorted = sortKey

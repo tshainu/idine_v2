@@ -27,6 +27,7 @@ import KOTReport from "./pages/reports/kot";
 import CashierSalesReport from "./pages/reports/cashier-sales";
 import OrdersReport from "./pages/reports/orders";
 import ModificationReport from "./pages/reports/modifications";
+import ActivityLogReport from "./pages/reports/activity-logs";
 import Kitchen from "./pages/kitchen";
 import Settings from "./pages/settings";
 import Users from "./pages/users";
@@ -75,6 +76,7 @@ function App() {
         <Route path="/reports/cashier-sales" component={CashierSalesReport} />
         <Route path="/reports/orders" component={OrdersReport} />
         <Route path="/reports/modifications" component={ModificationReport} />
+        <Route path="/reports/activity-logs" component={ActivityLogReport} />
         <Route path="/kitchen" component={Kitchen} />
         <Route path="/settings" component={Settings} />
         <Route path="/users" component={Users} />

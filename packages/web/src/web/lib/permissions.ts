@@ -14,7 +14,7 @@ export const DEFAULT_ROLE_PRIVILEGES: Record<string, Record<string, boolean>> = 
   admin: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, true])),
   manager: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, !["Settings", "Users", "Refund Order", "Void Item", "IDSA"].includes(key)])),
   waiter: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Waiter App", "Kitchen", "Tables", "Print Bill", "Print KOT", "Change Table", "Quick Add Item"].includes(key)])),
-  cashier: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Sales", "Customers", "Print Bill", "Print Invoice", "Apply Discount", "Cancel Order", "Edit Placed Order"].includes(key)])),
+  cashier: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["POS", "Customers", "Print Bill", "Print Invoice", "Print KOT", "Apply Discount", "Edit Placed Order"].includes(key)])),
   kitchen: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["KDS", "Kitchen"].includes(key)])),
   kds: Object.fromEntries(FEATURE_PRIVILEGES.map(key => [key, ["KDS", "Kitchen"].includes(key)])),
 };
@@ -28,6 +28,11 @@ export function parsePrivileges(value: unknown): SavedPrivileges {
 
 export function hasPrivilege(role: string | null | undefined, privilege: string, saved: SavedPrivileges): boolean {
   const normalized = String(role || "").toLowerCase();
+  if (privilege === "IDSA") return normalized === "superadmin";
+  if (normalized === "cashier" && privilege === "Refund Order") return false;
+  if (normalized === "cashier" && privilege === "Cancel Order") return false;
+  if (normalized === "cashier" && ["Sales", "Message Platform", "Message Settings"].includes(privilege)) return false;
+  if (normalized === "cashier" && privilege === "Print KOT") return true;
   if (normalized === "superadmin") return true;
   if (saved[normalized] && Object.prototype.hasOwnProperty.call(saved[normalized], privilege)) return saved[normalized][privilege] === true;
   return DEFAULT_ROLE_PRIVILEGES[normalized]?.[privilege] === true;

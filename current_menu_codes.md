@@ -1,0 +1,65 @@
+# Current Menu Item Codes
+
+Only active/current menu items are listed. Matching menu names may intentionally share the same code.
+
+| ID | Item | Code | Active |
+|---:|---|---|:---:|
+| 211 | 65 Chicken Biryani (Boneless) | **CB** | Yes |
+| 126 | Blackcurrant Mojito | **BM** | Yes |
+| 116 | Blue Curacao (Blueberry) Mojito | **BM** | Yes |
+| 16 | Butter Chicken Masala | **BM** | Yes |
+| 87 | Butter Naan | **BN** | Yes |
+| 220 | Cauliflower Manchurian | **CM** | Yes |
+| 2 | Channa Masala | **CM** | Yes |
+| 240 | Chicken 65 | **C65** | Yes |
+| 224 | Chicken Curry | **CC** | Yes |
+| 221 | Chicken Fried Rice | **CR** | Yes |
+| 225 | Chicken Kuruma | **CK** | Yes |
+| 223 | Chicken Manchurian | **CM** | Yes |
+| 222 | Chicken Noodles | **CN** | Yes |
+| 226 | Chicken Tikka Masala | **CM** | Yes |
+| 236 | Coco cola 2l | **C2L** | Yes |
+| 238 | Cococola 1.5l | **C5L** | Yes |
+| 84 | Garlic Naan | **GN** | Yes |
+| 105 | Ghee Roast Dosai | **GD** | Yes |
+| 214 | Jaffna Chicken Curry | **JC** | Yes |
+| 216 | Jaffna Crab Masala | **JM** | Yes |
+| 215 | Jaffna Mutton Curry | **JC** | Yes |
+| 217 | Jaffna Prawn Masala | **JM** | Yes |
+| 213 | Kal Dosai | **KD** | Yes |
+| 127 | Lemon Juice | **LJ** | Yes |
+| 229 | Madras Fish Curry | **MC** | Yes |
+| 231 | Madurai Crab Masala | **MM** | Yes |
+| 162 | Mango Lassi | **ML** | Yes |
+| 178 | Mango Milkshake | **MM** | Yes |
+| 112 | Mango Mojito | **MM** | Yes |
+| 212 | Medhu Parotta | **MP** | Yes |
+| 232 | Mint Lemon Juice | **MJ** | Yes |
+| 164 | Mixed Fruit Lassi | **ML** | Yes |
+| 227 | Mutton Curry | **MC** | Yes |
+| 228 | Mutton Kuruma | **MK** | Yes |
+| 208 | Nei Choru | **NC** | Yes |
+| 33 | Nellai Chicken Biryani | **NB** | Yes |
+| 34 | Nellai Mutton Biryani | **NB** | Yes |
+| 209 | Nellai Vegetable Biryani | **NB** | Yes |
+| 83 | Nool Parotta | **NP** | Yes |
+| 118 | Orange Mojito | **OM** | Yes |
+| 7 | Paneer Butter Masala | **PM** | Yes |
+| 123 | Passionfruit Mojito | **PM** | Yes |
+| 121 | Peppermint Mojito | **PM** | Yes |
+| 233 | Pepsi 400ml | **P400ML** | Yes |
+| 115 | Pineapple Mojito | **PM** | Yes |
+| 161 | Plain Lassi | **PL** | Yes |
+| 119 | Pomegranate Mojito | **PM** | Yes |
+| 230 | Prawn Thokku | **PT** | Yes |
+| 122 | Refreshing Mojito | **RM** | Yes |
+| 237 | Sprite 2l | **S2L** | Yes |
+| 163 | Strawberry Lassi | **SL** | Yes |
+| 114 | Strawberry Mojito | **SM** | Yes |
+| 210 | Tandoori Chicken Biryani (Boneless) | **TB** | Yes |
+| 218 | Veg Fried Rice | **VR** | Yes |
+| 219 | Veg Noodles | **VN** | Yes |
+| 3 | Vegetable Kuruma | **VK** | Yes |
+| 111 | Virgin Mojito | **VM** | Yes |
+| 234 | Water bottle 1l | **W1L** | Yes |
+| 120 | Watermelon Mojito | **WM** | Yes |

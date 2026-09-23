@@ -101,8 +101,8 @@ const STATUS_COLOR: Record<SaleStatus, string> = {
   partially_refunded: "#F97316",
 };
 
-export function RecentSalesModal({ branchId, onClose, onView, onReprint }: {
-  branchId: number; onClose: () => void; onView: (orderId: number) => void; onReprint: (orderId: number) => void;
+export function RecentSalesModal({ branchId, onClose, onView, onReprint, canReprint = true }: {
+  branchId: number; onClose: () => void; onView: (orderId: number) => void; onReprint: (orderId: number) => void; canReprint?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<SaleStatus>("all");
@@ -175,11 +175,11 @@ export function RecentSalesModal({ branchId, onClose, onView, onReprint }: {
                   <div className="text-xs font-bold" style={{ color: isRefund || isPartial ? "var(--color-danger)" : TEXT }}>{money(o.total)}</div>
                   <div className="text-[10px] uppercase mt-0.5" style={{ color: DIM }}>{o.type}</div>
                 </div>
-                <button onClick={() => onReprint(o.id)} title="Reprint invoice"
+                {canReprint && <button onClick={() => onReprint(o.id)} title="Reprint invoice"
                   className="w-7 h-7 flex items-center justify-center rounded border shrink-0"
                   style={{ borderColor: BORD, color: GOLD }}>
                   <Printer size={13} />
-                </button>
+                </button>}
               </div>
             );
           })}
@@ -221,21 +221,21 @@ export function SelfOrderQRModal({ branchId, onClose }: { branchId: number; onCl
 // ════════════════════════════════════════════════════════════════════════════
 //  REGISTRY — Today's Register Summary
 // ════════════════════════════════════════════════════════════════════════════
-export function RegistryModal({ branchId, onClose }: { branchId: number; onClose: () => void }) {
+export function RegistryModal({ branchId, onClose, onSettled }: { branchId: number; onClose: () => void; onSettled?: () => void }) {
   const qc = useQueryClient();
   const user = getUser();
-  const [showSettlement, setShowSettlement] = useState(false);
-  const [settledAmount, setSettledAmount] = useState("");
-  const [justification, setJustification] = useState("");
+  const isCashier = String(user?.role || "").toLowerCase() === "cashier";
   const { data, isLoading } = useQuery({
     queryKey: ["orders", branchId, "registry", user?.id ?? user?.name ?? "all"],
     queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
     refetchInterval: 15000,
+    enabled: !isCashier,
   });
   const { data: settlementData } = useQuery({
     queryKey: ["settlements", branchId, user?.id ?? "all"],
     queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && !["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
     refetchInterval: 15000,
+    enabled: !isCashier,
   });
   const toMs = (value: any) => {
     const n = typeof value === "number" ? value : Number(value);
@@ -249,6 +249,16 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
       if (Array.isArray(parsed) && parsed.length) return parsed.map((p: any) => ({ method: String(p.method || "Card"), amount: Number(p.amount || 0) })).filter((p: any) => p.amount > 0);
     } catch { /* fall back to the stored payment method/total */ }
     return [{ method: String(order.paymentMethod || "Card"), amount: Number(order.total || 0) }];
+  };
+  // Payment entries can contain cash tendered above the invoice total (change).
+  // For sales and settlement accounting, never allocate more than the invoice total.
+  const accountedPaymentParts = (order: any) => {
+    let remaining = Math.max(0, Number(order.total || 0));
+    return paymentParts(order).map(part => {
+      const amount = Math.min(Math.max(0, Number(part.amount || 0)), remaining);
+      remaining = Math.max(0, remaining - amount);
+      return { ...part, amount };
+    }).filter(part => part.amount > 0);
   };
   const settlements = (settlementData as any)?.settlements || [];
   const todaySettlement = settlements
@@ -269,55 +279,67 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     const cancelled = today.filter((o: any) => o.status === "cancelled");
     const running = today.filter((o: any) => !["completed", "billed", "paid", "cancelled"].includes(o.status));
     const gross = completed.reduce((s: number, o: any) => s + Number(o.total || 0), 0);
-    const cash = completed.reduce((s: number, o: any) => s + paymentParts(o).filter(p => p.method.toLowerCase() === "cash").reduce((ps, p) => ps + p.amount, 0), 0);
-    const card = completed.reduce((s: number, o: any) => s + paymentParts(o).filter(p => p.method.toLowerCase() !== "cash").reduce((ps, p) => ps + p.amount, 0), 0);
+    const cash = completed.reduce((s: number, o: any) => s + accountedPaymentParts(o).filter(p => p.method.toLowerCase() === "cash").reduce((ps, p) => ps + p.amount, 0), 0);
+    const card = completed.reduce((s: number, o: any) => s + accountedPaymentParts(o).filter(p => p.method.toLowerCase().includes("card")).reduce((ps, p) => ps + p.amount, 0), 0);
+    const qr = completed.reduce((s: number, o: any) => s + accountedPaymentParts(o).filter(p => p.method.toLowerCase().includes("qr")).reduce((ps, p) => ps + p.amount, 0), 0);
     const byType = (t: string) => completed.filter((o: any) => o.type === t);
     const sumType = (t: string) => byType(t).reduce((s: number, o: any) => s + Number(o.total || 0), 0);
     return {
       totalOrders: completed.length, completedCount: completed.length, cancelledCount: cancelled.length,
       runningCount: running.length, gross, avg: completed.length ? gross / completed.length : 0,
       sales: completed.slice().sort((a: any, b: any) => Number(a.createdAt || 0) - Number(b.createdAt || 0)),
-      cash, card,
+      cash, card, qr,
       dineIn: { c: byType("dine-in").length, v: sumType("dine-in") },
       takeaway: { c: byType("takeaway").length, v: sumType("takeaway") },
       delivery: { c: byType("delivery").length, v: sumType("delivery") },
     };
   }, [data, todaySettlement]);
-  const openSettlement = () => {
-    setSettledAmount(summary.gross.toFixed(2));
-    setJustification("");
-    setShowSettlement(true);
-  };
   const settlementMutation = useMutation({
     mutationFn: async () => {
-      const amount = Number(settledAmount);
-      if (!Number.isFinite(amount) || amount < 0) throw new Error("Enter a valid settled amount.");
-      if (Math.abs(amount - summary.gross) > 0.005 && justification.trim().length < 3) {
-        throw new Error("Justification is required when the settled amount differs from billed amount.");
+      if (isCashier) {
+        const res = await fetch("/api/settlements", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ branchId, billedAmount: 0, settledAmount: 0, cashAmount: 0, cardAmount: 0, qrAmount: 0, cashInHand: 0, justification: "", settledById: user?.id ?? null, settledByName: user?.name ?? user?.username ?? null }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Registry settlement failed.");
+        return body;
       }
+      const cashierCash = summary.cash;
+      const cashierCard = summary.card;
+      const cashierQr = summary.qr;
+      const amount = summary.gross;
+      if (!Number.isFinite(amount) || amount < 0) throw new Error("Enter a valid settled amount.");
+      if (!Number.isFinite(cashierCash) || cashierCash < 0 || !Number.isFinite(cashierCard) || cashierCard < 0 || !Number.isFinite(cashierQr) || cashierQr < 0) throw new Error("Invalid collection totals.");
       const res = await fetch("/api/settlements", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          branchId, billedAmount: summary.gross, settledAmount: amount,
-          justification, settledById: user?.id ?? null, settledByName: user?.name ?? user?.username ?? null,
+          branchId, billedAmount: amount, settledAmount: amount,
+          cashAmount: cashierCash, cardAmount: cashierCard, qrAmount: cashierQr,
+          orderIds: summary.sales.map((order: any) => Number(order.id)).filter((id: number) => Number.isInteger(id) && id > 0),
+          cashInHand: 0, justification: "", settledById: user?.id ?? null, settledByName: user?.name ?? user?.username ?? null,
         }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Settlement failed.");
       return body;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["settlements", branchId] }); setShowSettlement(false); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["settlements", branchId] }); onSettled?.(); if (isCashier) onClose(); },
   });
-  const printSettlement = () => {
+  const printSettlement = (entered?: { cash: number; card: number }) => {
     const w = window.open("", "_blank", "width=420,height=700");
     if (!w) return;
     const cashier = String(user?.name || user?.username || "Staff").replace(/[<>&]/g, "");
-    const orderRows = summary.sales.map((order: any) => {
+    const cashTotal = entered ? entered.cash : summary.cash;
+    const cardTotal = entered ? entered.card : summary.card;
+    const qrTotal = entered ? 0 : summary.qr;
+    const collectionTotal = cashTotal + cardTotal + qrTotal;
+    const orderRows = entered ? "" : summary.sales.map((order: any) => {
       const number = String(order.orderNumber || "—").replace(/[<>&]/g, "");
-      const method = paymentParts(order).map(p => `${p.method} ${money(p.amount)}`).join(" + ").replace(/[<>&]/g, "").toUpperCase();
+      const method = accountedPaymentParts(order).map(p => `${p.method} ${money(p.amount)}`).join(" + ").replace(/[<>&]/g, "").toUpperCase();
       return `<div class="sale"><span>${number}<small>${method}</small></span><b>${money(Number(order.total || 0))}</b></div>`;
     }).join("");
-    w.document.write(`<!doctype html><html><head><title>Register Settlement</title><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:11px monospace;color:#000}h2{text-align:center;font-size:15px;margin:0 0 8px}.row,.sale{display:flex;justify-content:space-between;margin:5px 0}.sale{border-bottom:1px dotted #888;padding-bottom:3px}.sale small{display:block;font-size:9px;color:#444}hr{border:0;border-top:1px dashed #000}.total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:6px}.section{font-weight:bold;margin:8px 0 4px}</style></head><body><h2>REGISTER SETTLEMENT</h2><p>${today}</p><p>Cashier: ${cashier}</p><hr><div class="section">ORDERS</div>${orderRows || "<p>No completed orders</p>"}<hr><div class="row"><span>Cash</span><b>${money(summary.cash)}</b></div><div class="row"><span>Card</span><b>${money(summary.card)}</b></div><div class="row total"><span>TOTAL COLLECTIONS</span><b>${money(summary.gross)}</b></div><p style="text-align:center;margin-top:12px">Printed ${new Date().toLocaleString()}</p><script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.write(`<!doctype html><html><head><title>Register Settlement</title><style>@page{size:80mm auto;margin:0}body{width:72mm;margin:4mm;font:11px monospace;color:#000}h2{text-align:center;font-size:15px;margin:0 0 8px}.row,.sale{display:flex;justify-content:space-between;margin:5px 0}.sale{border-bottom:1px dotted #888;padding-bottom:3px}.sale small{display:block;font-size:9px;color:#444}hr{border:0;border-top:1px dashed #000}.total{font-weight:bold;font-size:14px;border-top:2px solid #000;padding-top:6px}.section{font-weight:bold;margin:8px 0 4px}.signature{margin-top:28px;border-top:1px solid #000;padding-top:5px}</style></head><body><h2>REGISTER SETTLEMENT</h2><p>${today}</p><p>User/Cashier: ${cashier}</p><hr>${entered ? "<div class=\"section\">COLLECTED AMOUNTS</div>" : `<div class="section">ORDERS</div>${orderRows || "<p>No completed orders</p>"}`}<hr><div class="row"><span>Cash collected</span><b>${money(cashTotal)}</b></div><div class="row"><span>Card collected</span><b>${money(cardTotal)}</b></div><div class="row"><span>QR Pay collected</span><b>${money(qrTotal)}</b></div><div class="row total"><span>TOTAL RECEIVED</span><b>${money(entered ? collectionTotal : summary.gross)}</b></div><p>Settlement time: ${new Date().toLocaleString()}</p><div class="signature">Signature: ____________________</div><script>window.onload=()=>window.print()</script></body></html>`);
     w.document.close();
   };
   const Stat = ({ label, value, accent }: { label: string; value: string; accent?: string }) => (
@@ -327,68 +349,36 @@ export function RegistryModal({ branchId, onClose }: { branchId: number; onClose
     </div>
   );
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  if (isCashier) {
+    return (
+      <Shell title="Close This Registry" onClose={onClose} width={420}>
+        <div className="p-6">
+          <p className="text-sm" style={{ color: MUTED }}>Close the current cashier registry. No sales details or collection amounts are shown here.</p>
+          <button disabled={settlementMutation.isPending} onClick={() => settlementMutation.mutate()} className="w-full mt-6 rounded-md py-3 text-sm font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>
+            {settlementMutation.isPending ? "Settling…" : "Settle this Registry"}
+          </button>
+        </div>
+      </Shell>
+    );
+  }
   return (
     <Shell title="Register — Today's Summary" onClose={onClose} width={580}>
-      {isLoading ? <div className="flex justify-center p-12"><Spinner /></div> : (
-        <div className="p-5 overflow-y-auto">
-          <div className="text-xs mb-4" style={{ color: MUTED }}>{today}</div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <Stat label="Billed Amount" value={money(summary.gross)} accent={GOLD} />
-            <Stat label="Completed Sales" value={String(summary.completedCount)} />
-            <Stat label="Avg. Sale Value" value={money(summary.avg)} />
-            <Stat label="Total Orders" value={String(summary.totalOrders)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <Stat label="Running" value={String(summary.runningCount)} accent="var(--color-info)" />
-            <Stat label="Cancelled" value={String(summary.cancelledCount)} accent="var(--color-danger)" />
-          </div>
-          <div className="text-[11px] uppercase tracking-wide mb-2" style={{ color: DIM }}>Sales by Type</div>
-          <div className="rounded-lg border overflow-hidden" style={{ borderColor: BORD }}>
-            {[
-              { label: "Dine In", d: summary.dineIn, color: "var(--color-success)" },
-              { label: "Take Away", d: summary.takeaway, color: "var(--color-gold)" },
-              { label: "Delivery", d: summary.delivery, color: "var(--color-info)" },
-            ].map((row, i) => (
-              <div key={row.label} className="flex items-center justify-between px-4 py-2.5" style={{ background: i % 2 ? SURF2 : SURF, borderTop: i ? `1px solid ${BORD}` : "none" }}>
-                <span className="flex items-center gap-2 text-xs" style={{ color: TEXT }}><span className="w-2 h-2 rounded-full" style={{ background: row.color }} /> {row.label}</span>
-                <span className="text-xs" style={{ color: MUTED }}>{row.d.c} orders</span>
-                <span className="text-xs font-bold" style={{ color: TEXT }}>{money(row.d.v)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 text-[11px] uppercase tracking-wide mb-2" style={{ color: DIM }}>Order Collections</div>
-          <div className="rounded-lg border overflow-hidden" style={{ borderColor: BORD }}>
-            {summary.sales.length === 0 ? <div className="p-3 text-xs" style={{ color: DIM }}>No completed orders in this register session.</div> : summary.sales.map((order: any, index: number) => (
-              <div key={order.id} className="flex items-center justify-between px-3 py-2 text-xs" style={{ background: index % 2 ? SURF2 : SURF, borderTop: index ? `1px solid ${BORD}` : "none" }}>
-                <span style={{ color: TEXT }}>{order.orderNumber || "—"}<span className="ml-2 uppercase text-[10px]" style={{ color: MUTED }}>{paymentParts(order).map(p => p.method).join(" + ")}</span></span>
-                <span className="font-semibold" style={{ color: GOLD }}>{money(Number(order.total || 0))}</span>
-              </div>
-            ))}
-            <div className="flex justify-between px-3 py-2 border-t font-bold" style={{ borderColor: BORD, color: TEXT }}><span>Total collections</span><span style={{ color: GOLD }}>{money(summary.gross)}</span></div>
-          </div>
-          <div className="mt-4 rounded-lg border p-3" style={{ background: SURF2, borderColor: todaySettlement ? "var(--color-success)" : BORD }}>
-            <div className="flex items-center justify-between text-xs mb-2"><div><div className="font-semibold" style={{ color: todaySettlement ? "var(--color-success)" : TEXT }}>{todaySettlement ? "New register session" : "Not settled"}</div>{todaySettlement && <div style={{ color: MUTED }}>Last settled {fmtTime(todaySettlement.settlementDate)} · {todaySettlement.settledByName || "Staff"}</div>}</div><div className="text-right">{todaySettlement && <><div style={{ color: TEXT }}>Previous billed {money(todaySettlement.billedAmount)}</div><div style={{ color: GOLD }}>Previous settled {money(todaySettlement.settledAmount)}</div></>}</div></div>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={printSettlement} className="rounded-md py-2 text-xs font-bold" style={{ background: SURF, color: TEXT, border: `1px solid ${BORD}` }}>Print 3-inch Summary</button>
-              <button disabled={summary.gross <= 0} onClick={openSettlement} className="rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>Settle Current Register</button>
-            </div>
-          </div>
+      <div className="p-5 overflow-y-auto">
+        <div className="text-xs mb-4" style={{ color: MUTED }}>{today}</div>
+        <div className="rounded-lg border p-4" style={{ background: SURF2, borderColor: BORD }}>
+          <div className="text-sm font-semibold mb-3" style={{ color: TEXT }}>Register collection</div>
+          <div className="flex justify-between text-sm mb-2"><span style={{ color: MUTED }}>Cash collected</span><b style={{ color: TEXT }}>{money(summary.cash)}</b></div>
+          <div className="flex justify-between text-sm mb-2"><span style={{ color: MUTED }}>Card collected</span><b style={{ color: TEXT }}>{money(summary.card)}</b></div>
+          <div className="flex justify-between text-sm mb-2"><span style={{ color: MUTED }}>QR Pay collected</span><b style={{ color: TEXT }}>{money(summary.qr)}</b></div>
+          <div className="flex justify-between border-t pt-3 text-sm font-bold" style={{ borderColor: BORD, color: TEXT }}><span>Total collected</span><span style={{ color: GOLD }}>{money(summary.cash + summary.card + summary.qr)}</span></div>
         </div>
-      )}
-      {showSettlement && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: "#00000099" }}>
-          <div className="w-80 rounded-xl border p-5 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
-            <div className="flex items-center justify-between mb-4"><span className="text-sm font-bold" style={{ color: GOLD }}>Settle Register</span><button onClick={() => setShowSettlement(false)} style={{ color: MUTED }}><X size={15} /></button></div>
-            <label className="block text-xs mb-1" style={{ color: MUTED }}>Amount billed</label>
-            <input readOnly value={money(summary.gross)} className="w-full rounded border px-3 py-2 text-sm mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} />
-            <label className="block text-xs mb-1" style={{ color: MUTED }}>Settled amount</label>
-            <input type="number" min="0" step="0.01" value={settledAmount} onChange={e => setSettledAmount(e.target.value)} className="w-full rounded border px-3 py-2 text-sm mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} />
-            {Math.abs(Number(settledAmount || 0) - summary.gross) > 0.005 && <><label className="block text-xs mb-1" style={{ color: MUTED }}>Justification *</label><textarea value={justification} onChange={e => setJustification(e.target.value)} rows={3} placeholder="Explain the difference" className="w-full rounded border px-3 py-2 text-xs mb-3" style={{ background: SURF2, color: TEXT, borderColor: BORD }} /></>}
-            {settlementMutation.error && <div className="text-xs mb-3" style={{ color: "var(--color-danger)" }}>{(settlementMutation.error as Error).message}</div>}
-            <button disabled={settlementMutation.isPending} onClick={() => settlementMutation.mutate()} className="w-full rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{settlementMutation.isPending ? "Saving…" : "Confirm Settlement"}</button>
-          </div>
+        <div className="mt-4 text-xs" style={{ color: MUTED }}>User: <b style={{ color: TEXT }}>{user?.name || user?.username || "Staff"}</b></div>
+        <div className="text-xs mt-1" style={{ color: MUTED }}>Settlement time: <b style={{ color: TEXT }}>{new Date().toLocaleString()}</b></div>
+        <div className="mt-4">
+          <button disabled={settlementMutation.isPending} onClick={() => { printSettlement(); settlementMutation.mutate(); }} className="w-full rounded-md py-2 text-xs font-bold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{settlementMutation.isPending ? "Closing…" : "Close This Registry & Print"}</button>
         </div>
-      )}
+      </div>
+
     </Shell>
   );
 }
@@ -678,7 +668,7 @@ export function RefundModal({ branchId, onClose }: {
 // ════════════════════════════════════════════════════════════════════════════
 //  QR ORDERS MODAL — Incoming orders from customer QR menu
 // ════════════════════════════════════════════════════════════════════════════
-export function QROrdersModal({ branchId, onClose }: { branchId: number; onClose: () => void }) {
+export function QROrdersModal({ branchId, onClose, allowReject = true }: { branchId: number; onClose: () => void; allowReject?: boolean }) {
   const qc = useQueryClient();
   const [assignMap, setAssignMap] = useState<Record<number, number | null>>({});
   const [processing, setProcessing] = useState<Set<number>>(new Set());
@@ -885,13 +875,13 @@ export function QROrdersModal({ branchId, onClose }: { branchId: number; onClose
                       <option value="">— Assign Waiter (optional) —</option>
                       {waiters.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
                     </select>
-                    <button
+                    {allowReject && <button
                       onClick={() => rejectOrder(order)}
                       disabled={processing.has(order.id)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold border disabled:opacity-50 shrink-0"
                       style={{ borderColor: "var(--color-danger)", color: "var(--color-danger)", background: "var(--color-danger)11" }}>
                       Reject
-                    </button>
+                    </button>}
                     <button
                       onClick={() => acceptOrder(order)}
                       disabled={processing.has(order.id)}

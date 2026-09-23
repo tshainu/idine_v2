@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 
 export const users = new Hono()
   .get("/", async (c) => {
@@ -17,6 +17,7 @@ export const users = new Hono()
   .post("/", async (c) => {
     const body = await c.req.json();
     if (body.password) body.password = await Bun.password.hash(body.password);
+    if (["admin", "manager"].includes(String(body.role || "").toLowerCase()) && !String(body.pin || "").trim()) body.pin = "5625";
     if (!body.pin) body.pin = "0000"; // legacy column still NOT NULL on older DBs; unused by new auth flow
     const [user] = await db.insert(schema.users).values(body).returning();
     const { password: _pw, ...safe } = user;
@@ -29,6 +30,20 @@ export const users = new Hono()
     const [user] = await db.select().from(schema.users).where(and(...conditions));
     if (!user) return c.json({ error: "Invalid PIN" }, 401);
     return c.json({ user }, 200);
+  })
+  .post("/authorize-modification", async (c) => {
+    const { pin, branchId } = await c.req.json();
+    const supplied = String(pin || "").trim();
+    if (!supplied) return c.json({ error: "Authorized PIN is required" }, 400);
+    const candidates = branchId
+      ? await db.select().from(schema.users).where(and(eq(schema.users.isActive, true), or(eq(schema.users.branchId, Number(branchId)), isNull(schema.users.branchId))))
+      : await db.select().from(schema.users).where(eq(schema.users.isActive, true));
+    const authorized = candidates.find((candidate) =>
+      ["admin", "manager", "superadmin"].includes(String(candidate.role).toLowerCase()) &&
+      (String(candidate.pin || "") === supplied || (!candidate.pin && supplied === "5625") || (candidate.pin === "0000" && supplied === "5625"))
+    );
+    if (!authorized) return c.json({ error: "Invalid authorized PIN. Use an admin or manager PIN." }, 401);
+    return c.json({ authorizedBy: { id: authorized.id, name: authorized.name, role: authorized.role } }, 200);
   })
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));

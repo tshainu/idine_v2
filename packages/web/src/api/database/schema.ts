@@ -25,6 +25,23 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
+// Immutable audit trail for operational activity across the web POS and admin APIs.
+export const activityLogs = sqliteTable("activity_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  userId: integer("user_id").references(() => users.id),
+  userName: text("user_name"),
+  userRole: text("user_role"),
+  action: text("action").notNull(),
+  method: text("method").notNull(),
+  path: text("path").notNull(),
+  entity: text("entity"),
+  entityId: integer("entity_id"),
+  details: text("details"),
+  statusCode: integer("status_code").notNull().default(200),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 // Expo push tokens registered by waiter devices. A token is portable between
 // waiter accounts because a device can be handed to another staff member.
 export const waiterPushTokens = sqliteTable("waiter_push_tokens", {
@@ -237,6 +254,10 @@ export const registerSettlements = sqliteTable("register_settlements", {
   settlementDate: integer("settlement_date", { mode: "timestamp" }).notNull(),
   billedAmount: real("billed_amount").notNull().default(0),
   settledAmount: real("settled_amount").notNull().default(0),
+  cashAmount: real("cash_amount").notNull().default(0),
+  cardAmount: real("card_amount").notNull().default(0),
+  qrAmount: real("qr_amount").notNull().default(0),
+  cashInHand: real("cash_in_hand").notNull().default(0),
   justification: text("justification"),
   settledById: integer("settled_by_id").references(() => users.id),
   settledByName: text("settled_by_name"),

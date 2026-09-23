@@ -103,7 +103,7 @@ export default function UsersPage() {
 
   function openEdit(u: any) {
     setSelectedUser(u);
-    setForm({ name: u.name, role: u.role, username: u.username, defaultOrderType: u.defaultOrderType || "dine-in" });
+    setForm({ name: u.name, role: u.role, username: u.username, pin: ["admin", "manager"].includes(String(u.role).toLowerCase()) ? (u.pin || "5625") : "", defaultOrderType: u.defaultOrderType || "dine-in" });
     setModal("edit");
   }
 
@@ -122,6 +122,7 @@ export default function UsersPage() {
       password: form.password,
       userId: businessUserId,
       role: form.role || "waiter",
+      ...( ["admin", "manager"].includes(String(form.role || "").toLowerCase()) ? { pin: String(form.pin || "5625").trim() || "5625" } : {}),
       defaultOrderType: form.defaultOrderType || "dine-in",
       isActive: true,
     });
@@ -129,7 +130,7 @@ export default function UsersPage() {
 
   function handleEdit() {
     if (!form.name?.trim() || !form.username?.trim()) return;
-    updateUser.mutate({ id: selectedUser.id, data: { name: form.name.trim(), role: form.role, username: form.username.trim(), defaultOrderType: form.defaultOrderType || "dine-in" } });
+    updateUser.mutate({ id: selectedUser.id, data: { name: form.name.trim(), role: form.role, username: form.username.trim(), ...( ["admin", "manager"].includes(String(form.role || "").toLowerCase()) ? { pin: String(form.pin || "5625").trim() || "5625" } : {}), defaultOrderType: form.defaultOrderType || "dine-in" } });
   }
 
   async function handleChangePassword() {
@@ -158,7 +159,7 @@ export default function UsersPage() {
   function toggleAllRole(role: string, val: boolean) {
     setPrivileges(p => ({
       ...p,
-      [role]: Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, val])),
+      [role]: Object.fromEntries(PRIVILEGE_SECTIONS.map(s => [s, s === "IDSA" && role !== "superadmin" ? false : val])),
     }));
   }
 
@@ -172,9 +173,10 @@ export default function UsersPage() {
     setModal(null);
   }
 
+  const visiblePrivilegeSections = PRIVILEGE_SECTIONS.filter(section => section !== "IDSA" || selectedRole === "superadmin");
   const rolePrivs = privileges[selectedRole] || {};
-  const allEnabled = PRIVILEGE_SECTIONS.every(s => rolePrivs[s]);
-  const noneEnabled = PRIVILEGE_SECTIONS.every(s => !rolePrivs[s]);
+  const allEnabled = visiblePrivilegeSections.every(s => rolePrivs[s]);
+  const noneEnabled = visiblePrivilegeSections.every(s => !rolePrivs[s]);
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: BG }}>
@@ -367,7 +369,7 @@ export default function UsersPage() {
                         <div className="text-xs font-semibold mb-3" style={{ color: MUTED }}>{label}</div>
                       )}
                       <div className="grid grid-cols-3 gap-3">
-                        {sections.map(section => {
+                        {sections.filter(section => section !== "IDSA" || selectedRole === "superadmin").map(section => {
                           const enabled = !!rolePrivs[section];
                           return (
                             <button
@@ -434,6 +436,12 @@ export default function UsersPage() {
               <div className="text-xs px-2 py-1.5 rounded" style={{ background: BG, color: DIM }}>
                 Business User ID: <span className="font-mono" style={{ color: GOLD }}>{businessUserId || "—"}</span>
               </div>
+              {["admin", "manager"].includes(String(form.role || "").toLowerCase()) && <div>
+                <label className="text-xs mb-1 block" style={{ color: MUTED }}>Authorized PIN</label>
+                <input type="password" inputMode="numeric" maxLength={12} value={form.pin || "5625"} onChange={e => setForm(p => ({ ...p, pin: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none" style={{ background: BG, borderColor: BORD, color: TEXT }} placeholder="Default: 5625" />
+                <div className="text-[10px] mt-1" style={{ color: DIM }}>Used to authorize cashier order modifications. Default: 5625.</div>
+              </div>}
               <div>
                 <label className="text-xs mb-1 block" style={{ color: MUTED }}>Role</label>
                 <select value={form.role || "waiter"} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
@@ -472,6 +480,12 @@ export default function UsersPage() {
             <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>Edit User</div>
             <div className="text-xs mb-4" style={{ color: DIM }}>Editing: {selectedUser.name}</div>
             <div className="space-y-3">
+              {["admin", "manager"].includes(String(form.role || "").toLowerCase()) && <div>
+                <label className="text-xs mb-1 block" style={{ color: MUTED }}>Authorized PIN</label>
+                <input type="password" inputMode="numeric" maxLength={12} value={form.pin || "5625"} onChange={e => setForm(p => ({ ...p, pin: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm rounded-lg border bg-transparent outline-none" style={{ background: BG, borderColor: BORD, color: TEXT }} placeholder="Default: 5625" />
+                <div className="text-[10px] mt-1" style={{ color: DIM }}>Used to authorize cashier order modifications.</div>
+              </div>}
               <div>
                 <label className="text-xs mb-1 block" style={{ color: MUTED }}>Full Name *</label>
                 <input type="text" value={form.name || ""} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { getBranchId } from "../lib/store";
 import { Sidebar } from "../components/layout/sidebar";
-import { Search, Download, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, Download, ArrowUp, ArrowDown, ArrowUpDown, Eye, X } from "lucide-react";
 import { exportToCSV } from "../lib/csv";
 
 const GOLD = "var(--color-gold)";
@@ -63,14 +63,28 @@ function getDateBounds(range: DateRange, customFrom: string, customTo: string): 
   return { from: null, to: null };
 }
 
-type SortKey = "orderNumber" | "type" | "customerName" | "items" | "total" | "status" | "createdAt";
+type SortKey = "orderNumber" | "type" | "paymentMethod" | "customerName" | "user" | "items" | "total" | "status" | "createdAt";
 type SortDir = "asc" | "desc";
+
+function getPaymentMethod(order: any): string {
+  const payments = Array.isArray(order?.payments)
+    ? order.payments
+    : (() => { try { const parsed = JSON.parse(order?.paymentsJson || "[]"); return Array.isArray(parsed) ? parsed : []; } catch { return []; } })();
+  if (payments.length) {
+    const methods = payments
+      .map((payment: any) => String(payment.method || payment.paymentMethod || "Other").trim())
+      .filter(Boolean);
+    if (methods.length) return methods.join(" + ");
+  }
+  return String(order?.paymentMethod || order?.payment_method || "Other").trim() || "Other";
+}
 
 export default function SalesPage() {
   const branchId = getBranchId();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [filterPayment, setFilterPayment] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -89,6 +103,12 @@ export default function SalesPage() {
   });
 
   const orders: any[] = (ordersData as any)?.orders || [];
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const { data: invoiceHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["invoice-history", branchId, selectedInvoiceId],
+    enabled: Boolean(selectedInvoiceId),
+    queryFn: async () => (await fetch(`/api/reporting/invoice-history/${selectedInvoiceId}?branchId=${branchId}`)).json(),
+  });
 
   const { from: dateBoundsFrom, to: dateBoundsTo } = getDateBounds(dateRange, customFrom, customTo);
 
@@ -96,13 +116,14 @@ export default function SalesPage() {
     const matchSearch = !search || String(o.orderNumber).includes(search) || (o.customerName || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || o.status === filterStatus;
     const matchType = filterType === "all" || o.type === filterType;
+    const matchPayment = filterPayment === "all" || getPaymentMethod(o).split(/\s*\+\s*/).some((method: string) => method.trim().toLowerCase() === filterPayment.toLowerCase());
     let matchDate = true;
     if (dateBoundsFrom || dateBoundsTo) {
       const t = new Date(o.createdAt).getTime();
       if (dateBoundsFrom && t < dateBoundsFrom.getTime()) matchDate = false;
       if (dateBoundsTo && t > dateBoundsTo.getTime()) matchDate = false;
     }
-    return matchSearch && matchStatus && matchType && matchDate;
+    return matchSearch && matchStatus && matchType && matchPayment && matchDate;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -117,8 +138,9 @@ export default function SalesPage() {
     return 0;
   });
 
-  const totalRevenue = filtered.reduce((s, o) => s + (Number(o.total) || 0), 0);
-  const completedRevenue = filtered.filter(o => o.status === "completed" || o.status === "billed").reduce((s, o) => s + (Number(o.total) || 0), 0);
+  const finalized = filtered.filter(o => ["completed", "billed", "paid"].includes(String(o.status || "").toLowerCase()));
+  const totalRevenue = finalized.reduce((s, o) => s + (Number(o.total) || 0), 0);
+  const completedRevenue = totalRevenue;
 
   const DATE_RANGES: { key: DateRange; label: string }[] = [
     { key: "today", label: "Today" },
@@ -137,6 +159,8 @@ export default function SalesPage() {
           <div className="font-bold text-base" style={{ color: TEXT }}>Sales</div>
           <button onClick={() => exportToCSV("sales", sorted.map(o => ({
               "Order #": o.orderNumber, Date: new Date(o.createdAt).toLocaleString(), Type: o.type,
+              User: o.placedBy || (o.cashierId ? `User ${o.cashierId}` : "—"),
+              "Payment Method": getPaymentMethod(o),
               Status: o.status, Customer: o.customerName || "Walk-in", Items: (o.items || []).length,
               Total: Number(o.total || 0).toFixed(2),
             })))}
@@ -229,6 +253,18 @@ export default function SalesPage() {
               <option value="takeaway">Takeaway</option>
               <option value="delivery">Delivery</option>
             </select>
+            <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)}
+              className="px-3 py-2 text-sm rounded-lg border outline-none"
+              style={{ background: SURF, borderColor: BORD, color: MUTED }}>
+              <option value="all">All Payments</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="QR Pay">QR Pay</option>
+              <option value="Check">Check</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="Loyalty Point">Loyalty Point</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
 
           {/* Table */}
@@ -239,6 +275,8 @@ export default function SalesPage() {
                   {([ 
                     { label: "Order #", key: "orderNumber" },
                     { label: "Type", key: "type" },
+                    { label: "User", key: "user" },
+                    { label: "Payment Method", key: "paymentMethod" },
                     { label: "Customer", key: "customerName" },
                     { label: "Items", key: "items" },
                     { label: "Total", key: "total" },
@@ -258,13 +296,14 @@ export default function SalesPage() {
                       </span>
                     </th>
                   ))}
+                  <th className="px-4 py-3 text-left text-xs font-semibold" style={{ color: DIM }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={7} className="text-center py-10 text-xs" style={{ color: DIM }}>Loading...</td></tr>
+                  <tr><td colSpan={10} className="text-center py-10 text-xs" style={{ color: DIM }}>Loading...</td></tr>
                 ) : sorted.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-10 text-xs" style={{ color: DIM }}>No orders found</td></tr>
+                  <tr><td colSpan={10} className="text-center py-10 text-xs" style={{ color: DIM }}>No orders found</td></tr>
                 ) : (
                   sorted.map((o: any) => (
                     <tr key={o.id} className="border-t" style={{ borderColor: BORD }}>
@@ -275,6 +314,8 @@ export default function SalesPage() {
                           {o.type}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-xs font-medium" style={{ color: TEXT }}>{o.placedBy || (o.cashierId ? `User ${o.cashierId}` : "—")}</td>
+                      <td className="px-4 py-3 text-xs font-semibold" style={{ color: GOLD }}>{getPaymentMethod(o)}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: MUTED }}>{o.customerName || "—"}</td>
                       <td className="px-4 py-3 text-xs" style={{ color: MUTED }}>{(o.items || []).length}</td>
                       <td className="px-4 py-3 text-xs font-semibold" style={{ color: TEXT }}>LKR {Number(o.total || 0).toLocaleString()}</td>
@@ -287,12 +328,14 @@ export default function SalesPage() {
                       <td className="px-4 py-3 text-xs" style={{ color: DIM }}>
                         {new Date(o.createdAt).toLocaleString("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </td>
+                      <td className="px-4 py-3"><button onClick={() => setSelectedInvoiceId(Number(o.id))} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-semibold" style={{ borderColor: GOLD, color: GOLD }}><Eye size={13} /> View</button></td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+          {selectedInvoiceId && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setSelectedInvoiceId(null)}><div className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl border p-5" style={{ background: SURF, borderColor: BORD }} onClick={e => e.stopPropagation()}><div className="flex items-center justify-between border-b pb-3 mb-4" style={{ borderColor: BORD }}><div><h2 className="font-bold" style={{ color: TEXT }}>Invoice Activity</h2><div className="text-xs mt-1" style={{ color: DIM }}>{invoiceHistory?.order?.orderNumber || "Loading…"}</div></div><button onClick={() => setSelectedInvoiceId(null)} style={{ color: MUTED }}><X size={19} /></button></div>{historyLoading ? <div className="py-12 text-center text-sm" style={{ color: DIM }}>Loading invoice history…</div> : invoiceHistory?.error ? <div className="py-12 text-center text-sm" style={{ color: "var(--color-danger)" }}>{invoiceHistory.error}</div> : <><div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-5">{[["Customer", invoiceHistory?.customer?.name || invoiceHistory?.order?.customerName || "Walk-in Customer"], ["Type", invoiceHistory?.order?.type || "—"], ["Total", `LKR ${Number(invoiceHistory?.order?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`], ["Status", invoiceHistory?.order?.status || "—"]].map(([label, value]) => <div key={String(label)} className="rounded-lg border p-3" style={{ borderColor: BORD }}><div style={{ color: DIM }}>{label}</div><div className="font-semibold mt-1" style={{ color: TEXT }}>{value}</div></div>)}</div><h3 className="font-semibold text-sm mb-3" style={{ color: TEXT }}>Activity history</h3><div className="space-y-3">{(invoiceHistory?.events || []).map((event: any, index: number) => <div key={`${event.at}-${index}`} className="rounded-lg border p-3" style={{ borderColor: BORD }}><div className="flex flex-wrap items-center justify-between gap-2"><div className="font-semibold text-sm" style={{ color: event.kind === "danger" ? "var(--color-danger)" : event.kind === "success" ? "var(--color-success)" : event.kind === "warning" ? "var(--color-warning)" : TEXT }}>{event.action}</div><div className="text-[11px]" style={{ color: DIM }}>{event.at ? new Date(event.at).toLocaleString() : "—"}</div></div><div className="text-xs mt-1" style={{ color: MUTED }}>{event.details}</div><div className="text-[11px] mt-2" style={{ color: DIM }}>By: <span style={{ color: TEXT }}>{event.actor || "—"}</span></div></div>)}</div>{!(invoiceHistory?.events || []).length && <div className="py-8 text-center text-sm" style={{ color: DIM }}>No activity recorded.</div>}<div className="mt-5 rounded-lg border p-4" style={{ borderColor: BORD }}><h3 className="font-semibold text-sm mb-2" style={{ color: TEXT }}>Items</h3>{(invoiceHistory?.items || []).map((item: any) => <div key={item.id} className="flex justify-between border-b py-2 text-xs last:border-0" style={{ borderColor: BORD, color: MUTED }}><span>{item.name} ×{item.qty}</span><span style={{ color: TEXT }}>LKR {Number(item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>)}</div></>}</div></div>}
         </div>
       </div>
     </div>

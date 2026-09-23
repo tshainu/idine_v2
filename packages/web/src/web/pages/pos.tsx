@@ -345,12 +345,13 @@ function ModifierPicker({
 }
 
 /** Order Details modal */
-function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill }: {
+function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill, allowBillingActions = true }: {
   order: any;
   items: any[];
   onClose: () => void;
   onCreateInvoice: () => void;
   onPrintBill: () => void;
+  allowBillingActions?: boolean;
 }) {
   const qc = useQueryClient();
   const [discountId, setDiscountId] = useState("");
@@ -360,11 +361,12 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
   });
   const discounts: any[] = (discountData as any)?.discounts || [];
   const subtotal = items.reduce((s: number, i: any) => s + i.qty * i.price, 0);
-  const tax      = 0;
   const charge   = 0;
-  const tips     = 0;
   const discount = Number(order.discount || items.reduce((s: number, i: any) => s + (i.discount ?? 0), 0));
-  const total    = subtotal - discount + tax + charge + tips;
+  const total    = subtotal - discount + charge;
+  const orderTime = order.createdAt
+    ? new Date(order.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    : "";
   const applyDiscount = useMutation({
     mutationFn: async (selectedId: number) => {
       const selected = discounts.find(d => Number(d.id) === selectedId);
@@ -391,7 +393,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "#00000099" }}>
-      <div className="rounded-xl border shadow-2xl w-[520px] max-h-[90vh] flex flex-col overflow-hidden"
+      <div className="rounded-xl border shadow-2xl w-[560px] h-[95vh] max-h-[95vh] flex flex-col overflow-hidden"
         style={{ background: SURF, borderColor: BORD }}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: BORD }}>
@@ -403,7 +405,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
         <div className="grid grid-cols-3 gap-3 px-5 py-3 border-b text-xs" style={{ borderColor: BORD }}>
           {[
             ["Order Type",   order.type === "dine-in" ? "Dine In" : order.type === "takeaway" ? "Take Away" : "Delivery"],
-            ["Order Number", order.orderNumber],
+            ["Order Number", `${order.orderNumber}${orderTime ? ` (${orderTime})` : ""}`],
             ["Waiter",       order.waiterName || "—"],
             ["Customer",     order.customerName || "Walk-in"],
             ["Table",        order.tableId ? `Table ${order.tableName || order.tableMasterName || order.tableId}` : "—"],
@@ -417,7 +419,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
         </div>
 
         {/* Items table */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <table className="w-full text-xs">
             <thead className="sticky top-0" style={{ background: SURF }}>
               <tr style={{ color: MUTED }} className="font-semibold">
@@ -445,14 +447,12 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
         </div>
 
         {/* Totals */}
-        <div className="border-t px-5 py-3 space-y-1.5 text-xs" style={{ borderColor: BORD }}>
+        <div className="flex-none border-t px-5 py-3 space-y-1.5 text-xs" style={{ borderColor: BORD }}>
           {[
             ["Total Items", items.length],
             ["Sub Total",   subtotal.toFixed(2)],
             ["Discount",    discount.toFixed(2)],
-            ["Tax",         tax.toFixed(2)],
             ["Charge",      charge.toFixed(2)],
-            ["Tips",        tips.toFixed(2)],
           ].map(([k, v]) => (
             <div key={k} className="flex justify-between">
               <span style={{ color: MUTED }}>{k}</span>
@@ -474,17 +474,17 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 px-5 py-3 border-t" style={{ borderColor: BORD }}>
-          <button onClick={onCreateInvoice}
+        <div className="flex-none flex gap-2 px-5 py-3 border-t" style={{ borderColor: BORD }}>
+          {allowBillingActions && <button onClick={onCreateInvoice}
             className="flex-1 py-2 rounded text-xs font-semibold transition-all hover:brightness-110"
             style={{ background: GOLD, color: "var(--color-surface)" }}>
             Create Invoice & Close
-          </button>
-          <button onClick={onPrintBill}
+          </button>}
+          {allowBillingActions && <button onClick={onPrintBill}
             className="flex-1 py-2 rounded border text-xs font-semibold transition-all hover:brightness-110 flex items-center justify-center gap-1.5"
             style={{ borderColor: GOLD, color: GOLD, background: `${GOLD}18` }}>
             <Printer size={13} /> Print Bill
-          </button>
+          </button>}
           <button onClick={onClose}
             className="flex-1 py-2 rounded border text-xs font-medium"
             style={{ borderColor: BORD, color: MUTED }}>
@@ -497,7 +497,7 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
 }
 
 /** Finalize Sale (Cash Tender) modal — replaces both BillModal and InvoiceModal */
-const PAYMENT_METHODS = ["Cash", "Credit Card", "Check", "Bank Transfer", "Loyalty Point"] as const;
+const PAYMENT_METHODS = ["Cash", "Credit Card", "QR Pay", "Check", "Bank Transfer", "Loyalty Point"] as const;
 type PaymentMethod = typeof PAYMENT_METHODS[number];
 
 interface PaymentEntry { method: PaymentMethod; amount: number; ref?: string }
@@ -525,6 +525,16 @@ function FinalizeModal({
   const settings: Record<string, string> = (settingsRaw as any)?.settings || {};
   // Parse service charge % from settings e.g. "10%" or "10"
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
+  const { data: discountData } = useQuery({
+    queryKey: ["discounts", branchId],
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`)).json(),
+    staleTime: 30_000,
+  });
+  const availableDiscounts: any[] = (discountData as any)?.discounts || [];
+  const defaultDiscount = availableDiscounts.find(d =>
+    d.isActive !== false && d.isActive !== 0 &&
+    ["all", String(order?.type || "").toLowerCase()].includes(String(d.defaultFor || "").toLowerCase())
+  );
   const isDineIn = order?.type === "dine-in";
 
   // Order-item totals are already net of line discounts. Reconstruct the gross
@@ -532,7 +542,13 @@ function FinalizeModal({
   // exactly once before calculating the dine-in service charge.
   const itemDiscount  = items.reduce((s: number, i: any) => s + Number(i.discount ?? 0), 0);
   const subtotal       = items.reduce((s: number, i: any) => s + Number(i.total ?? i.qty * i.price) + Number(i.discount ?? 0), 0);
-  const managedDiscount = Number(order?.discountName ? order?.discount || 0 : Math.max(0, Number(order?.discount || 0) - itemDiscount));
+  const configuredOrderDiscount = Number(order?.discount || 0);
+  const configuredRuleValue = Number(order?.discountValue || defaultDiscount?.value || 0);
+  const managedDiscount = configuredOrderDiscount > 0
+    ? Math.max(0, configuredOrderDiscount - itemDiscount)
+    : configuredRuleValue > 0
+      ? (String(order?.discountType || "").toLowerCase().startsWith("percent") ? subtotal * configuredRuleValue / 100 : configuredRuleValue)
+      : 0;
   const [extraDiscount, setExtraDiscount] = useState(initialDiscount || managedDiscount);
   useEffect(() => {
     setExtraDiscount(initialDiscount || managedDiscount);
@@ -616,6 +632,7 @@ function FinalizeModal({
   const methodConfig: Record<PaymentMethod, { showGiven: boolean; refLabel?: string; refPlaceholder?: string; amountLabel: string }> = {
     "Cash":          { showGiven: true,  amountLabel: "Cash Amount" },
     "Credit Card":   { showGiven: false, refLabel: "Card / Reference No.", refPlaceholder: "e.g. XXXX-1234", amountLabel: "Charge Amount" },
+    "QR Pay":        { showGiven: false, refLabel: "QR Reference No.", refPlaceholder: "e.g. QR-1234", amountLabel: "QR Pay Amount" },
     "Check":         { showGiven: false, refLabel: "Check No.",             refPlaceholder: "Check number",  amountLabel: "Check Amount" },
     "Bank Transfer": { showGiven: false, refLabel: "Transfer Ref / Slip",   refPlaceholder: "Ref number",    amountLabel: "Transfer Amount" },
     "Loyalty Point": { showGiven: false, refLabel: "Points to Redeem",      refPlaceholder: "e.g. 200",      amountLabel: "Equivalent Amount" },
@@ -913,7 +930,7 @@ function FinalizeModal({
 }
 
 // ── Shared print helper ───────────────────────────────────────────────────────
-function triggerPrint(printableId: string) {
+async function triggerPrint(printableId: string) {
   const styleId = "idine-print-style";
   if (!document.getElementById(styleId)) {
     const s = document.createElement("style");
@@ -969,6 +986,15 @@ function triggerPrint(printableId: string) {
   // copied the children, silently dropping the wrapper's styling on print.
   root.innerHTML = src ? src.outerHTML : "";
   root.style.display = "block";
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(images.map((image) => {
+    if (image.complete && image.naturalWidth > 0) return image.decode?.().catch(() => undefined);
+    return new Promise<void>((resolve) => {
+      const finish = () => { image.removeEventListener("load", finish); image.removeEventListener("error", finish); resolve(); };
+      image.addEventListener("load", finish, { once: true });
+      image.addEventListener("error", finish, { once: true });
+    });
+  }));
   window.print();
   root.style.display = "none";
 }
@@ -1053,7 +1079,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   // Item totals are stored at the actual selling price, including promotional
   // prices. Promotion original prices are display-only and must not be added
   // back into the bill subtotal.
-  const subtotal      = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
+  const isFinalizedOrder = ["completed", "billed", "paid"].includes(String(order?.status || "").toLowerCase());
+  const calculatedSubtotal = items.reduce((s, it) => s + Number(it.total || 0) + Number(it.discount || 0), 0);
+  const subtotal      = isFinalizedOrder && Number.isFinite(Number(order?.subtotal)) ? Number(order.subtotal) : calculatedSubtotal;
   const lineDiscount  = items.reduce((s, it) => s + Number(it.discount || 0), 0);
   const savedDiscount = Number(order?.discount || 0);
   const configuredDiscount = Number(order?.discountValue || 0);
@@ -1062,7 +1090,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
       ? subtotal * configuredDiscount / 100
       : configuredDiscount)
     : 0;
-  const discount      = savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount, ruleDiscount);
+  const discount      = isFinalizedOrder ? savedDiscount : (savedDiscount > 0 ? savedDiscount : Math.max(lineDiscount, ruleDiscount));
   // A BILL is printed before payment, so orders.service_charge is still 0 — it is only
   // written when the sale is finalised. Fall back to the branch's configured rate so the
   // guest sees what they will actually be charged.
@@ -1071,12 +1099,16 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   // Always calculate from the discounted base. A previously saved service
   // charge may have been recorded before a discount was applied, which made
   // the invoice disagree with the bill.
-  const serviceCharge = !isDineIn
+  const calculatedServiceCharge = !isDineIn
     ? 0
     : parseFloat((Math.max(0, subtotal - discount) * svcRate).toFixed(2));
+  const serviceCharge = isFinalizedOrder && Number.isFinite(Number(order?.serviceCharge))
+    ? Number(order.serviceCharge)
+    : calculatedServiceCharge;
   // Always derive the payable amount from the visible receipt values. The
   // persisted total may predate a discount applied from Order Details.
-  const total         = parseFloat((subtotal - discount + serviceCharge).toFixed(2));
+  const calculatedTotal = parseFloat((subtotal - discount + serviceCharge).toFixed(2));
+  const total         = isFinalizedOrder && Number.isFinite(Number(order?.total)) ? Number(order.total) : calculatedTotal;
   const amountPaid    = Number(order?.amountPaid || 0);
   const cashGiven     = Number(order?.cashGiven || 0);
   const balance       = Number(order?.balance || 0);
@@ -1094,12 +1126,12 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
     // Invoices must be printed by the Windows print helper/browser dialog. Do not
     // send them automatically to a configured network thermal printer.
     if (isInvoice) {
-      triggerPrint(printId);
+      await triggerPrint(printId);
       return;
     }
     const printer = resolvePrinter(printerSetup, printers, isInvoice ? "invoice" : "bill");
     if (!printer || !isNetworkPrinter(printer.connection)) {
-      triggerPrint(printId);
+      await triggerPrint(printId);
       return;
     }
     setPrinting(true);
@@ -1126,7 +1158,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
       },
     });
     setPrinting(false);
-    if (res.fallback) { triggerPrint(printId); return; }
+    if (res.fallback) { await triggerPrint(printId); return; }
     setPrintMsg(res.message);
     if (res.ok) setTimeout(() => onClose(), 900);
   }
@@ -1309,6 +1341,9 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                     {footerText.split("\n").map((line, i) => (
                       <div key={i} style={{ fontSize: 11, fontWeight: 700, color: "#000", marginBottom: 2 }}>{line}</div>
                     ))}
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "#000", marginTop: 5 }}>
+                      iDine POS by AxisXNOR
+                    </div>
                   </div>
                 </div>
               )}
@@ -1341,6 +1376,10 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
 function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; onPrint: () => Promise<boolean> }) {
   const printId = "idine-kot-printable";
   const typeLabel = kot.type === "dine-in" ? "DINE IN" : kot.type === "takeaway" ? "TAKEAWAY" : kot.type === "delivery" ? "DELIVERY" : (kot.type || "").toUpperCase();
+  const orderNumber = String(kot.orderNumber || "");
+  const sequenceMatch = orderNumber.match(/(?:-|\s)(\d+)$/);
+  const kotSequence = (sequenceMatch?.[1] || orderNumber.match(/(\d+)$/)?.[1] || "0").padStart(3, "0");
+  const kotTableName = kot.tableName || kot.tableId || "";
   const now = new Date();
   const [printing, setPrinting] = useState(false);
 
@@ -1351,7 +1390,7 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
     try {
       const useBrowser = await onPrint();
       if (useBrowser) {
-        triggerPrint(printId);
+        await triggerPrint(printId);
         onClose();
       }
     } finally {
@@ -1393,11 +1432,22 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
             <div style={{ borderTop: "2px solid #000", margin: "8px 0" }} />
 
             {/* Meta */}
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Order #: {kot.orderNumber}</div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Time: {now.toLocaleTimeString("en-GB")}</div>
-            {(kot.tableName || kot.tableId) && <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Table: {kot.tableName || kot.tableId}</div>}
-            <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Placed By: {kot.placedBy || "—"}</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: "#000", marginBottom: 4 }}>Waiter: {kot.waiterName || "—"}</div>
+            <div style={{ textAlign: "center", marginBottom: 7 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: 1, color: "#000", marginBottom: 5 }}>
+                KOT # {kotSequence}{kotTableName ? ` / ${kotTableName}` : ""}
+              </div>
+              {kot.reprintLabel && (
+                <div style={{ display: "inline-block", fontSize: 16, fontWeight: 900, letterSpacing: 1, border: "2px solid #000", padding: "3px 10px" }}>
+                  {kot.reprintLabel}
+                </div>
+              )}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4, fontSize: 11, fontWeight: 800, color: "#000", marginBottom: 3, whiteSpace: "nowrap" }}>
+              <span style={{ whiteSpace: "nowrap" }}>Order#: {kot.orderNumber}</span><span style={{ whiteSpace: "nowrap", textAlign: "right" }}>{now.toLocaleTimeString("en-GB")}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4, fontSize: 11, fontWeight: 800, color: "#000", marginBottom: 3, whiteSpace: "nowrap" }}>
+              <span style={{ whiteSpace: "nowrap" }}>Placed: {kot.placedBy || "—"}</span><span style={{ whiteSpace: "nowrap", textAlign: "right" }}>Waiter: {kot.waiterName || "—"}</span>
+            </div>
             {kot.customerName && <div style={{ fontSize: 12, fontWeight: 800, color: "#000", marginBottom: 3 }}>Customer: {kot.customerName}</div>}
 
             <div style={{ borderTop: "2px solid #000", margin: "8px 0" }} />
@@ -1462,6 +1512,8 @@ export default function POSPage() {
   const [showSelfOrderQR,    setShowSelfOrderQR]    = useState(false);
   const [showQROrders,       setShowQROrders]       = useState(false);
   const [showRegistry,       setShowRegistry]       = useState(false);
+  const [registryLocked,     setRegistryLocked]     = useState(false);
+  const [registryCashInHand, setRegistryCashInHand] = useState("");
   const [showKotMenu,        setShowKotMenu]        = useState(false);
 
   // ── State
@@ -1491,6 +1543,7 @@ export default function POSPage() {
 
   // Modal states
   const [detailsOrderId,     setDetailsOrderId]     = useState<number | null>(null);
+  const [detailsFromRecent,  setDetailsFromRecent]  = useState(false);
   const [billOrderId,        setBillOrderId]        = useState<number | null>(null);
   const [invoiceOrderId,     setInvoiceOrderId]     = useState<number | null>(null);
   // finalizeOrderId = open FinalizeModal; finalizeIsQuick = was a quick-invoice (mark completed on submit)
@@ -1498,7 +1551,14 @@ export default function POSPage() {
   const [finalizeRequestKey, setFinalizeRequestKey] = useState(0);
   const [finalizeIsQuick,    setFinalizeIsQuick]    = useState(false);
   const [cancelConfirmId,    setCancelConfirmId]    = useState<number | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
   const [modifyOrderId,      setModifyOrderId]      = useState<number | null>(null);
+  const [modifyAuthOrderId,  setModifyAuthOrderId]  = useState<number | null>(null);
+  const [modifyAuthPin,      setModifyAuthPin]      = useState("");
+  const [modifyAuthError,    setModifyAuthError]    = useState("");
+  const [modifyAuthPending,  setModifyAuthPending]  = useState(false);
+  const [modifyAuthorizedBy, setModifyAuthorizedBy] = useState<{ id: number; name: string; role: string } | null>(null);
+  const [pendingQtyChange,   setPendingQtyChange]   = useState<{ cartKey: string; delta: number } | null>(null);
   const [modifyOriginalItems, setModifyOriginalItems] = useState<{ menuItemId: number | null; name: string; qty: number }[]>([]);
   const [pendingKotChoice,   setPendingKotChoice]   = useState<any | null>(null);
   // Print KOT preview — auto-print is suspended; this sits here until the user opens the print dialog
@@ -1576,6 +1636,13 @@ export default function POSPage() {
     queryFn: async () => (await api.users.$get({ query: { branchId: String(branchId) } })).json(),
   });
   const waiters = ((usersData as any)?.users || []).filter((u: any) => u.role === "waiter" || u.role === "manager");
+  useEffect(() => {
+    const latestUser = ((usersData as any)?.users || []).find((u: any) => Number(u.id) === Number(currentUser?.id));
+    const serverDefault = String(latestUser?.defaultOrderType || "").toLowerCase();
+    if (["dine-in", "takeaway", "delivery"].includes(serverDefault) && cartItems.length === 0 && !modifyOrderId) {
+      setOrderType(serverDefault as OrderType);
+    }
+  }, [usersData, currentUser?.id, cartItems.length, modifyOrderId]);
 
   // Printer setup settings — for category→printer routing
   const { data: printerSettingsData } = useQuery({
@@ -1590,6 +1657,12 @@ export default function POSPage() {
   });
   const kotPrinters: PrinterRow[] = ((printersData as any)?.printers || []) as PrinterRow[];
   const kotPrinterSetup = parsePrinterSetup((printerSettingsData as any)?.settings || {});
+  const { data: posDiscountData } = useQuery({
+    queryKey: ["pos-discounts", branchId],
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`)).json(),
+    staleTime: 30_000,
+  });
+  const posDiscounts: any[] = (posDiscountData as any)?.discounts || [];
   // categoryPrinterMap: { [categoryId]: printerId }
   const categoryPrinterMap = useMemo<Record<number, number>>(() => {
     try {
@@ -1629,6 +1702,16 @@ export default function POSPage() {
     mutationFn: async (status: string) => {
       const apiStatus = status === "quick-invoice" ? "confirmed" : status;
       const subtotal = cartItems.reduce((s, i) => s + (i.qty * i.price - i.discount + i.modifiers.reduce((ms, m) => ms + m.price, 0) * i.qty), 0);
+      const defaultDiscount = posDiscounts.find(d =>
+        d.isActive !== false && d.isActive !== 0 &&
+        ["all", orderType].includes(String(d.defaultFor || "").toLowerCase())
+      );
+      const defaultDiscountValue = Number(defaultDiscount?.value || 0);
+      const defaultDiscountAmount = defaultDiscount
+        ? Math.min(subtotal, String(defaultDiscount.type || "").toLowerCase().startsWith("percent")
+          ? subtotal * defaultDiscountValue / 100
+          : defaultDiscountValue)
+        : 0;
 
       // ── Modifying an existing running order — UPDATE it instead of creating a new one ──
       if (modifyOrderId) {
@@ -1690,6 +1773,22 @@ export default function POSPage() {
           else if (delta < 0) reducedItems.push({ name, qty: -delta });
         });
 
+        if (modifyAuthorizedBy && reducedItems.length > 0) {
+          await Promise.all(reducedItems.map(async (item) => {
+            const beforeQty = origMap.get(item.name)?.qty || item.qty;
+            await fetch("/api/modifications", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                branchId, orderId, orderNumber: existingOrder?.orderNumber || null,
+                tableName: tables.find((table: any) => Number(table.id) === Number(selectedTableId))?.name || null,
+                userId: modifyAuthorizedBy.id, userName: modifyAuthorizedBy.name,
+                itemName: item.name, qtyBefore: beforeQty, qtyAfter: Math.max(0, beforeQty - item.qty), qtyReduced: item.qty,
+                reason: `POS order modification authorized by ${modifyAuthorizedBy.name}`,
+              }),
+            });
+          }));
+        }
+
         const kotBase = {
           orderId, itemIds: createdItemIds,
           orderNumber: existingOrder?.orderNumber || "",
@@ -1724,7 +1823,9 @@ export default function POSPage() {
         json: {
           branchId, type: orderType, status: apiStatus, tableId: selectedTableId,
           waiterId: selectedWaiterId, customerId, customerName,
-          subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0), total: subtotal, orderNumber,
+          subtotal, discount: cartItems.reduce((s, i) => s + i.discount, 0) + defaultDiscountAmount,
+          discountName: defaultDiscount?.name || null, discountType: defaultDiscount?.type || null, discountValue: defaultDiscountValue || 0,
+          total: subtotal - defaultDiscountAmount, orderNumber,
           placedBy: getUser()?.name || null, cashierId: getUser()?.id || null,
         },
       })).json();
@@ -1801,12 +1902,38 @@ export default function POSPage() {
   });
 
   const updateOrderStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) =>
-      (await api.orders[":id"].$patch({ param: { id: String(id) }, json: { status } })).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["orders"] }); setCancelConfirmId(null); setSelectedOrderId(null); },
+    mutationFn: async ({ id, status, reason }: { id: number; status: string; reason?: string }) => {
+      const user = getUser() as any;
+      const response = await api.orders[":id"].$patch({
+        param: { id: String(id) },
+        json: {
+          status,
+          ...(status === "cancelled" ? {
+            cancellationReason: reason,
+            cancellationUserId: user?.id ?? null,
+            cancellationUserName: user?.name ?? null,
+          } : {}),
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error((data as any)?.error || "Unable to update order");
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      setCancelConfirmId(null);
+      setCancellationReason("");
+      setSelectedOrderId(null);
+    },
   });
 
   // Re-print KOT — same browser print dialog as the initial KOT (no more silent auto-print to a thermal printer)
+  const nextKotReprintLabel = (orderId: number) => {
+    const key = `idine-kot-reprint-count-${orderId}`;
+    const next = Number(window.localStorage.getItem(key) || 0) + 1;
+    window.localStorage.setItem(key, String(next));
+    return `REPRINT-${next}`;
+  };
   const reprintKOT = useMutation({
     mutationFn: async ({ orderId, mode }: { orderId: number; mode: "all" | "new" }) => {
       const res = await (await api.orders[":id"].$get({ param: { id: String(orderId) } })).json() as any;
@@ -1832,6 +1959,7 @@ export default function POSPage() {
       const waiter = waiters.find((w: any) => w.id === order.waiterId);
       return {
         orderId, itemIds: printItems.map((it: any) => it.id),
+        reprintLabel: mode === "all" ? nextKotReprintLabel(orderId) : null,
         orderNumber: order.orderNumber,
         type: order.type, tableId: order.tableId,
         tableName: tables.find((table: any) => Number(table.id) === Number(order.tableId))?.name || null,
@@ -1867,12 +1995,37 @@ export default function POSPage() {
     showToast("Order loaded for editing");
   }, []);
 
+  async function authorizeModifyOrder() {
+    if (!modifyAuthOrderId || !modifyAuthPin.trim()) return;
+    setModifyAuthPending(true); setModifyAuthError("");
+    try {
+      const res = await fetch("/api/users/authorize-modification", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branchId, pin: modifyAuthPin.trim() }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Authorization failed");
+      setModifyAuthorizedBy(body.authorizedBy);
+      setModifyAuthOrderId(null); setModifyAuthPin("");
+      if (pendingQtyChange) {
+        const { cartKey, delta } = pendingQtyChange;
+        setCartItems(prev => prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0));
+        setPendingQtyChange(null);
+        showToast(`Quantity reduction authorized by ${body.authorizedBy?.name || "manager"}`);
+      }
+    } catch (error: any) {
+      setModifyAuthError(error?.message || "Authorization failed");
+    } finally { setModifyAuthPending(false); }
+  }
+
   // ── Helpers
   function resetOrder() {
     setCartItems([]); setOrderType("dine-in"); setSelectedTableId(null);
     setCustomerName("Walk-in Customer"); setCustomerId(null);
     setSelectedOrderId(null); setSelectedWaiterId(null); setSelectedWaiterName(null);
     setModifyOrderId(null); setModifyOriginalItems([]);
+    setModifyAuthorizedBy(null);
+    setPendingQtyChange(null);
     setManualDiscountInput(""); setManualDiscountMode("fixed");
   }
   function showToast(msg: string) { setToast(msg); }
@@ -1899,12 +2052,22 @@ export default function POSPage() {
     });
   }
   function changeQty(cartKey: string, delta: number) {
+    if (delta < 0 && modifyOrderId) {
+      setPendingQtyChange({ cartKey, delta });
+      setModifyAuthOrderId(modifyOrderId);
+      setModifyAuthPin("");
+      setModifyAuthError("");
+      return;
+    }
     setCartItems(prev => prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0));
   }
   function setDiscount(cartKey: string, val: number) {
     setCartItems(prev => prev.map(i => i.cartKey === cartKey ? { ...i, discount: isNaN(val) ? 0 : val } : i));
   }
-  function removeItem(cartKey: string) { setCartItems(prev => prev.filter(i => i.cartKey !== cartKey)); }
+  function removeItem(cartKey: string) {
+    const item = cartItems.find(i => i.cartKey === cartKey);
+    if (item) changeQty(cartKey, -item.qty);
+  }
   function setItemModifiers(cartKey: string, mods: Modifier[]) {
     setCartItems(prev => prev.map(i => i.cartKey === cartKey ? { ...i, modifiers: mods } : i));
   }
@@ -1964,13 +2127,22 @@ export default function POSPage() {
   const bestSellerRank = new Map<number, number>(
     ((bestSellersData as any)?.bestSellers || []).map((b: any, i: number) => [b.menuItemId, i])
   );
-  const menuSourceItems = activeFilter === "promo" ? promoMenuItems : allMenuItems;
+  const menuSourceItems = activeFilter === "promo"
+    ? promoMenuItems
+    : searchQuery.trim() ? allMenuItemsForPromos : allMenuItems;
   const menuItemsFiltered = menuSourceItems.filter((item: any) => {
     if (activeFilter === "veg"   && !item.isVeg)      return false;
     if (activeFilter === "bev"   && !item.isBeverage)  return false;
     if (activeFilter === "promo" && !item.isPromo)     return false;
     if (activeFilter === "combo" && !item.isCombo)     return false;
-    if (searchQuery && !item.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase().trim();
+      const compactQuery = query.replace(/[^a-z0-9]/g, "");
+      const name = String(item.name || "").toLowerCase();
+      const code = String(item.code || "").toLowerCase();
+      const compactCode = code.replace(/[^a-z0-9]/g, "");
+      if (!name.includes(query) && !code.includes(query) && !compactCode.includes(compactQuery)) return false;
+    }
     return true;
   });
   // "All" tab (no category selected) — show top-selling items first
@@ -2277,9 +2449,9 @@ export default function POSPage() {
           {/* Action buttons */}
           <div className="p-2 space-y-1 border-t" style={{ borderColor: BORD }}>
             {can("Edit Placed Order") && <Btn icon={Edit3}    label="Modify Order"
-              onClick={() => selectedOrderId && loadOrderForEdit(selectedOrderId)} />}
+              onClick={() => { if (selectedOrderId) void loadOrderForEdit(selectedOrderId); }} />}
             <Btn icon={Info}     label="Order Details"
-              onClick={() => selectedOrderId && setDetailsOrderId(selectedOrderId)} />
+              onClick={() => { if (selectedOrderId) { setDetailsFromRecent(false); setDetailsOrderId(selectedOrderId); } }} />
             <div className="relative">
               {showKotMenu && selectedOrderId && (
                 <>
@@ -2307,7 +2479,7 @@ export default function POSPage() {
                 onClick={() => { if (selectedOrderId) { setInvoicePreviewMode("bill"); setInvoicePreviewId(selectedOrderId); } }} />}
             </div>
             {can("Cancel Order") && <Btn icon={Ban} label="Cancel Order" danger
-              onClick={() => selectedOrderId && setCancelConfirmId(selectedOrderId)} />}
+              onClick={() => { if (selectedOrderId) { setCancellationReason(""); setCancelConfirmId(selectedOrderId); } }} />}
           </div>
         </div>
 
@@ -2672,6 +2844,7 @@ export default function POSPage() {
         <OrderDetailsModal
           order={{ ...modalOrder, waiterName: modalWaiterName, tableName: modalTableName }} items={modalItems}
           onClose={() => setDetailsOrderId(null)}
+          allowBillingActions={!(detailsFromRecent && String(currentUser?.role || "").toLowerCase() === "cashier")}
           onCreateInvoice={() => { setDetailsOrderId(null); setFinalizeIsQuick(false); setFinalizeRequestKey(k => k + 1); setFinalizeOrderId(detailsOrderId); }}
           onPrintBill={() => { setDetailsOrderId(null); setInvoicePreviewMode("bill"); setInvoicePreviewId(detailsOrderId); }} />
       )}
@@ -2691,17 +2864,29 @@ export default function POSPage() {
 
       {showRecentSales && (
         <RecentSalesModal branchId={branchId!} onClose={() => setShowRecentSales(false)}
-          onView={(id) => { setShowRecentSales(false); setDetailsOrderId(id); }}
+          onView={(id) => { setShowRecentSales(false); setDetailsFromRecent(true); setDetailsOrderId(id); }}
+          canReprint={String(currentUser?.role || "").toLowerCase() !== "cashier"}
           onReprint={(id) => openInvoicePreview(id)} />
       )}
       {showQROrders && (
-        <QROrdersModal branchId={branchId!} onClose={() => setShowQROrders(false)} />
+        <QROrdersModal branchId={branchId!} allowReject={can("Cancel Order")} onClose={() => setShowQROrders(false)} />
       )}
       {showSelfOrderQR && (
         <SelfOrderQRModal branchId={branchId!} onClose={() => setShowSelfOrderQR(false)} />
       )}
       {showRegistry && (
-        <RegistryModal branchId={branchId!} onClose={() => setShowRegistry(false)} />
+        <RegistryModal branchId={branchId!} onClose={() => setShowRegistry(false)} onSettled={() => { setShowRegistry(false); setRegistryCashInHand(""); setRegistryLocked(true); }} />
+      )}
+
+      {registryLocked && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: "#000000cc" }}>
+          <div className="w-72 rounded-xl border shadow-2xl p-5" style={{ background: SURF, borderColor: BORD }}>
+            <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>Registry Settled</div>
+            <div className="text-xs mb-4" style={{ color: MUTED }}>Enter the cash currently in hand before continuing to POS.</div>
+            <input type="number" min="0" step="0.01" autoFocus value={registryCashInHand} onChange={e => setRegistryCashInHand(e.target.value)} placeholder="Cash in hand" className="w-full rounded border px-3 py-2 text-sm mb-4" style={{ background: SURF2, color: TEXT, borderColor: BORD }} />
+            <button disabled={!registryCashInHand.trim() || Number(registryCashInHand) < 0} onClick={() => setRegistryLocked(false)} className="w-full rounded py-2 text-xs font-semibold disabled:opacity-40" style={{ background: GOLD, color: "#111" }}>Continue to POS</button>
+          </div>
+        </div>
       )}
 
       {/* Finalize Sale modal — for Invoice (running order) and Quick Invoice */}
@@ -2741,6 +2926,21 @@ export default function POSPage() {
         />
       )}
 
+      {modifyAuthOrderId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: "#00000099" }}>
+          <div className="w-80 rounded-xl border shadow-2xl p-5" style={{ background: SURF, borderColor: BORD }}>
+            <div className="font-bold text-sm mb-1" style={{ color: TEXT }}>Authorize Order Modification</div>
+            <div className="text-xs mb-4" style={{ color: MUTED }}>Enter an admin or manager Authorized PIN to continue.</div>
+            <input type="password" inputMode="numeric" autoFocus value={modifyAuthPin} onChange={e => setModifyAuthPin(e.target.value)} onKeyDown={e => { if (e.key === "Enter") authorizeModifyOrder(); }} placeholder="Authorized PIN" className="w-full rounded border px-3 py-2 text-sm mb-3" style={{ background: SURF2, color: TEXT, borderColor: modifyAuthError ? "var(--color-danger)" : BORD }} />
+            {modifyAuthError && <div className="text-xs mb-3" style={{ color: "var(--color-danger)" }}>{modifyAuthError}</div>}
+            <div className="flex gap-2">
+              <button onClick={() => setModifyAuthOrderId(null)} className="flex-1 py-2 rounded border text-xs" style={{ borderColor: BORD, color: MUTED }}>Cancel</button>
+              <button disabled={!modifyAuthPin.trim() || modifyAuthPending} onClick={authorizeModifyOrder} className="flex-1 py-2 rounded text-xs font-semibold disabled:opacity-40" style={{ background: GOLD, color: "#111" }}>{modifyAuthPending ? "Checking…" : "Authorize"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancel confirmation */}
       {cancelConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "#00000099" }}>
@@ -2749,12 +2949,29 @@ export default function POSPage() {
             <div className="text-xs mb-4" style={{ color: MUTED }}>
               This will cancel the selected order. This action cannot be undone.
             </div>
+            <label className="block text-xs font-semibold mb-1" style={{ color: TEXT }}>
+              Cancellation reason <span style={{ color: "var(--color-danger)" }}>*</span>
+            </label>
+            <textarea
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              placeholder="Enter the reason for cancellation"
+              rows={3}
+              maxLength={500}
+              autoFocus
+              className="w-full rounded border px-2 py-2 text-xs mb-4 resize-none"
+              style={{ background: SURF2, borderColor: BORD, color: TEXT }}
+            />
             <div className="flex gap-2">
-              <button onClick={() => setCancelConfirmId(null)}
+              <button onClick={() => { setCancelConfirmId(null); setCancellationReason(""); }}
                 className="flex-1 py-2 rounded border text-xs" style={{ borderColor: BORD, color: MUTED }}>Keep</button>
               <button
-                onClick={() => updateOrderStatus.mutate({ id: cancelConfirmId, status: "cancelled" })}
-                disabled={updateOrderStatus.isPending}
+                onClick={() => {
+                  const reason = cancellationReason.trim();
+                  if (!reason) { showToast("Please enter a cancellation reason"); return; }
+                  updateOrderStatus.mutate({ id: cancelConfirmId, status: "cancelled", reason });
+                }}
+                disabled={updateOrderStatus.isPending || !cancellationReason.trim()}
                 className="flex-1 py-2 rounded text-xs font-semibold disabled:opacity-40"
                 style={{ background: "var(--color-danger)", color: "#fff" }}>
                 {updateOrderStatus.isPending ? <Spinner size={12} /> : "Cancel Order"}

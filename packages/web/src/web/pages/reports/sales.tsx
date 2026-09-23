@@ -4,7 +4,7 @@ import { api } from "../../lib/api";
 import { getBranchId, getUser } from "../../lib/store";
 import { ReportLayout, DataTable, ViewToggle, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
 import type { ColDef } from "./layout";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Eye, X } from "lucide-react";
 
 type Filter = "today" | "yesterday" | "week" | "month" | "custom";
 
@@ -27,11 +27,21 @@ function prevRange(filter: Filter, from: string, to: string): [Date, Date] {
   return [new Date(s.getTime() - diff), new Date(s.getTime())];
 }
 
+function InvoiceHistoryModal({ data, loading, onClose }: { data: any; loading: boolean; onClose: () => void }) {
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl border p-5" style={{ background: SURF, borderColor: BORD }} onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between border-b pb-3 mb-4" style={{ borderColor: BORD }}><div><h2 className="font-bold" style={{ color: TEXT }}>Invoice Activity</h2><div className="text-xs mt-1" style={{ color: DIM }}>{data?.order?.orderNumber || "Loading…"}</div></div><button onClick={onClose} style={{ color: MUTED }}><X size={19} /></button></div>
+      {loading ? <div className="py-12 text-center text-sm" style={{ color: DIM }}>Loading invoice history…</div> : data?.error ? <div className="py-12 text-center text-sm" style={{ color: "var(--color-danger)" }}>{data.error}</div> : <><div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-5">{[["Customer", data?.customer?.name || data?.order?.customerName || "Walk-in Customer"], ["Type", data?.order?.type || "—"], ["Total", `LKR ${Number(data?.order?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`], ["Status", data?.order?.status || "—"]].map(([label, value]) => <div key={String(label)} className="rounded-lg border p-3" style={{ borderColor: BORD }}><div style={{ color: DIM }}>{label}</div><div className="font-bold mt-1" style={{ color: TEXT }}>{value}</div></div>)}</div><h3 className="font-semibold text-sm mb-3" style={{ color: TEXT }}>Activity history</h3><div className="space-y-3">{(data?.events || []).map((event: any, index: number) => <div key={`${event.at}-${index}`} className="rounded-lg border p-3" style={{ borderColor: BORD }}><div className="flex flex-wrap items-center justify-between gap-2"><div className="font-semibold text-sm" style={{ color: event.kind === "danger" ? "var(--color-danger)" : event.kind === "success" ? "var(--color-success)" : event.kind === "warning" ? "var(--color-warning)" : TEXT }}>{event.action}</div><div className="text-[11px]" style={{ color: DIM }}>{event.at ? new Date(event.at).toLocaleString() : "—"}</div></div><div className="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-2" style={{ color: MUTED }}>{String(event.details || "Activity recorded").split(" · ").map((part: string, partIndex: number) => { const separator = part.indexOf(": "); const label = separator >= 0 ? part.slice(0, separator) : ""; const value = separator >= 0 ? part.slice(separator + 2) : part; const isPayment = label.toLowerCase() === "payment"; return <span key={partIndex}>{label ? <><span>{label}: </span><strong style={{ color: isPayment ? "#60a5fa" : TEXT }}>{value}</strong></> : <strong style={{ color: TEXT }}>{value}</strong>}</span>; })}</div><div className="text-[11px] mt-2" style={{ color: DIM }}>By: <strong style={{ color: TEXT }}>{event.actor || "—"}</strong></div></div>)}</div><div className="mt-5 rounded-lg border p-4" style={{ borderColor: BORD }}><h3 className="font-semibold text-sm mb-2" style={{ color: TEXT }}>Items</h3>{(data?.items || []).map((item: any) => <div key={item.id} className="flex justify-between border-b py-2 text-xs last:border-0" style={{ borderColor: BORD, color: MUTED }}><span>{item.name} ×{item.qty}</span><span style={{ color: TEXT }}>LKR {Number(item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>)}</div></>}
+    </div>
+  </div>;
+}
+
 const TABLE_COLS: ColDef[] = [
   { key: "orderNumber", label: "Order #" },
   { key: "date", label: "Date" },
+  { key: "user", label: "User" },
   { key: "type", label: "Type" },
-  { key: "paymentMethod", label: "Payment Method" },
+  { key: "paymentMethod", label: "Payment Method", render: v => <span className="font-semibold" style={{ color: TEXT }}>{String(v || "Other")}</span> },
   { key: "status", label: "Status", render: (v) => (
     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize"
       style={{
@@ -43,9 +53,11 @@ const TABLE_COLS: ColDef[] = [
   { key: "subtotal", label: "Subtotal", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "cash", label: "Cash", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "card", label: "Card", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
+  { key: "qr", label: "QR Pay", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "other", label: "Other", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "total", label: "Total", align: "right", render: v => <span style={{ color: GOLD, fontWeight: 700 }}>LKR {Number(v || 0).toLocaleString()}</span> },
   { key: "items", label: "Items", align: "right" },
+  { key: "action", label: "Action", render: (_v, row) => <button onClick={() => row.onView?.(row.orderId)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: GOLD, color: GOLD }}><Eye size={12} /> View</button> },
 ];
 
 export default function SalesReport() {
@@ -55,6 +67,12 @@ export default function SalesReport() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [view, setView] = useState<"summary" | "table">("summary");
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const { data: invoiceHistory, isLoading: historyLoading } = useQuery({
+    queryKey: ["sales-report-invoice-history", branchId, selectedInvoiceId],
+    enabled: Boolean(selectedInvoiceId),
+    queryFn: async () => (await fetch(`/api/reporting/invoice-history/${selectedInvoiceId}?branchId=${branchId}`)).json(),
+  });
 
   const { data: ordersData, isLoading } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
@@ -103,15 +121,26 @@ export default function SalesReport() {
   }
   const maxRev = Math.max(...days.map(d => d.rev), 1);
 
-  const tableRows = orders.map(o => {
-    const payments = Array.isArray(o.payments) ? o.payments : (() => { try { return JSON.parse(o.paymentsJson || "[]"); } catch { return []; } })();
-    const parts = payments.length ? payments : [{ method: o.paymentMethod || "Other", amount: o.total }];
-    const paymentTotals = parts.reduce((acc: any, p: any) => { const method = String(p.method || "other").toLowerCase(); const key = method.includes("cash") ? "cash" : method.includes("card") ? "card" : "other"; acc[key] += Number(p.amount || 0); return acc; }, { cash: 0, card: 0, other: 0 });
+  const tableRows = completed.map(o => {
+    const payments = Array.isArray(o.payments)
+      ? o.payments
+      : (() => { try { const parsed = JSON.parse(o.paymentsJson || "[]"); return Array.isArray(parsed) ? parsed : []; } catch { return []; } })();
+    const parts = payments.length
+      ? payments
+      : [{ method: o.paymentMethod || o.payment_method || "Other", amount: o.total }];
+    const paymentMethod = parts
+      .map((p: any) => String(p.method || p.paymentMethod || "Other").trim())
+      .filter(Boolean)
+      .join(" + ") || "Other";
+    const paymentTotals = parts.reduce((acc: any, p: any) => { const method = String(p.method || "other").toLowerCase(); const key = method.includes("cash") ? "cash" : method.includes("card") ? "card" : method.includes("qr") ? "qr" : "other"; acc[key] += Number(p.amount || 0); return acc; }, { cash: 0, card: 0, qr: 0, other: 0 });
     return {
+    orderId: o.id,
+    onView: (id: number) => setSelectedInvoiceId(id),
     orderNumber: o.orderNumber,
     date: new Date(o.createdAt).toLocaleString("en", { dateStyle: "short", timeStyle: "short" }),
+    user: o.placedBy || (o.cashierId ? `User ${o.cashierId}` : "—"),
     type: o.type,
-    paymentMethod: parts.map((p: any) => String(p.method || "Other")).join(" + "),
+    paymentMethod,
     status: o.status,
     customerName: o.customerName || "Walk-in",
     subtotal: o.subtotal,
@@ -170,14 +199,17 @@ export default function SalesReport() {
 
       {/* TABLE VIEW */}
       {view === "table" ? (
+        <>
         <DataTable
-          title={`All Orders (${orders.length})`}
+          title={`Finalized Sales (${completed.length})`}
           columns={TABLE_COLS}
           rows={tableRows}
-          filterKeys={["orderNumber", "date", "type", "paymentMethod", "status", "customerName"]}
+          filterKeys={["orderNumber", "date", "user", "type", "paymentMethod", "status", "customerName"]}
           totalKey="total"
           exportName="sales-report"
         />
+        {selectedInvoiceId && <InvoiceHistoryModal data={invoiceHistory} loading={historyLoading} onClose={() => setSelectedInvoiceId(null)} />}
+        </>
       ) : (
         <>
           {/* Insight banner */}

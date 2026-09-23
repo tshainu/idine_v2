@@ -142,24 +142,21 @@ export default function TakeOrderScreen() {
   // carry the same category routing into the server print queue.
   useEffect(() => {
     if (!branchId) return;
-    syncPrinterConfigFromPos(branchId).catch(() => undefined);
-    http.get<{ settings: Record<string, string> }>("/settings", { branchId })
-      .then(({ settings }) => {
-        try {
-          const setup = JSON.parse(settings?.printerSetup || "{}");
-          const next: Record<number, number> = {};
-          Object.entries(setup?.printerCategories || {}).forEach(([printerId, categoryIds]) => {
-            if (Array.isArray(categoryIds)) {
-              categoryIds.forEach((categoryId) => { next[Number(categoryId)] = Number(printerId); });
-            }
-          });
-          setCategoryPrinterMap(next);
-        } catch {
-          setCategoryPrinterMap({});
+    const refreshPrinterMap = async () => {
+      try {
+        const config = await syncPrinterConfigFromPos(branchId);
+        const next: Record<number, number> = {};
+        for (const printer of config.kotPrinters) {
+          if (printer.printerId == null) continue;
+          for (const categoryId of printer.categoryIds ?? []) next[Number(categoryId)] = printer.printerId;
         }
-      })
-      .catch(() => setCategoryPrinterMap({}));
-    const timer = setInterval(() => { syncPrinterConfigFromPos(branchId).catch(() => undefined); }, 60_000);
+        setCategoryPrinterMap(next);
+      } catch {
+        setCategoryPrinterMap({});
+      }
+    };
+    void refreshPrinterMap();
+    const timer = setInterval(() => { void refreshPrinterMap(); }, 60_000);
     return () => clearInterval(timer);
   }, [branchId]);
 
@@ -280,7 +277,7 @@ export default function TakeOrderScreen() {
           name: item.name,
           unitPrice: item.price,
           qty: item.qty,
-          printerId: item.printerId,
+          printerId: item.printerId ?? categoryPrinterMap[menu.data?.find((menuItem) => menuItem.id === item.menuItemId)?.categoryId ?? -1] ?? null,
           variationName: null,
           modifiers: [],
           note: item.note ?? "",

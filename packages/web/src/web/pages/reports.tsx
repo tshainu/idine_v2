@@ -44,14 +44,17 @@ export default function ReportsPage() {
   }
   const maxRev = Math.max(...days30.map(d => d.rev), 1);
 
-  // Top items
+  // Top items: use finalized sales only and the persisted order_items.qty field.
+  // Cancelled/open orders must not contribute to sales performance.
+  const finalizedOrders = orders.filter(o => ["completed", "billed", "paid"].includes(String(o.status || "").toLowerCase()));
   const itemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-  orders.forEach(o => {
+  finalizedOrders.forEach(o => {
     (o.items || []).forEach((it: any) => {
       const key = String(it.menuItemId || it.name);
       if (!itemMap[key]) itemMap[key] = { name: it.name || `Item #${key}`, qty: 0, revenue: 0 };
-      itemMap[key].qty += it.quantity || 1;
-      itemMap[key].revenue += (it.price || 0) * (it.quantity || 1);
+      const qty = Number(it.qty ?? it.quantity ?? 1);
+      itemMap[key].qty += qty;
+      itemMap[key].revenue += (Number(it.price) || 0) * qty;
     });
   });
   const topItems = Object.values(itemMap).sort((a, b) => b.revenue - a.revenue).slice(0, 10);

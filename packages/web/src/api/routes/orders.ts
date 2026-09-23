@@ -115,11 +115,22 @@ export const orders = new Hono()
   })
   .post("/", async (c) => {
     const body = await c.req.json();
+    const orderValues = {
+      ...body,
+      discount: body.discount == null ? 0 : Number(body.discount),
+      discountValue: body.discountValue == null ? 0 : Number(body.discountValue),
+      serviceCharge: body.serviceCharge == null ? 0 : Number(body.serviceCharge),
+      tipAmount: body.tipAmount == null ? 0 : Number(body.tipAmount),
+      total: body.total == null ? 0 : Number(body.total),
+      amountPaid: body.amountPaid == null ? 0 : Number(body.amountPaid),
+      cashGiven: body.cashGiven == null ? 0 : Number(body.cashGiven),
+      balance: body.balance == null ? 0 : Number(body.balance),
+    };
     // The server owns the sequence. Ignore client-generated numbers so POS and
     // Waiter always share one daily sequence that restarts at 001 each morning.
     const updated = await db.transaction(async (tx) => {
       const [order] = await tx.insert(schema.orders).values({
-        ...body,
+        ...orderValues,
         orderNumber: "TEMP",
       }).returning();
       const orderNumber = await generateOrderNumber(tx, body.placedBy);
@@ -172,13 +183,74 @@ export const orders = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
+    const { cancellationReason, cancellationUserId, cancellationUserName, ...orderUpdate } = body as any;
     const [before] = await db.select()
       .from(schema.orders)
       .where(eq(schema.orders.id, id));
+    if (!before) return c.json({ error: "Order not found" }, 404);
+    const isCancelling = orderUpdate.status === "cancelled" && before.status !== "cancelled";
+    const reason = String(cancellationReason || "").trim();
+    if (isCancelling && !reason) return c.json({ error: "Cancellation reason is required" }, 400);
+    if (["completed", "billed", "paid"].includes(String(orderUpdate.status || "").toLowerCase())) {
+      const subtotal = Number(orderUpdate.subtotal ?? before.subtotal ?? 0);
+      const existingDiscount = Number(orderUpdate.discount ?? before.discount ?? 0);
+      const ruleValue = Number(before.discountValue ?? orderUpdate.discountValue ?? 0);
+      const discountType = String(before.discountType ?? orderUpdate.discountType ?? "").toLowerCase();
+      const ruleDiscount = existingDiscount > 0
+        ? existingDiscount
+        : ruleValue > 0
+          ? discountType.startsWith("percent") ? subtotal * ruleValue / 100 : ruleValue
+          : 0;
+      const discount = Number(ruleDiscount.toFixed(2));
+      const branchSettings = await db.select({ key: schema.branchSettings.key, value: schema.branchSettings.value })
+        .from(schema.branchSettings)
+        .where(eq(schema.branchSettings.branchId, Number(orderUpdate.branchId ?? before.branchId)));
+      const settingMap = Object.fromEntries(branchSettings.map(row => [row.key, row.value || ""]));
+      const serviceRate = parseFloat(String(settingMap.serviceCharge || "0").replace("%", "")) / 100 || 0;
+      const afterDiscount = Math.max(0, subtotal - discount);
+      const serviceCharge = String(orderUpdate.type ?? before.type) === "dine-in"
+        ? Number((afterDiscount * serviceRate).toFixed(2))
+        : 0;
+      const total = Number((afterDiscount + serviceCharge).toFixed(2));
+      let paymentEntries: any[] = [];
+      try { paymentEntries = typeof orderUpdate.paymentsJson === "string" ? JSON.parse(orderUpdate.paymentsJson || "[]") : (orderUpdate.paymentsJson || []); } catch { paymentEntries = []; }
+      if (Array.isArray(paymentEntries) && paymentEntries.length > 0) {
+        const amountPaid = Number(paymentEntries.reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0).toFixed(2));
+        orderUpdate.discount = discount;
+        orderUpdate.serviceCharge = serviceCharge;
+        orderUpdate.total = total;
+        orderUpdate.amountPaid = amountPaid;
+        orderUpdate.balance = Number((amountPaid - total).toFixed(2));
+      }
+    }
     const [order] = await db.update(schema.orders)
-      .set({ ...body, updatedAt: new Date() })
+      .set({ ...orderUpdate, updatedAt: new Date() })
       .where(eq(schema.orders.id, id))
       .returning();
+    if (isCancelling) {
+      const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, id));
+      let tableName: string | null = null;
+      if (order.tableId) {
+        const [table] = await db.select({ name: schema.tables.name })
+          .from(schema.tables).where(eq(schema.tables.id, order.tableId));
+        tableName = table?.name ?? null;
+      }
+      const auditRows = (items.length ? items : [{ id: null, name: "Entire order", qty: 0 }]).map((item: any) => ({
+        branchId: order.branchId ?? null,
+        orderId: order.id,
+        orderItemId: item.id ?? null,
+        orderNumber: order.orderNumber,
+        tableName,
+        userId: cancellationUserId == null ? (order.cashierId ?? null) : Number(cancellationUserId),
+        userName: cancellationUserName || order.placedBy || null,
+        itemName: item.name,
+        qtyBefore: Number(item.qty || 0),
+        qtyAfter: 0,
+        qtyReduced: Number(item.qty || 0),
+        reason,
+      }));
+      await db.insert(schema.orderModifications).values(auditRows);
+    }
     await syncTableStatus(order.tableId);
     pushOutbox("orders", "update", order.id, order, order.branchId ?? undefined);
     if (order.status === "ready" && before?.status !== "ready") {

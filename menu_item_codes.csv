@@ -1,0 +1,240 @@
+id,name,new_code,is_active
+1,Mixed Vegetable Curry,MC,0
+2,Channa Masala,CM,1
+3,Vegetable Kuruma,VK,1
+4,Navarathna Kuruma,NK,0
+5,Mushroom Masala,MM,0
+6,Paneer Tikka Masala,PM,0
+7,Paneer Butter Masala,PM2,1
+8,Kadai Paneer,KP,0
+9,Kadai Chicken,KC,0
+10,Punjabi Chicken,PC,0
+11,Pepper Chicken Masala,PM3,0
+12,Andhra Chicken Curry,AC,0
+13,Chettinad Chicken,CC,0
+14,Guntur Chicken Masala,GM,0
+15,Chicken Tikka,CT,0
+16,Butter Chicken Masala,BM,1
+17,Chicken Vettai Curry,CC2,0
+18,Chicken Chukka,CC3,0
+19,Mutton Chettinad,MC2,0
+20,Mutton Vettai Curry,MC3,0
+21,Prawn Vettai Curry,PC2,0
+22,Rogan Josh Mutton,RM,0
+23,Prawn Masala,PM4,0
+24,Dragon Chicken (Dry),DD,0
+25,Lemon Chicken (Dry),LD,0
+26,"Honey Chicken (Sweet, Dry)",HD,0
+27,Idiyappa Combo - 1 (Mutton Nalli Paaya + 10 String Hoppers),IH,0
+28,Mandi Chicken (Half),MH,0
+29,Mandi Chicken (Full),MF,0
+30,Mandi Mutton (Half),MH2,0
+31,Mandi Mutton (Full),MF2,0
+32,Nellai Egg Biryani,NB,0
+33,Nellai Chicken Biryani,NB2,1
+34,Nellai Mutton Biryani,NB3,1
+35,Chicken 65 Biryani,CB,0
+36,Alfaham Chicken Biryani,AB,0
+37,BBQ Chicken Biryani,BB,0
+38,Tandoori Chicken Biryani,TB,0
+39,Prawn Biryani,PB,0
+40,Mayonnaise,MAY,0
+41,Onion Raita,OR,0
+42,Gravy,GRA,0
+43,Chilli Paste,CP,0
+44,Green Salad,GS,0
+45,Tomato Soup,TS,0
+46,Sweet Corn Soup,SS,0
+47,Hot & Sour Soup,HS,0
+48,Noodles-Soup,NS,0
+49,Manchow Soup,MS,0
+50,Chicken Pepper Soup,CS,0
+51,Pepper Mutton Soup,PS,0
+52,Manchow Mutton Soup,MS2,0
+53,Bone Mutton Soup,BS,0
+54,French Fries,FF,0
+55,Mushroom 65,M65,0
+56,Gobi 65,G65,0
+57,Paneer 65,P65,0
+58,Panipuri Chicken,PC3,0
+59,Chicken 65,C65,0
+60,Chicken Lollipop,CL,0
+61,Chicken Popcorn,CP2,0
+62,Fish & Chips,FC,0
+63,Manjal Special Golden Prawns,MP,0
+64,Assorted Live Sigdi Kekab,AK,0
+65,Malai Tikka,MT,0
+66,Hariyali Tikka,HT,0
+67,Maharani Tikka,MT2,0
+68,Vegetable Noodles,VN,0
+69,Egg Fried Noodles,EN,0
+70,Chicken Fried Noodles,CN,0
+71,Chicken Schezwan Noodles,CN2,0
+72,Boiled Egg,BE,0
+73,Omelette,OME,0
+74,Half Boiled Egg,HE,0
+75,Chicken Omelette (Kalakki),CK,0
+76,Egg Masala,EM,0
+77,Egg Keema Masala,EM2,0
+78,Mutton Omelette (Kalakki),MK,0
+79,Manjal Veetu Sapadu - Veg,MV,0
+80,Plain Naan,PN,0
+81,Parotta,PAR,0
+82,Tandoori Roti,TR,0
+83,Nool Parotta,NP,1
+84,Garlic Naan,GN,1
+85,Bun Parotta,BP,0
+86,Chappathi,CHA,0
+87,Butter Naan,BN,1
+88,Plain Veechu Parotta,PP,0
+89,Egg Veechu Parotta,EP,0
+90,Japan Chicken Kothu Parotta,JP,0
+91,Kizhi Thattu Parotta (Egg),KE,0
+92,Kizhi Thattu Parotta (Chicken),KC2,0
+93,Chicken Murthaba Parotta,CP3,0
+94,Kerala Chicken Kothu Parotta,KP2,0
+95,Koondu Kulla Kizhi Parotta (Chicken),KC3,0
+96,Japan Seafood Kothu Parotta,JP2,0
+97,Kizhi Thattu Parotta (Mutton),KM,0
+98,Kerala Mutton Kothu Parotta,KP3,0
+99,Mutton Murthaba Parotta,MP2,0
+100,Chicken Manpaanai (Claypot) Parotta,CP4,0
+101,Mutton Manpaanai (Claypot) Parotta,MP3,0
+102,Prawn Manpaanai (Claypot) Parotta,PP2,0
+103,Paper Roast,PR,0
+104,Egg Dosai,ED,0
+105,Ghee Roast Dosai,GD,1
+106,Chicken Curry Dosai,CD,0
+107,Mutton Curry Dosai,MD,0
+108,Gulab Jamun,GJ,0
+109,Fruit Salad,FS,0
+110,Fruit Salad with Ice Cream,FC2,0
+111,Virgin Mojito,VM,1
+112,Mango Mojito,MM2,1
+113,Kiwi Mojito,KM2,0
+114,Strawberry Mojito,SM,1
+115,Pineapple Mojito,PM5,1
+116,Blue Curacao (Blueberry) Mojito,BM2,1
+117,Green Apple Mojito,GM2,0
+118,Orange Mojito,OM,1
+119,Pomegranate Mojito,PM6,1
+120,Watermelon Mojito,WM,1
+121,Peppermint Mojito,PM7,1
+122,Refreshing Mojito,RM2,1
+123,Passionfruit Mojito,PM8,1
+124,Roasted Almond Mojito,RM3,0
+125,Lychee Mojito,LM,0
+126,Blackcurrant Mojito,BM3,1
+127,Lemon Juice,LJ,1
+128,Watermelon Juice,WJ,0
+129,Pineapple Juice,PJ,0
+130,Papaya Juice,PJ2,0
+131,Mint Lemon,ML,0
+132,Orange Juice,OJ,0
+133,Apple Juice,AJ,0
+134,Grape Juice,GJ2,0
+135,Mango Juice,MJ,0
+136,Pomegranate Juice,PJ3,0
+137,Mix Fruit Juice,MJ2,0
+138,Lemon Soda,LS,0
+139,Mint Lemon Soda,MS3,0
+140,Jaljeera Soda,JS,0
+141,Vanilla Ice Cream,VC,0
+142,Chocolate Ice Cream,CC4,0
+143,Strawberry Ice Cream,SC,0
+144,Blackcurrant Ice Cream,BC,0
+145,Fruit & Nut Ice Cream,FC3,0
+146,Mango Ice Cream,MC4,0
+147,Mexican Brownies Icecream,MI,0
+148,Death By Chocolate,DC,0
+149,Nutella Cookies Ice Cream,NC,0
+150,Brownie with Ice Cream,BC2,0
+151,Monster Oreo,MO,0
+152,Monster Chocolate,MC5,0
+153,Monster Kitkat,MK2,0
+154,Nutella Brownies with Ice Cream,NC2,0
+155,Sizzling Brownie with Ice Cream,SC2,0
+156,Aqua Fresh Water (1L),A1L,0
+157,Ginger Beer (Single Serve),GS2,0
+158,Coca-Cola (Single Serve),CS2,0
+159,Sprite (Single Serve),SS2,0
+160,Ginger Lemon,GL,0
+161,Plain Lassi,PL,1
+162,Mango Lassi,ML2,1
+163,Strawberry Lassi,SL,1
+164,Mixed Fruit Lassi,ML3,1
+165,Pineapple Kulukki,PK,0
+166,Orange Kulukki,OK,0
+167,Green Apple Kulukki,GK,0
+168,Passion Fruit Kulukki,PK2,0
+169,Mango Kulukki,MK3,0
+170,Kiwi Kulukki,KK,0
+171,Fancy Falooda,FF2,0
+172,Mango Falooda,MF3,0
+173,Strawberry Falooda,SF,0
+174,Royal Falooda,RF,0
+175,Dry Fruit Falooda,DF,0
+176,Vanilla Milkshake,VM2,0
+177,Chocolate Milkshake,CM2,0
+178,Mango Milkshake,MM3,1
+179,Strawberry Milkshake,SM2,0
+180,Fruit & Nut Milkshake,FM,0
+181,Oreo Milkshake,OM2,0
+182,Kit-Kat Milkshake,KM3,0
+183,Sharjah Fruit Punch,SP,0
+184,Chocolate Sharjah,CS3,0
+185,Mango Sharjah,MS4,0
+186,Strawberry Sharjah,SS3,0
+187,Blackcurrant Sharjah,BS2,0
+188,Vanilla Sharjah,VS,0
+189,Dryfruit Sharjah,DS,0
+190,Oreo Sharjah,OS,0
+191,Kit-Kat Sharjah,KS,0
+192,Tube Chicken Biryani (2 Pax),TP,0
+193,Tube Mutton Biryani (2 Pax),TP2,0
+194,Bucket Chicken Biryani (4 Pax),BP2,0
+195,Bucket Mutton Biryani (4 Pax),BP3,0
+196,Bucket Chicken Biryani (7 Pax),BP4,0
+197,Bucket Mutton Biryani (7 Pax),BP5,0
+198,Grill Chicken,GC,0
+199,Alfaham Chicken,AC2,0
+200,BBQ Chicken,BC3,0
+201,Tandoori Chicken,TC,0
+202,Tandoori Chicken Platter,TP3,0
+203,Halwa Meen (Boneless),HB,0
+204,Grilled Fish,GF,0
+206,Rs.1/- Biryani Offer,RO,0
+207,999/- Offer,9O,0
+208,Nei Choru,NC3,1
+209,Nellai Vegetable Biryani,NB4,1
+210,Tandoori Chicken Biryani (Boneless),TB2,1
+211,65 Chicken Biryani (Boneless),6B,1
+212,Medhu Parotta,MP4,1
+213,Kal Dosai,KD,1
+214,Jaffna Chicken Curry,JC,1
+215,Jaffna Mutton Curry,JC2,1
+216,Jaffna Crab Masala,JM,1
+217,Jaffna Prawn Masala,JM2,1
+218,Veg Fried Rice,VR,1
+219,Veg Noodles,VN2,1
+220,Cauliflower Manchurian,CM3,1
+221,Chicken Fried Rice,CR,1
+222,Chicken Noodles,CN3,1
+223,Chicken Manchurian,CM4,1
+224,Chicken Curry,CC5,1
+225,Chicken Kuruma,CK2,1
+226,Chicken Tikka Masala,CM5,1
+227,Mutton Curry,MC6,1
+228,Mutton Kuruma,MK4,1
+229,Madras Fish Curry,MC7,1
+230,Prawn Thokku,PT,1
+231,Madurai Crab Masala,MM4,1
+232,Mint Lemon Juice,MJ3,1
+233,Pepsi 400ml,P400ML,1
+234,Water bottle 1l,W1L,1
+235,Cococola 2l,C2L,0
+236,Coco cola 2l,C2L2,1
+237,Sprite 2l,S2L,1
+238,Cococola 1.5l,C5L,1
+239,Chicken 65,C652,0
+240,Chicken 65,C653,1

@@ -89,6 +89,7 @@ const NAV: NavSection[] = [
       { path: "/reports/cashier-sales", label: "Cashier-wide Sales", icon: TrendingUp },
       { path: "/reports/orders", label: "Orders Report", icon: Receipt },
       { path: "/reports/modifications", label: "Modification Report", icon: Receipt },
+      { path: "/reports/activity-logs", label: "Activity Log", icon: Receipt },
     ],
   },
 ];
@@ -119,9 +120,12 @@ export function Sidebar() {
   const settingsMap: Record<string, string> = (settingsData as any)?.settings || {};
   const savedPrivileges = parsePrivileges(settingsMap.userPrivileges);
   const role = String(currentUser?.role || "admin");
+  const isCashier = role.toLowerCase() === "cashier";
   const can = (privilege: string) => hasPrivilege(role, privilege, savedPrivileges);
   const visibleItems = (section: NavSection) => section.type === "group"
-    ? section.items.filter(item => can(privilegeForPath(item.path) || item.label))
+    ? (isCashier && ["sales", "messaging"].includes(section.id)
+      ? []
+      : section.items.filter(item => can(privilegeForPath(item.path) || item.label)))
     : [];
   // "Restaurant Name" in General Settings saves to settings.restaurantName — prefer that
   // over the branch record's name so renaming in Settings reflects immediately here.
