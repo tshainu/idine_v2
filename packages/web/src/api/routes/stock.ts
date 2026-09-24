@@ -62,15 +62,20 @@ export const stock = new Hono()
     if (!existing) return c.json({ error: "Stock item not found" }, 404);
     const user = await requireManager(body.userId, Number(existing.branchId || 0));
     if (!user) return c.json({ error: "Only admin or manager can manage sales stock" }, 403);
-    const nextQty = body.quantityOnHand == null ? Number(existing.quantityOnHand || 0) : Math.max(0, Number(body.quantityOnHand));
+    const addQuantity = body.addQuantity == null ? null : Math.max(0, Number(body.addQuantity || 0));
+    const nextQty = addQuantity == null
+      ? (body.quantityOnHand == null ? Number(existing.quantityOnHand || 0) : Number(body.quantityOnHand))
+      : Number(existing.quantityOnHand || 0) + addQuantity;
     const updates: any = {};
     if (body.name != null) updates.name = String(body.name).trim();
-    if (body.quantityOnHand != null) updates.quantityOnHand = nextQty;
+    if (body.quantityOnHand != null || addQuantity != null) updates.quantityOnHand = nextQty;
     if (body.lowStockLevel != null) updates.lowStockLevel = Math.max(0, Number(body.lowStockLevel));
     if (body.allowOverselling != null) updates.allowOverselling = Boolean(body.allowOverselling);
     updates.updatedAt = new Date();
     const [updated] = await db.update(schema.stockItems).set(updates).where(eq(schema.stockItems.id, id)).returning();
-    if (body.quantityOnHand != null && nextQty !== Number(existing.quantityOnHand || 0)) {
+    if (addQuantity != null && addQuantity > 0) {
+      await db.insert(schema.stockMovements).values({ branchId: existing.branchId, stockItemId: id, movementType: "restock", qty: addQuantity, previousQty: Number(existing.quantityOnHand || 0), newQty: nextQty, note: body.note || "New stock added", createdById: user.id, createdByName: user.name });
+    } else if (body.quantityOnHand != null && nextQty !== Number(existing.quantityOnHand || 0)) {
       await db.insert(schema.stockMovements).values({ branchId: existing.branchId, stockItemId: id, movementType: "stock_adjustment", qty: nextQty - Number(existing.quantityOnHand || 0), previousQty: Number(existing.quantityOnHand || 0), newQty: nextQty, note: body.note || "Stock quantity updated", createdById: user.id, createdByName: user.name });
     }
     return c.json({ stockItem: updated }, 200);
