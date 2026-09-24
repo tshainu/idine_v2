@@ -2890,7 +2890,9 @@ export default function POSPage() {
       {showRecentSales && (
         <RecentSalesModal branchId={branchId!} onClose={() => setShowRecentSales(false)}
           onView={(id) => { setShowRecentSales(false); setDetailsFromRecent(true); setDetailsOrderId(id); }}
-          canReprint={String(currentUser?.role || "").toLowerCase() !== "cashier"}
+          // Cashiers may reprint an existing invoice from Recent Sales, but
+          // remain unable to open billing actions from Order Details.
+          canReprint={can("Print Invoice")}
           onReprint={(id) => openInvoicePreview(id)} />
       )}
       {showQROrders && (
