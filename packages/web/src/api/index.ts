@@ -36,6 +36,7 @@ import { discounts } from "./routes/discounts";
 import { reporting } from "./routes/reporting";
 import { modifications } from "./routes/modifications";
 import { activityLogs } from "./routes/activity-logs";
+import { stock } from "./routes/stock";
 import { db } from "./database";
 import * as schema from "./database/schema";
 
@@ -113,7 +114,8 @@ const app = new Hono()
   .route("/discounts", discounts)
   .route("/reporting", reporting)
   .route("/modifications", modifications)
-  .route("/activity-logs", activityLogs);
+  .route("/activity-logs", activityLogs)
+  .route("/stock", stock);
 
 
 export type AppType = typeof app;

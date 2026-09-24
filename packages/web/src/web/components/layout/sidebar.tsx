@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ShoppingCart, UtensilsCrossed, Tag, SlidersHorizontal,
   TrendingUp, Users, Monitor, ChefHat, Table2,
   Settings, BarChart3, LogOut, ChevronDown, ChevronRight, Sun, Moon,
-  ShoppingBag, Package, Building2, Receipt, MessageSquare, Send,
+  ShoppingBag, Package, PackagePlus, Building2, Receipt, MessageSquare, Send,
 } from "lucide-react";
 import { useTheme } from "../../lib/useTheme";
 import { api } from "../../lib/api";
@@ -31,6 +31,7 @@ const NAV: NavSection[] = [
     id: "item", type: "group", label: "Item", icon: UtensilsCrossed,
     items: [
       { path: "/products",   label: "List Item",     icon: UtensilsCrossed },
+      { path: "/stock",      label: "Add Sales Stock", icon: PackagePlus },
       { path: "/categories", label: "List Category",  icon: Tag },
       { path: "/modifiers",  label: "List Modifiers", icon: SlidersHorizontal },
       { path: "/combo-promo", label: "Combo & Promo", icon: Package },
@@ -80,6 +81,7 @@ const NAV: NavSection[] = [
     items: [
       { path: "/reports/sales",     label: "Sales Report",        icon: TrendingUp },
       { path: "/reports/menu",      label: "Menu Performance",   icon: UtensilsCrossed },
+      { path: "/reports/stock",     label: "Dish Stock Report",   icon: PackagePlus },
       { path: "/reports/inventory", label: "Inventory & Stock",  icon: SlidersHorizontal },
       { path: "/reports/pl",        label: "Profit & Loss",      icon: BarChart3 },
       { path: "/reports/staff",     label: "Staff Performance",  icon: Users },
@@ -125,7 +127,9 @@ export function Sidebar() {
   const visibleItems = (section: NavSection) => section.type === "group"
     ? (isCashier && ["sales", "messaging"].includes(section.id)
       ? []
-      : section.items.filter(item => can(privilegeForPath(item.path) || item.label)))
+      : section.items.filter(item => item.path === "/stock"
+        ? ["admin", "manager", "superadmin"].includes(role.toLowerCase())
+        : can(privilegeForPath(item.path) || item.label)))
     : [];
   // "Restaurant Name" in General Settings saves to settings.restaurantName — prefer that
   // over the branch record's name so renaming in Settings reflects immediately here.

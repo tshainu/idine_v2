@@ -143,6 +143,46 @@ export const menuItems = sqliteTable("menu_items", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+// Shared sales stock. Multiple menu items can consume the same stock group.
+export const stockItems = sqliteTable("stock_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  name: text("name").notNull(),
+  quantityOnHand: real("quantity_on_hand").notNull().default(0),
+  quantityReserved: real("quantity_reserved").notNull().default(0),
+  lowStockLevel: real("low_stock_level").notNull().default(10),
+  allowOverselling: integer("allow_overselling", { mode: "boolean" }).notNull().default(false),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdByName: text("created_by_name"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const menuItemStocks = sqliteTable("menu_item_stocks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  stockItemId: integer("stock_item_id").references(() => stockItems.id).notNull(),
+  menuItemId: integer("menu_item_id").references(() => menuItems.id).notNull(),
+  deductionQty: real("deduction_qty").notNull().default(1),
+});
+
+export const stockMovements = sqliteTable("stock_movements", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  branchId: integer("branch_id").references(() => branches.id),
+  stockItemId: integer("stock_item_id").references(() => stockItems.id).notNull(),
+  menuItemId: integer("menu_item_id").references(() => menuItems.id),
+  orderId: integer("order_id").references(() => orders.id),
+  orderItemId: integer("order_item_id").references(() => orderItems.id),
+  movementType: text("movement_type").notNull(),
+  qty: real("qty").notNull().default(0),
+  previousQty: real("previous_qty").notNull().default(0),
+  newQty: real("new_qty").notNull().default(0),
+  note: text("note"),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdByName: text("created_by_name"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
 // Menu item variations (e.g. Small / Medium / Large)
 export const menuItemVariations = sqliteTable("menu_item_variations", {
   id: integer("id").primaryKey({ autoIncrement: true }),

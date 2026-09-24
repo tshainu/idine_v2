@@ -13,12 +13,14 @@ import PurchasesList from "./pages/purchases/index";
 import PurchaseItems from "./pages/purchases/items";
 import PurchaseSuppliers from "./pages/purchases/suppliers";
 import Products from "./pages/products";
+import SalesStock from "./pages/stock";
 import ComboPromo from "./pages/combo-promo";
 import Expenses from "./pages/expenses";
 import Reports from "./pages/reports";
 import SalesReport from "./pages/reports/sales";
 import MenuReport from "./pages/reports/menu";
 import InventoryReport from "./pages/reports/inventory";
+import DishStockReport from "./pages/reports/stock";
 import PLReport from "./pages/reports/pl";
 import StaffReport from "./pages/reports/staff";
 import CustomerAnalytics from "./pages/reports/customers";
@@ -62,12 +64,14 @@ function App() {
         <Route path="/purchases/items" component={PurchaseItems} />
         <Route path="/purchases/suppliers" component={PurchaseSuppliers} />
         <Route path="/products" component={Products} />
+        <Route path="/stock" component={SalesStock} />
         <Route path="/combo-promo" component={ComboPromo} />
         <Route path="/expenses" component={Expenses} />
         <Route path="/reports" component={SalesReport} />
         <Route path="/reports/sales" component={SalesReport} />
         <Route path="/reports/menu" component={MenuReport} />
         <Route path="/reports/inventory" component={InventoryReport} />
+        <Route path="/reports/stock" component={DishStockReport} />
         <Route path="/reports/pl" component={PLReport} />
         <Route path="/reports/staff" component={StaffReport} />
         <Route path="/reports/customers" component={CustomerAnalytics} />

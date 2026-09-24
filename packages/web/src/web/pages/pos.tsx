@@ -2710,12 +2710,17 @@ export default function POSPage() {
                 : <div className="grid grid-cols-3 gap-2">
                     {menuItems.map((item: any) => {
                       const inCart = cartItems.find(i => i.menuItemId === item.id);
+                      const stockTracked = Boolean(item.stockTracked);
+                      const stockAvailable = Number(item.stockAvailableQty ?? 0);
+                      const stockLow = stockTracked && stockAvailable <= Number(item.stockLowStockLevel ?? 10);
+                      const stockUnavailable = stockTracked && stockAvailable <= 0 && !item.stockAllowOverselling;
                       return (
-                        <button key={item.id} onClick={() => addToCart(item)}
+                        <button key={item.id} onClick={() => stockUnavailable ? showToast(`${item.name} is out of stock`) : addToCart(item)}
                           className="rounded-xl border overflow-hidden text-left transition-all hover:brightness-110 hover:-translate-y-0.5"
                           style={{
-                            background:  SURF2,
-                            borderColor: inCart ? GOLD : BORD,
+                            background:  stockLow ? "#dc2626" : SURF2,
+                            borderColor: inCart ? GOLD : stockLow ? "#ef4444" : BORD,
+                            opacity: stockUnavailable ? 0.72 : 1,
                             boxShadow:   inCart ? `0 0 0 2px ${GOLD}44` : "none",
                           }}>
                           <div className="w-full aspect-[4/3] flex items-center justify-center relative"
@@ -2731,8 +2736,8 @@ export default function POSPage() {
                             )}
                           </div>
                           <div className="px-2 py-1.5">
-                            <div className="text-sm font-semibold truncate" style={{ color: TEXT }}>{item.name}</div>
-                            <div className="text-sm font-bold font-mono mt-0.5" style={{ color: GOLD }}>{(orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price)).toFixed(2)}</div>
+                            <div className="flex items-center justify-between gap-1"><div className="text-sm font-semibold truncate" style={{ color: stockLow ? "#fff" : TEXT }}>{item.name}</div>{stockTracked && <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: stockLow ? "#fff" : stockAvailable <= Number(item.stockLowStockLevel ?? 10) ? "#f87171" : MUTED }}>{stockAvailable > 0 ? `${stockAvailable} left` : "Out of stock"}</span>}</div>
+                            <div className="text-sm font-bold font-mono mt-0.5" style={{ color: stockLow ? "#fff" : GOLD }}>{(orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price)).toFixed(2)}</div>
                           </div>
                         </button>
                       );

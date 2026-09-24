@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { getBranchId } from "../lib/store";
 import { Sidebar } from "../components/layout/sidebar";
-import { Plus, Pencil, Trash2, Search, ToggleLeft, ToggleRight, Leaf, Coffee, X, Upload, ImageIcon, ArrowUp, ArrowDown, ArrowUpDown, TrendingUp, Download } from "lucide-react";
+import { Link } from "wouter";
+import { Plus, Pencil, Trash2, Search, ToggleLeft, ToggleRight, Leaf, Coffee, X, Upload, ImageIcon, ArrowUp, ArrowDown, ArrowUpDown, TrendingUp, Download, PackagePlus } from "lucide-react";
 import { exportToCSV } from "../lib/csv";
 
 function MarginBadge({ salePrice, costPrice }: { salePrice: number; costPrice: number }) {
@@ -397,6 +398,7 @@ export default function ProductsPage() {
         <div className="h-14 flex items-center justify-between px-6 border-b shrink-0" style={{ background: SURF, borderColor: BORD }}>
           <div className="font-bold text-base" style={{ color: TEXT }}>Menu Items</div>
           <div className="flex items-center gap-2">
+            <Link href="/stock" className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border" style={{ background: "transparent", borderColor: BORD, color: TEXT }}><PackagePlus size={13} />Add Sales Stock</Link>
             <button onClick={() => exportToCSV("menu-items", sortedItems.map(m => ({
                 Name: m.name, Code: m.code || "", Category: catName(m.categoryId),
                 "Price (Dine In)": m.priceDineIn || m.price || 0,

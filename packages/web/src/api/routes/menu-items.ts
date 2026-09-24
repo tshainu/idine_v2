@@ -55,10 +55,28 @@ export const menuItems = new Hono()
           .where(inArray(schema.menuItemVariations.menuItemId, itemIds))
       : [];
 
-    const itemsWithVariations = items.map(item => ({
-      ...item,
-      variations: allVariations.filter(v => v.menuItemId === item.id),
-    }));
+    const stockLinks = itemIds.length
+      ? await db.select().from(schema.menuItemStocks).where(inArray(schema.menuItemStocks.menuItemId, itemIds))
+      : [];
+    const stockIds = [...new Set(stockLinks.map(link => link.stockItemId))];
+    const stockRows = stockIds.length
+      ? await db.select().from(schema.stockItems).where(inArray(schema.stockItems.id, stockIds))
+      : [];
+    const stockById = new Map(stockRows.map(stock => [stock.id, stock]));
+    const itemsWithVariations = items.map(item => {
+      const link = stockLinks.find(row => row.menuItemId === item.id);
+      const stock = link ? stockById.get(link.stockItemId) : undefined;
+      return {
+        ...item,
+        variations: allVariations.filter(v => v.menuItemId === item.id),
+        stockItemId: stock?.id ?? null,
+        stockName: stock?.name ?? null,
+        stockAvailableQty: stock ? Number(stock.quantityOnHand || 0) - Number(stock.quantityReserved || 0) : null,
+        stockLowStockLevel: stock?.lowStockLevel ?? null,
+        stockAllowOverselling: stock?.allowOverselling ?? false,
+        stockTracked: Boolean(stock),
+      };
+    });
 
     return c.json({ menuItems: itemsWithVariations }, 200);
   })

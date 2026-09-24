@@ -28,6 +28,33 @@ async function syncTableStatus(tableId: number | null | undefined) {
   }
 }
 
+async function deductSalesStock(order: any, actorId?: number | null, actorName?: string | null) {
+  const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, order.id));
+  const menuIds = [...new Set(items.map(item => item.menuItemId).filter((id): id is number => typeof id === "number"))];
+  if (!menuIds.length) return;
+  const links = await db.select().from(schema.menuItemStocks).where(inArray(schema.menuItemStocks.menuItemId, menuIds));
+  if (!links.length) return;
+  const stockIds = [...new Set(links.map(link => link.stockItemId))];
+  await db.transaction(async (tx) => {
+    const stocks = await tx.select().from(schema.stockItems).where(inArray(schema.stockItems.id, stockIds));
+    const stockById = new Map(stocks.map(stock => [stock.id, stock]));
+    const previousSales = await tx.select().from(schema.stockMovements).where(and(eq(schema.stockMovements.orderId, order.id), eq(schema.stockMovements.movementType, "sale")));
+    for (const stockLink of links) {
+      const stock = stockById.get(stockLink.stockItemId);
+      const menuItem = items.find(item => item.menuItemId === stockLink.menuItemId);
+      if (!stock || !menuItem) continue;
+      const qty = Number(menuItem.qty || 0) * Number(stockLink.deductionQty || 1);
+      if (qty <= 0 || previousSales.some(movement => movement.stockItemId === stock.id && movement.orderItemId === menuItem.id)) continue;
+      const previousQty = Number(stock.quantityOnHand || 0);
+      const available = previousQty - Number(stock.quantityReserved || 0);
+      if (!stock.allowOverselling && available < qty) throw new Error(`Not enough stock for ${stock.name}. Available: ${Math.max(0, available)}`);
+      const nextQty = previousQty - qty;
+      await tx.update(schema.stockItems).set({ quantityOnHand: nextQty, updatedAt: new Date() }).where(eq(schema.stockItems.id, stock.id));
+      await tx.insert(schema.stockMovements).values({ branchId: order.branchId, stockItemId: stock.id, menuItemId: menuItem.menuItemId, orderId: order.id, orderItemId: menuItem.id, movementType: "sale", qty: -qty, previousQty, newQty: nextQty, note: `Sold on ${order.orderNumber}`, createdById: actorId || order.cashierId || null, createdByName: actorName || order.placedBy || null });
+    }
+  });
+}
+
 function waiterShortId(name: string | null | undefined): string {
   if (!name) return "WW";
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -221,6 +248,15 @@ export const orders = new Hono()
         orderUpdate.total = total;
         orderUpdate.amountPaid = amountPaid;
         orderUpdate.balance = Number((amountPaid - total).toFixed(2));
+      }
+    }
+    const willFinalize = ["completed", "billed", "paid"].includes(String(orderUpdate.status || "").toLowerCase());
+    const wasFinalized = ["completed", "billed", "paid"].includes(String(before.status || "").toLowerCase());
+    if (willFinalize && !wasFinalized) {
+      try {
+        await deductSalesStock({ ...before, ...orderUpdate }, body.userId || body.cashierId || null, body.userName || body.cashierName || before.placedBy || null);
+      } catch (error: any) {
+        return c.json({ error: error?.message || "Unable to update sales stock" }, 409);
       }
     }
     const [order] = await db.update(schema.orders)
