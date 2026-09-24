@@ -513,7 +513,7 @@ function FinalizeModal({
   order: any;
   items: any[];
   onClose: () => void;
-  onSubmit?: (payments: PaymentEntry[], summary: { subtotal: number; discount: number; serviceCharge: number; total: number; amountPaid: number; cashGiven: number; balance: number; paymentMethod: string }) => void;
+  onSubmit?: (payments: PaymentEntry[], summary: { subtotal: number; discount: number; serviceCharge: number; total: number; amountPaid: number; cashGiven: number; balance: number; paymentMethod: string }) => void | Promise<void>;
   loading?: boolean;
   initialDiscount?: number;
 }) {
@@ -563,6 +563,8 @@ function FinalizeModal({
   const [amount,          setAmount]          = useState("");
   const [refNote,         setRefNote]         = useState(""); // for card/check/bank
   const [payments,        setPayments]        = useState<PaymentEntry[]>([]);
+  const [submitError,     setSubmitError]     = useState<string | null>(null);
+  const [submitting,      setSubmitting]      = useState(false);
   const [showCartDetails, setShowCartDetails] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [sendSMS,         setSendSMS]         = useState(false);
@@ -608,7 +610,9 @@ function FinalizeModal({
     setDiscountInput("");
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (submitting) return;
+    setSubmitError(null);
     const totalPaidNow = payments.reduce((s, p) => s + p.amount, 0);
     const cashEntry = payments.find(p => p.method === "Cash");
     const cashGivenVal = cashEntry ? parseFloat(givenAmount || "0") || cashEntry.amount : 0;
@@ -624,8 +628,16 @@ function FinalizeModal({
       balance: balanceVal,
       paymentMethod: primaryMethod,
     };
-    if (onSubmit) onSubmit(payments, summary);
-    else onClose();
+    if (onSubmit) {
+      setSubmitting(true);
+      try {
+        await onSubmit(payments, summary);
+      } catch (error: any) {
+        setSubmitError(error?.message || "Unable to finalize this sale. Please try again.");
+      } finally {
+        setSubmitting(false);
+      }
+    } else onClose();
   }
 
   // method-specific placeholder / label
@@ -902,13 +914,14 @@ function FinalizeModal({
             style={{ background: "var(--color-danger)", color: "#fff" }}>
             ✕ Cancel
           </button>
-          <button onClick={handleSubmit} disabled={!canSubmit}
+          <button onClick={handleSubmit} disabled={!canSubmit || submitting}
             className="py-3 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: "var(--color-success)", color: "#fff" }}
             title={!canSubmit ? "Add full payment amount before submitting" : ""}>
-            ⊞ Submit{!canSubmit && due > 0 ? ` (Due LKR${due.toFixed(2)})` : ""}
+            {submitting ? "Checking stock…" : `⊞ Submit${!canSubmit && due > 0 ? ` (Due LKR${due.toFixed(2)})` : ""}`}
           </button>
         </div>
+        {submitError && <div className="mx-4 mb-3 rounded border px-3 py-2 text-xs font-semibold" style={{ borderColor: "var(--color-danger)", background: "var(--color-danger)18", color: "var(--color-danger)" }}>{submitError}</div>}
         {showDiscountModal && (
           <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ background: "#00000099" }}>
             <div className="w-80 rounded-xl border p-4 shadow-2xl" style={{ background: SURF, borderColor: BORD }}>
@@ -1599,6 +1612,10 @@ export default function POSPage() {
       return (await api["menu-items"].$get({ query: q })).json();
     },
     staleTime: 0,
+    // Refresh only menu/stock data. React Query replaces this data in place;
+    // it does not reload the page or touch the active cart/order form.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -1606,6 +1623,9 @@ export default function POSPage() {
     queryKey: ["all-menu-items", branchId],
     queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
     staleTime: 0,
+    // Keep promo/search data and shared stock balances current as well.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -2905,7 +2925,7 @@ export default function POSPage() {
           onSubmit={async (_payments, summary) => {
             const completedId = finalizeOrderId!;
             // Save payment data + mark completed
-            await fetch(`/api/orders/${completedId}`, {
+            const finalizeResponse = await fetch(`/api/orders/${completedId}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -2921,6 +2941,16 @@ export default function POSPage() {
                 paymentsJson: JSON.stringify(_payments),
               }),
             });
+            const finalizeBody = await finalizeResponse.json().catch(() => ({}));
+            if (!finalizeResponse.ok) {
+              throw new Error((finalizeBody as any)?.error || "Unable to finalize this sale. Stock may have changed.");
+            }
+            // Refresh only stock-bearing menu queries after a successful sale.
+            // The active cart and modal state remain untouched.
+            await Promise.all([
+              qc.invalidateQueries({ queryKey: ["menu-items", branchId] }),
+              qc.invalidateQueries({ queryKey: ["all-menu-items", branchId] }),
+            ]);
             qc.invalidateQueries({ queryKey: ["orders"] });
             setFinalizeOrderId(null);
             setFinalizeIsQuick(false);

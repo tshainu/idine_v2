@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, and, desc, inArray, isNull, or, like } from "drizzle-orm";
+import { eq, and, desc, inArray, isNull, or, like, gte } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
 import { triggerSalesTemplate } from "../sales-messaging";
@@ -49,7 +49,23 @@ async function deductSalesStock(order: any, actorId?: number | null, actorName?:
       const available = previousQty - Number(stock.quantityReserved || 0);
       if (!stock.allowOverselling && available < qty) throw new Error(`Not enough stock for ${stock.name}. Available: ${Math.max(0, available)}`);
       const nextQty = previousQty - qty;
-      await tx.update(schema.stockItems).set({ quantityOnHand: nextQty, updatedAt: new Date() }).where(eq(schema.stockItems.id, stock.id));
+      // Keep the final guard inside the transaction. Two terminals can read the
+      // same old balance; only one is allowed to decrement it when overselling
+      // is disabled. A zero-row update means another sale won the race.
+      const updateCondition = stock.allowOverselling
+        ? eq(schema.stockItems.id, stock.id)
+        : and(
+            eq(schema.stockItems.id, stock.id),
+            // SQLite's numeric comparison makes this an atomic stock check.
+            gte(schema.stockItems.quantityOnHand, Number(stock.quantityReserved || 0) + qty),
+          );
+      const updatedRows = await tx.update(schema.stockItems)
+        .set({ quantityOnHand: nextQty, updatedAt: new Date() })
+        .where(updateCondition)
+        .returning({ id: schema.stockItems.id });
+      if (!updatedRows.length && !stock.allowOverselling) {
+        throw new Error(`Stock changed for ${stock.name}. Please refresh and try again.`);
+      }
       await tx.insert(schema.stockMovements).values({ branchId: order.branchId, stockItemId: stock.id, menuItemId: menuItem.menuItemId, orderId: order.id, orderItemId: menuItem.id, movementType: "sale", qty: -qty, previousQty, newQty: nextQty, note: `Sold on ${order.orderNumber}`, createdById: actorId || order.cashierId || null, createdByName: actorName || order.placedBy || null });
     }
   });
