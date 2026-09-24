@@ -2736,8 +2736,8 @@ export default function POSPage() {
                             )}
                           </div>
                           <div className="px-2 py-1.5">
-                            <div className="flex items-center justify-between gap-1"><div className="text-sm font-semibold truncate" style={{ color: stockLow ? "#fff" : TEXT }}>{item.name}</div>{stockTracked && <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: stockLow ? "#fff" : stockAvailable <= Number(item.stockLowStockLevel ?? 10) ? "#f87171" : MUTED }}>{stockAvailable > 0 ? `${stockAvailable} left` : "Out of stock"}</span>}</div>
-                            <div className="text-sm font-bold font-mono mt-0.5" style={{ color: stockLow ? "#fff" : GOLD }}>{(orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price)).toFixed(2)}</div>
+                            <div className="text-sm font-semibold truncate" style={{ color: stockLow ? "#fff" : TEXT }}>{item.name}</div>
+                            <div className="flex items-center justify-between gap-2 text-sm font-bold font-mono mt-0.5"><span style={{ color: stockLow ? "#fff" : GOLD }}>{(orderType === "dine-in" ? (item.offerPriceDineIn || item.priceDineIn || item.price) : orderType === "takeaway" ? (item.offerPriceTakeaway || item.priceTakeaway || item.price) : (item.offerPriceDelivery || item.priceDelivery || item.price)).toFixed(2)}</span>{stockTracked && <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: stockLow ? "#f87171" : "#4ade80" }}>{stockAvailable > 0 ? `${stockAvailable} Nos left` : "Out of stock"}</span>}</div>
                           </div>
                         </button>
                       );
