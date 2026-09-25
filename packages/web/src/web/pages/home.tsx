@@ -48,84 +48,50 @@ export default function HomePage() {
   const sessionUser = getUser();
   const allAccess = ["admin", "manager", "superadmin"].includes(String(sessionUser?.role || "").toLowerCase());
 
-  const { data: ordersData } = useQuery({
-    queryKey: ["home-orders", branchId, allAccess ? "all" : (sessionUser?.id ?? sessionUser?.name ?? "cashier")],
+  const { data: summaryData } = useQuery({
+    queryKey: ["home-summary", branchId, allAccess ? "all" : (sessionUser?.id ?? sessionUser?.name ?? "cashier")],
     queryFn: async () => {
-      const scope = allAccess
-        ? {}
-        : (sessionUser?.id
-          ? { cashierId: String(sessionUser.id), placedBy: String(sessionUser.name || "") }
-          : { placedBy: String(sessionUser?.name || "") });
-      return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
+      const scope = allAccess ? {} : (sessionUser?.id
+        ? { cashierId: String(sessionUser.id), placedBy: String(sessionUser.name || "") }
+        : { placedBy: String(sessionUser?.name || "") });
+      return (await (api as any).home.summary.$get({ query: { branchId: String(branchId), ...scope } })).json();
     },
     refetchInterval: 30000,
   });
-  const { data: menuData } = useQuery({
-    queryKey: ["home-menu", branchId],
-    queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
-  });
 
-  const rawOrders: any[] = (ordersData as any)?.orders || [];
-  // Keep a client-side guard as a second line of defense for older API builds
-  // or legacy rows that do not yet have cashierId populated.
-  const orders: any[] = allAccess ? rawOrders : rawOrders.filter((order: any) => {
-    if (sessionUser?.id && order.cashierId != null) return Number(order.cashierId) === Number(sessionUser.id);
-    const owner = String(order.placedBy || order.waiterName || "").trim().toLowerCase();
-    return Boolean(sessionUser?.name) && owner === String(sessionUser.name).trim().toLowerCase();
-  });
-  const menuItems: any[] = (menuData as any)?.menuItems || [];
+  const summary: any = summaryData || {};
+  const todaySummary: any = summary.today || {};
+  const orders: any[] = summary.recent || [];
+  const menuItems: any[] = Array.from({ length: Number(summary.menu?.total || 0) }, (_, id) => ({ id, available: id < Number(summary.menu?.available || 0), isActive: true }));
   // Sales metrics must represent finalized invoices only. Cancelled and
   // open/kitchen orders remain in `orders` for status visibility, but must not
   // contribute money, profit, order counts, or selling-item totals.
-  const isInvoiced = (order: any) => ["completed", "billed", "paid"].includes(String(order.status || "").toLowerCase());
-  const invoicedOrders = orders.filter(isInvoiced);
-
-  const today = new Date().toDateString();
-  const todayOrders = orders.filter((o: any) => new Date(o.createdAt).toDateString() === today);
-  const todayInvoicedOrders = todayOrders.filter(isInvoiced);
-  const todayRevenue = todayInvoicedOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+  const todayRevenue = Number(todaySummary.revenue || 0);
 
   // 40% margin fallback for profit
   const profitToday = todayRevenue * 0.4;
 
   // Active tables: orders with status "open" that have a tableId
-  const activeTables = orders.filter((o: any) => o.status === "open" && o.tableId).length;
+  const activeTables = Number(todaySummary.activeTables || 0);
 
   // Pending kitchen: open or confirmed
-  const pendingKitchen = orders.filter((o: any) => o.status === "open" || o.status === "confirmed").length;
+  const pendingKitchen = Number(todaySummary.pendingKitchen || 0);
 
   // Top selling item today
-  const todayItemMap: Record<string, { name: string; qty: number }> = {};
-  todayInvoicedOrders.forEach((o: any) => {
-    (o.items || []).forEach((it: any) => {
-      const key = it.menuItemId || it.name;
-      if (!todayItemMap[key]) todayItemMap[key] = { name: it.name || `Item #${key}`, qty: 0 };
-      todayItemMap[key].qty += Number(it.qty ?? it.quantity ?? 1);
-    });
-  });
-  const topSellingArr = Object.values(todayItemMap).sort((a, b) => b.qty - a.qty);
+  const topSellingArr = (summary.topItems || []).map((item: any) => ({ name: item.name, qty: Number(item.qty || 0) }));
   const topSellingItem = topSellingArr[0]?.name || "—";
 
   // Total orders: every finalized invoice today, across all order types.
-  const dineInToday = todayInvoicedOrders.filter((o: any) => o.type === "dine-in").length;
-  const takeawayToday = todayInvoicedOrders.filter((o: any) => o.type === "takeaway").length;
-  const deliveryToday = todayInvoicedOrders.filter((o: any) => o.type === "delivery").length;
-  const totalOrdersCount = todayInvoicedOrders.length;
+  const dineInToday = Number(todaySummary.dineIn || 0);
+  const takeawayToday = Number(todaySummary.takeaway || 0);
+  const deliveryToday = Number(todaySummary.delivery || 0);
+  const totalOrdersCount = Number(todaySummary.invoicedOrders || 0);
 
   // Order type breakdown (all today)
   const typeTotal = dineInToday + takeawayToday + deliveryToday || 1;
 
   // All item map for top items widget
-  const allItemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-  invoicedOrders.forEach((o: any) => {
-    (o.items || []).forEach((it: any) => {
-      const key = it.menuItemId || it.name;
-      if (!allItemMap[key]) allItemMap[key] = { name: it.name || `Item #${key}`, qty: 0, revenue: 0 };
-      allItemMap[key].qty += Number(it.qty ?? it.quantity ?? 1);
-      allItemMap[key].revenue += (Number(it.price) || 0) * Number(it.qty ?? it.quantity ?? 1);
-    });
-  });
-  const topItems = Object.values(todayItemMap).sort((a, b) => b.qty - a.qty).slice(0, 6);
+  const topItems = summary.topItems || [];
   const maxQty = topItems[0]?.qty || 1;
 
   // Revenue this month (daily bars)
@@ -138,9 +104,7 @@ export default function HomePage() {
   const monthBars: { day: number; rev: number }[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = new Date(year, month, d).toDateString();
-    const rev = orders
-      .filter((o: any) => isInvoiced(o) && new Date(o.createdAt).toDateString() === ds)
-      .reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const rev = Number(summary.monthBars?.find((bar: any) => bar.day === d)?.rev || 0);
     monthBars.push({ day: d, rev });
   }
   const maxRev = Math.max(...monthBars.map(d => d.rev), 1);
@@ -188,7 +152,7 @@ export default function HomePage() {
             <StatCard
               label="Today's Sales"
               value={`LKR ${todayRevenue.toLocaleString()}`}
-              sub={`${todayInvoicedOrders.length} invoiced orders`}
+              sub={`${totalOrdersCount} invoiced orders`}
               imgSrc="/dashboard-icons/sales.png"
               index={0}
             />

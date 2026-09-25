@@ -967,14 +967,14 @@ async function triggerPrint(printableId: string) {
         min-width: 3in !important;
         max-width: 3in !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 0 0.12in 0 0 !important;
         background: #fff !important;
       }
       #idine-invoice-print-root > #idine-invoice-printable,
       #idine-invoice-print-root > #idine-kot-printable {
-        width: 3in !important;
-        min-width: 3in !important;
-        max-width: 3in !important;
+        width: calc(3in - 0.12in) !important;
+        min-width: calc(3in - 0.12in) !important;
+        max-width: calc(3in - 0.12in) !important;
         box-sizing: border-box !important;
         margin: 0 !important;
       }
@@ -1198,11 +1198,11 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
               ? <div className="text-center py-16 text-sm" style={{ color: "var(--color-danger)" }}>Failed to load order</div>
               : (
                 <div id={printId} style={{
-                  width: "3in",
-                  minWidth: "3in",
-                  maxWidth: "3in",
+                  width: "calc(3in - 0.12in)",
+                  minWidth: "calc(3in - 0.12in)",
+                  maxWidth: "calc(3in - 0.12in)",
                   boxSizing: "border-box",
-                  margin: "0 auto",
+                  margin: "0 auto 0 0",
                   fontFamily: "'Roboto', Arial, sans-serif",
                   background: "#fff",
                   color: "#000",
