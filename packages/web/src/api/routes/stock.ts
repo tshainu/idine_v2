@@ -62,8 +62,11 @@ export const stock = new Hono()
     if (!existing) return c.json({ error: "Stock item not found" }, 404);
     const user = await requireManager(body.userId, Number(existing.branchId || 0));
     if (!user) return c.json({ error: "Only admin or manager can manage sales stock" }, 403);
-    const addQuantity = body.addQuantity == null ? null : Math.max(0, Number(body.addQuantity || 0));
-    const nextQty = addQuantity == null
+    const dailyOpening = Boolean(body.dailyOpening);
+    const addQuantity = dailyOpening ? null : body.addQuantity == null ? null : Math.max(0, Number(body.addQuantity || 0));
+    const nextQty = dailyOpening
+      ? Math.max(0, Number(body.quantityOnHand || 0))
+      : addQuantity == null
       ? (body.quantityOnHand == null ? Number(existing.quantityOnHand || 0) : Number(body.quantityOnHand))
       : Number(existing.quantityOnHand || 0) + addQuantity;
     const updates: any = {};
@@ -73,7 +76,9 @@ export const stock = new Hono()
     if (body.allowOverselling != null) updates.allowOverselling = Boolean(body.allowOverselling);
     updates.updatedAt = new Date();
     const [updated] = await db.update(schema.stockItems).set(updates).where(eq(schema.stockItems.id, id)).returning();
-    if (addQuantity != null && addQuantity > 0) {
+    if (dailyOpening) {
+      await db.insert(schema.stockMovements).values({ branchId: existing.branchId, stockItemId: id, movementType: "daily_opening", qty: nextQty, previousQty: Number(existing.quantityOnHand || 0), newQty: nextQty, note: body.note || "Today's opening stock", createdById: user.id, createdByName: user.name });
+    } else if (addQuantity != null && addQuantity > 0) {
       await db.insert(schema.stockMovements).values({ branchId: existing.branchId, stockItemId: id, movementType: "restock", qty: addQuantity, previousQty: Number(existing.quantityOnHand || 0), newQty: nextQty, note: body.note || "New stock added", createdById: user.id, createdByName: user.name });
     } else if (body.quantityOnHand != null && nextQty !== Number(existing.quantityOnHand || 0)) {
       await db.insert(schema.stockMovements).values({ branchId: existing.branchId, stockItemId: id, movementType: "stock_adjustment", qty: nextQty - Number(existing.quantityOnHand || 0), previousQty: Number(existing.quantityOnHand || 0), newQty: nextQty, note: body.note || "Stock quantity updated", createdById: user.id, createdByName: user.name });

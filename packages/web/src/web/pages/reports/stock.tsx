@@ -18,6 +18,7 @@ const STOCK_COLS: ColDef[] = [
 
 const MOVEMENT_COLS: ColDef[] = [
   { key: "date", label: "Date & Time" },
+  { key: "action", label: "Action" },
   { key: "addedQty", label: "Added Qty", align: "right", render: v => v === "—" ? v : <strong style={{ color: "#4ade80" }}>+{v}</strong> },
   { key: "sold", label: "Sold", render: v => <span className="text-[10px] leading-tight whitespace-pre-wrap" style={{ color: v === "—" ? DIM : TEXT }}>{v}</span> },
   { key: "overSold", label: "Over Sold", align: "right", render: v => <span style={{ color: v === "—" ? DIM : "#f87171", fontWeight: v === "—" ? 400 : 700 }}>{v}</span> },
@@ -37,16 +38,18 @@ export default function DishStockReport() {
   const rows = stockItems.map(item => {
     const available = Number(item.availableQty ?? item.quantityOnHand ?? 0);
     const low = Number(item.lowStockLevel || 0);
-    return { ...item, stockName: item.name, dishes: (item.linkedMenuItems || []).map((link: any) => link.menuItem?.name || `Item #${link.menuItemId}`).join(", ") || "—", openingQty: item.movements?.find((m: any) => m.movementType === "opening_stock")?.newQty ?? 0, availableQty: available, lowStockLevel: low, allowOverselling: item.allowOverselling ? "Yes" : "No", status: available <= 0 ? "Out of stock" : available <= low ? "Low" : "OK" };
+    const latestOpening = item.movements?.find((m: any) => ["daily_opening", "opening_stock"].includes(m.movementType));
+    return { ...item, stockName: item.name, dishes: (item.linkedMenuItems || []).map((link: any) => link.menuItem?.name || `Item #${link.menuItemId}`).join(", ") || "—", openingQty: latestOpening?.newQty ?? 0, availableQty: available, lowStockLevel: low, allowOverselling: item.allowOverselling ? "Yes" : "No", status: available <= 0 ? "Out of stock" : available <= low ? "Low" : "OK" };
   });
   const movementRows = useMemo(() => stockItems.flatMap(item => {
     const menuById = new Map((item.linkedMenuItems || []).map((link: any) => [link.menuItemId, link.menuItem?.name || `Item #${link.menuItemId}`]));
       const allDishes = Array.from(menuById.values()).join(", ");
       return (item.movements || []).map((movement: any) => {
       const isSale = movement.movementType === "sale";
-      const isAdded = ["opening_stock", "restock"].includes(movement.movementType) || (movement.movementType === "stock_adjustment" && Number(movement.qty) > 0);
+      const isDailyOpening = movement.movementType === "daily_opening";
+      const isAdded = ["opening_stock", "daily_opening", "restock"].includes(movement.movementType) || (movement.movementType === "stock_adjustment" && Number(movement.qty) > 0);
       const balance = Number(movement.newQty || 0);
-      return { ...movement, date: movement.createdAt ? new Date(movement.createdAt).toLocaleString() : "—", addedQty: isAdded ? Number(movement.qty || 0).toLocaleString() : "—", sold: isSale ? `${menuById.get(movement.menuItemId) || item.name}\nShared: ${allDishes || item.name}` : "—", overSold: isSale && balance < 0 ? `${Math.abs(balance).toLocaleString()} over` : "—", balance: balance.toLocaleString(), addedBy: isAdded ? (movement.createdByName || "—") : "—", activity: movementLabel(String(movement.movementType || "")), stockName: item.name };
+      return { ...movement, date: movement.createdAt ? new Date(movement.createdAt).toLocaleString() : "—", action: isDailyOpening ? `Daily opening (was ${Number(movement.previousQty || 0).toLocaleString()})` : movementLabel(String(movement.movementType || "")), addedQty: isAdded ? Number(movement.qty || 0).toLocaleString() : "—", sold: isSale ? `${menuById.get(movement.menuItemId) || item.name}\nShared: ${allDishes || item.name}` : "—", overSold: isSale && balance < 0 ? `${Math.abs(balance).toLocaleString()} over` : "—", balance: balance.toLocaleString(), addedBy: isAdded ? (movement.createdByName || "—") : "—", activity: movementLabel(String(movement.movementType || "")), stockName: item.name };
     });
   }), [stockItems]);
   const low = rows.filter(row => row.status === "Low").length;
