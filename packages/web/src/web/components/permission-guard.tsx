@@ -11,6 +11,7 @@ export function PermissionGuard({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const user = getUser();
   const branchId = getBranchId();
+  const isCashier = String(user?.role || "").toLowerCase() === "cashier";
   const isPublic = PUBLIC_PATHS.some(path => path === location || location.startsWith(path));
   const { data, isLoading } = useQuery({
     queryKey: ["settings", branchId],
@@ -23,7 +24,7 @@ export function PermissionGuard({ children }: { children: React.ReactNode }) {
   const allowed = isPublic || (Boolean(user) && (!privilege || hasPrivilege(user.role, privilege, saved)));
 
   useEffect(() => {
-    if (!isLoading && !allowed && location !== "/") navigate(user ? "/home" : "/");
+    if (!isLoading && !allowed && location !== "/") navigate(user ? (isCashier ? "/pos" : "/home") : "/");
   }, [allowed, isLoading, location, navigate, user]);
 
   if (isLoading && Boolean(user) && !isPublic) return <div className="h-screen flex items-center justify-center text-sm">Checking access…</div>;

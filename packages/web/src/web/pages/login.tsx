@@ -30,6 +30,7 @@ export default function Login() {
       if (user?.branchId) setBranchId(user.branchId);
       const role = user?.role;
       if (role === "kitchen" || role === "kds") navigate("/kds");
+      else if (String(role || "").toLowerCase() === "cashier") navigate("/pos");
       else navigate("/home");
     },
     onError: (e: any) => setError(e.message || "Login failed"),

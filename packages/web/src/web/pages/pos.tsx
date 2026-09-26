@@ -2368,6 +2368,7 @@ export default function POSPage() {
     { icon: Monitor,   title: "Customer Display",  onClick: openCustomerDisplay },
     { icon: Maximize,  title: "Fullscreen",        onClick: toggleFullscreen },
   ].filter(btn => {
+    if (btn.title === "Home" && String(currentUser?.role || "").toLowerCase() === "cashier") return false;
     if (btn.title === "Print Last Invoice") return can("Print Invoice");
     if (btn.title === "Refund") return can("Refund Order");
     return true;

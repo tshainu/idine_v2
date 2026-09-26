@@ -169,6 +169,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-2">
         {NAV.map(section => {
+          if (section.id === "dashboard" && isCashier) return null;
           if (section.type === "group" ? visibleItems(section).length === 0 : !can(privilegeForPath(section.path) || section.label)) return null;
           if (section.type === "link") {
             const active = isActive(section.path);
