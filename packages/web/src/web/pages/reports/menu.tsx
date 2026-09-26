@@ -51,7 +51,10 @@ export default function MenuReport() {
   const { data: menuData } = useQuery({
     queryKey: ["menu-items", branchId],
     queryFn: async () => (await api["menu-items"].$get({ query: { branchId: String(branchId) } })).json(),
-    staleTime: 60000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
   const { data: catsData } = useQuery({
     queryKey: ["categories", branchId],
