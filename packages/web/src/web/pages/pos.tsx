@@ -943,7 +943,11 @@ function FinalizeModal({
 }
 
 // ── Shared print helper ───────────────────────────────────────────────────────
+let printInFlight: Promise<void> | null = null;
+
 async function triggerPrint(printableId: string) {
+  if (printInFlight) return printInFlight;
+  printInFlight = (async () => {
   const styleId = "idine-print-style";
   if (!document.getElementById(styleId)) {
     const s = document.createElement("style");
@@ -1008,8 +1012,28 @@ async function triggerPrint(printableId: string) {
       image.addEventListener("error", finish, { once: true });
     });
   }));
-  window.print();
+  // Do not hide or replace the print root immediately after window.print().
+  // Some browser/driver combinations capture the print surface asynchronously;
+  // changing it immediately can produce duplicated headers or corrupt glyphs.
+  await new Promise<void>((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener("afterprint", finish);
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = window.setTimeout(finish, 30000);
+    window.addEventListener("afterprint", finish, { once: true });
+    window.print();
+  });
+  root.innerHTML = "";
   root.style.display = "none";
+  })().finally(() => {
+    printInFlight = null;
+  });
+  return printInFlight;
 }
 
 // ── Shared receipt header ─────────────────────────────────────────────────────
