@@ -33,7 +33,7 @@ function movementLabel(value: string) {
 export default function DishStockReport() {
   const branchId = getBranchId();
   const [view, setView] = useState<"summary" | "table">("summary");
-  const { data, isLoading } = useQuery({ queryKey: ["dish-stock-report", branchId], queryFn: async () => (await (api as any).stock.report.$get({ query: { branchId: String(branchId) } })).json() });
+  const { data, isLoading } = useQuery({ queryKey: ["dish-stock-report", branchId], queryFn: async () => (await (api as any).stock.report.$get({ query: { branchId: String(branchId) } })).json(), staleTime: 30000 });
   const stockItems: any[] = data?.stockItems || [];
   const rows = stockItems.map(item => {
     const available = Number(item.availableQty ?? item.quantityOnHand ?? 0);

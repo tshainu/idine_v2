@@ -13,7 +13,7 @@ export default function ModificationReport() {
   const { data, isFetching, refetch } = useQuery({
     queryKey: ["modifications", branchId],
     queryFn: async () => (await fetch(`/api/modifications?branchId=${branchId}`)).json(),
-    enabled: !!branchId,
+    enabled: !!branchId, staleTime: 30000,
   });
   const rows = (data?.modifications ?? []).filter((row: any) => {
     const date = new Date(Number(row.createdAt) < 1e12 ? Number(row.createdAt) * 1000 : Number(row.createdAt));

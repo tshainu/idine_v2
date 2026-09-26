@@ -55,7 +55,7 @@ export default function ActivityLogReport() {
       const params = new URLSearchParams({ branchId: String(branchId || "") });
       if (from) params.set("from", from); if (to) params.set("to", to); if (userId) params.set("userId", userId); if (action) params.set("action", action);
       return (await fetch(`/api/activity-logs?${params}`)).json();
-    }, enabled: !!branchId,
+    }, enabled: !!branchId, staleTime: 30000,
   });
   const rows: any[] = data?.activityLogs ?? [];
   const users = useMemo(() => Array.from(new Map(rows.filter(r => r.userId || r.userName).map(r => [String(r.userId ?? r.userName), { id: r.userId, name: r.userName || `User ${r.userId}` }])).values()), [rows]);

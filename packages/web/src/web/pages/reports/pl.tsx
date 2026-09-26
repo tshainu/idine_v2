@@ -40,15 +40,18 @@ export default function PLReport() {
 
   const { data: ordersData } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), includeItems: "0", ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
+    staleTime: 30000,
   });
   const { data: expData } = useQuery({
     queryKey: ["expenses", branchId],
     queryFn: async () => (await api.expenses.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30000,
   });
   const { data: purchasesData } = useQuery({
     queryKey: ["purchases", branchId],
     queryFn: async () => (await api.purchases.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 30000,
   });
 
   const allOrders: any[] = (ordersData as any)?.orders || [];

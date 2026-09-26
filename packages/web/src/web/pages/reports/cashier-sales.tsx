@@ -47,7 +47,8 @@ export default function CashierSalesReport() {
   const [to, setTo] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["reporting-sales", branchId],
-    queryFn: async () => (await fetch(`/api/reporting?branchId=${branchId}`)).json(),
+    queryFn: async () => (await fetch(`/api/reporting?branchId=${branchId}&view=sales`)).json(),
+    staleTime: 30000,
   });
   const [start, end] = range(filter, from, to);
   const orderRows = useMemo(() => ((data?.orderRows || []) as any[]).filter(o => {
@@ -122,4 +123,3 @@ export default function CashierSalesReport() {
     </ReportLayout>
   );
 }
-

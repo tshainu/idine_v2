@@ -100,6 +100,7 @@ export const orders = new Hono()
     const status = c.req.query("status");
     const source = c.req.query("source");
     const placedBy = c.req.query("placedBy");
+    const includeItems = c.req.query("includeItems") !== "0";
     const cashierId = Number(c.req.query("cashierId"));
     const conditions: any[] = [];
     if (branchId) conditions.push(eq(schema.orders.branchId, parseInt(branchId)));
@@ -123,7 +124,7 @@ export const orders = new Hono()
     // Always include items and the resolved waiter name. The raw order only stores waiterId;
     // resolving it here keeps every consumer (POS, KDS, reports) consistent.
     let ordersWithItems: any[] = all;
-    if (all.length > 0) {
+    if (all.length > 0 && includeItems) {
       const orderIds = all.map((o) => o.id);
       const allItems = await db.select().from(schema.orderItems).where(inArray(schema.orderItems.orderId, orderIds));
       const itemsByOrder: Record<number, any[]> = {};
@@ -153,6 +154,9 @@ export const orders = new Hono()
         tableName: o.tableId ? tableNames.get(o.tableId) || null : null,
         items: itemsByOrder[o.id] || [],
       }));
+    }
+    if (!includeItems) {
+      ordersWithItems = all.map((o) => ({ ...o, waiterName: o.placedBy || null, tableName: null, items: [] }));
     }
     return c.json({ orders: ordersWithItems }, 200);
   })

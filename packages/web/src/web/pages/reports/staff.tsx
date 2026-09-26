@@ -38,11 +38,13 @@ export default function StaffReport() {
 
   const { data: ordersData } = useQuery({
     queryKey: ["report-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), includeItems: "0", ...(["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase()) || !user?.id ? {} : { cashierId: String(user.id), placedBy: String(user.name || "") }) } })).json(),
+    staleTime: 30000,
   });
   const { data: usersData } = useQuery({
     queryKey: ["users", branchId],
     queryFn: async () => (await api.users.$get({ query: { branchId: String(branchId) } })).json(),
+    staleTime: 60000,
   });
 
   const allOrders: any[] = (ordersData as any)?.orders || [];

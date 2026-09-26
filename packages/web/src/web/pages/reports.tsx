@@ -19,11 +19,13 @@ export default function ReportsPage() {
 
   const { data: ordersData } = useQuery({
     queryKey: ["reports-orders", branchId, user?.id ?? user?.name ?? "all"],
-    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), ...(cashierScope ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {}) } })).json(),
+    queryFn: async () => (await api.orders.$get({ query: { branchId: String(branchId), includeItems: "0", ...(cashierScope ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {}) } })).json(),
+    staleTime: 30000,
   });
   const { data: settlementsData } = useQuery({
     queryKey: ["settlements-report", branchId, user?.id ?? "all"],
     queryFn: async () => (await fetch(`/api/settlements?branchId=${branchId}${user?.id && !allAccess ? `&settledById=${encodeURIComponent(user.id)}` : ""}`)).json(),
+    staleTime: 30000,
   });
 
   const orders: any[] = (ordersData as any)?.orders || [];

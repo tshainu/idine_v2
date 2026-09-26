@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../database";
 import * as schema from "../database/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 
 const INVOICED = new Set(["completed", "billed", "paid"]);
 const isInvoiced = (status: unknown) => INVOICED.has(String(status || "").toLowerCase());
@@ -61,6 +61,7 @@ function friendlyActivity(action: unknown, details: unknown, names?: { userById?
 
 export const reporting = new Hono().get("/", async (c) => {
   const branchId = Number(c.req.query("branchId") || 0);
+  const view = c.req.query("view") || "all";
   const [jobs, orders, users, tables, printers, modifications, orderItems] = await Promise.all([
     db.select().from(schema.printJobs).where(branchId ? eq(schema.printJobs.branchId, branchId) : undefined).orderBy(desc(schema.printJobs.createdAt)),
     db.select().from(schema.orders).where(branchId ? eq(schema.orders.branchId, branchId) : undefined).orderBy(desc(schema.orders.createdAt)),
@@ -68,7 +69,11 @@ export const reporting = new Hono().get("/", async (c) => {
     db.select({ id: schema.tables.id, name: schema.tables.name }).from(schema.tables).where(branchId ? eq(schema.tables.branchId, branchId) : undefined),
     db.select({ id: schema.printers.id, name: schema.printers.name, type: schema.printers.type, ipAddress: schema.printers.ipAddress }).from(schema.printers).where(branchId ? eq(schema.printers.branchId, branchId) : undefined),
     db.select().from(schema.orderModifications).where(branchId ? eq(schema.orderModifications.branchId, branchId) : undefined).orderBy(desc(schema.orderModifications.createdAt)),
-    db.select().from(schema.orderItems),
+    db.select().from(schema.orderItems).where(
+      branchId
+        ? inArray(schema.orderItems.orderId, db.select({ id: schema.orders.id }).from(schema.orders).where(eq(schema.orders.branchId, branchId)))
+        : undefined,
+    ),
   ]);
   const userById = new Map(users.map(u => [u.id, u]));
   const tableById = new Map(tables.map(t => [t.id, t.name]));
@@ -155,7 +160,13 @@ export const reporting = new Hono().get("/", async (c) => {
     salesMap.set(key, row);
   }
   const salesRows = Array.from(salesMap.values()).map(row => ({ ...row, totalSales: Number(row.totalSales.toFixed(2)), cash: Number(row.cash.toFixed(2)), card: Number(row.card.toFixed(2)), qr: Number(row.qr.toFixed(2)), other: Number(row.other.toFixed(2)) }));
-  return c.json({ generatedAt: new Date().toISOString(), users, printers, kotRows, modifiedKotRows, orderRows, salesRows }, 200);
+  const response: Record<string, unknown> = { generatedAt: new Date().toISOString() };
+  if (view === "orders" || view === "sales") response.orderRows = orderRows;
+  if (view === "kot") response.kotRows = kotRows;
+  if (view === "kot") response.modifiedKotRows = modifiedKotRows;
+  if (view === "sales") response.salesRows = salesRows;
+  if (view === "all") Object.assign(response, { users, printers, kotRows, modifiedKotRows, orderRows, salesRows });
+  return c.json(response, 200);
 }).get("/invoice-history/:orderId", async (c) => {
   const orderId = Number(c.req.param("orderId"));
   const branchId = Number(c.req.query("branchId") || 0);
