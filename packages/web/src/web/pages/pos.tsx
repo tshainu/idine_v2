@@ -1611,10 +1611,12 @@ export default function POSPage() {
     queryKey: ["orders", branchId, getUser()?.id ?? getUser()?.name ?? "all"],
     queryFn: async () => {
       const user = getUser();
-      const scope = String(user?.role || "").toLowerCase() === "admin" ? {} : (user?.id ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {});
+      const elevated = ["admin", "manager", "superadmin"].includes(String(user?.role || "").toLowerCase());
+      const scope = elevated ? {} : (user?.id ? { cashierId: String(user.id), placedBy: String(user.name || "") } : {});
       return (await api.orders.$get({ query: { branchId: String(branchId), ...scope } })).json();
     },
-    refetchInterval: 10000,
+    refetchInterval: 3000,
+    refetchIntervalInBackground: false,
   });
   // Loaded so the running-orders search can also match a customer's mobile number
   const { data: allCustomersData } = useQuery({
@@ -1730,6 +1732,8 @@ export default function POSPage() {
     queryKey: ["order-detail", detailsOrderId],
     queryFn: async () => (await api.orders[":id"].$get({ param: { id: String(detailsOrderId) } })).json(),
     enabled: !!detailsOrderId,
+    refetchInterval: 3000,
+    refetchIntervalInBackground: false,
   });
 
   // Fetch details for the Finalize Sale modal — own query, keyed only by finalizeOrderId
@@ -2096,12 +2100,15 @@ export default function POSPage() {
     });
   }
   function changeQty(cartKey: string, delta: number) {
-    if (delta < 0 && modifyOrderId) {
+    if (delta < 0 && modifyOrderId && !isAdminSession) {
       setPendingQtyChange({ cartKey, delta });
       setModifyAuthOrderId(modifyOrderId);
       setModifyAuthPin("");
       setModifyAuthError("");
       return;
+    }
+    if (delta < 0 && modifyOrderId && isAdminSession && sessionUser) {
+      setModifyAuthorizedBy({ id: Number(sessionUser.id), name: String(sessionUser.name || "Admin"), role: String(sessionUser.role || "admin") });
     }
     setCartItems(prev => prev.map(i => i.cartKey === cartKey ? { ...i, qty: i.qty + delta } : i).filter(i => i.qty > 0));
   }
