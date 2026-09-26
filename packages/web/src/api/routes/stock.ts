@@ -65,7 +65,10 @@ export const stock = new Hono()
     const dailyOpening = Boolean(body.dailyOpening);
     const addQuantity = dailyOpening ? null : body.addQuantity == null ? null : Math.max(0, Number(body.addQuantity || 0));
     const nextQty = dailyOpening
-      ? Math.max(0, Number(body.quantityOnHand || 0))
+      // The edit form keeps the old balance in quantityOnHand for display and
+      // sends today's entered opening amount in addQuantity. Never reuse the
+      // old balance when the manager explicitly selects daily opening.
+      ? Math.max(0, Number(body.addQuantity ?? body.quantityOnHand ?? 0))
       : addQuantity == null
       ? (body.quantityOnHand == null ? Number(existing.quantityOnHand || 0) : Number(body.quantityOnHand))
       : Number(existing.quantityOnHand || 0) + addQuantity;
