@@ -85,7 +85,8 @@ export function DataTable({
   const effectivePageSize = rowsPerPage === -1 ? Math.max(sorted.length, 1) : rowsPerPage;
   const totalPages = Math.max(1, Math.ceil(sorted.length / effectivePageSize));
   const slice = sorted.slice(page * effectivePageSize, page * effectivePageSize + effectivePageSize);
-  const totalAmount = totalKey ? sorted.reduce((sum, row) => sum + (Number(row[totalKey]) || 0), 0) : 0;
+  const totalColumns = columns.filter(c => c.key === totalKey || sorted.some(row => typeof row[c.key] === "number" && Number.isFinite(row[c.key])));
+  const totals = Object.fromEntries(totalColumns.map(c => [c.key, sorted.reduce((sum, row) => sum + (Number(row[c.key]) || 0), 0)]));
 
   function toggleSort(key: string) {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -193,11 +194,16 @@ export function DataTable({
               </tr>
             ))}
           </tbody>
-          {totalKey && (
+          {totalColumns.length > 0 && (
             <tfoot>
               <tr className="border-t-2" style={{ borderColor: GOLD, background: BG }}>
-                <td colSpan={Math.max(columns.length - 1, 1)} className="py-3 px-3 text-right font-bold" style={{ color: TEXT }}>Total Amount</td>
-                <td className="py-3 px-3 text-right font-bold" style={{ color: GOLD }}>LKR {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                {columns.map((column, index) => {
+                  const total = totals[column.key];
+                  const hasTotal = total !== undefined;
+                  return <td key={column.key} className="py-3 px-3 font-bold" style={{ color: hasTotal ? GOLD : TEXT, textAlign: column.align || (index === 0 ? "left" : "right") }}>
+                    {hasTotal ? (column.render ? column.render(total, { __total: true }) : Number(total).toLocaleString(undefined, { maximumFractionDigits: 2 })) : index === 0 ? "Total" : ""}
+                  </td>;
+                })}
               </tr>
             </tfoot>
           )}

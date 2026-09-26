@@ -51,6 +51,7 @@ const TABLE_COLS: ColDef[] = [
   )},
   { key: "customerName", label: "Customer" },
   { key: "subtotal", label: "Subtotal", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
+  { key: "discount", label: "Discount Given", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "cash", label: "Cash", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "card", label: "Card", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
   { key: "qr", label: "QR Pay", align: "right", render: v => `LKR ${Number(v || 0).toLocaleString()}` },
@@ -98,7 +99,7 @@ export default function SalesReport() {
 
   const grossSales = completed.reduce((s, o) => s + (Number(o.total) || 0), 0);
   const prevGross = prevCompleted.reduce((s, o) => s + (Number(o.total) || 0), 0);
-  const discounts = grossSales * 0.05;
+  const discounts = completed.reduce((s, o) => s + (Number(o.discount) || 0), 0);
   const netSales = grossSales - discounts;
   const avgBill = completed.length ? grossSales / completed.length : 0;
   // A refund creates one explicit negative REF- transaction. The original
@@ -145,6 +146,7 @@ export default function SalesReport() {
     status: o.status,
     customerName: o.customerName || "Walk-in",
     subtotal: o.subtotal,
+    discount: o.discount,
     total: o.total,
     ...paymentTotals,
     items: (o.items || []).length,
