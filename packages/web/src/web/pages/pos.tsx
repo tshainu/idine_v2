@@ -945,6 +945,21 @@ function FinalizeModal({
 // ── Shared print helper ───────────────────────────────────────────────────────
 let printInFlight: Promise<void> | null = null;
 
+function invoicePrintCountKey(orderId: number) {
+  return `idine-invoice-print-count-${orderId}`;
+}
+
+function readInvoicePrintCount(orderId: number) {
+  try { return Number(localStorage.getItem(invoicePrintCountKey(orderId)) || 0); }
+  catch { return 0; }
+}
+
+function recordInvoicePrint(orderId: number) {
+  const next = readInvoicePrintCount(orderId) + 1;
+  try { localStorage.setItem(invoicePrintCountKey(orderId), String(next)); } catch {}
+  return next;
+}
+
 async function triggerPrint(printableId: string) {
   if (printInFlight) return printInFlight;
   printInFlight = (async () => {
@@ -1093,6 +1108,12 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const [printing, setPrinting] = useState(false);
   const order = (data as any)?.order;
   const items: any[] = (data as any)?.items || [];
+  const isInvoice = mode === "invoice";
+  const [invoicePrintCount, setInvoicePrintCount] = useState(0);
+  useEffect(() => {
+    setInvoicePrintCount(order?.id ? readInvoicePrintCount(Number(order.id)) : 0);
+  }, [order?.id]);
+  const isInvoiceReprint = isInvoice && invoicePrintCount > 0;
   const receiptTable = receiptTables.find((table: any) => String(table.id) === String(order?.tableId));
   const receiptTableName = receiptTable?.name || receiptTable?.tableName || order?.tableName || order?.tableMasterName || (order?.tableId ? `T${order.tableId}` : "");
   // Plain number, no currency symbol, no trailing ".00" on whole numbers
@@ -1102,7 +1123,6 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   };
   // LKR-prefixed — used only for TOTAL / Cash Given / Amount Paid / Balance
   const money = (n: number) => `LKR ${num(n)}`;
-  const isInvoice = mode === "invoice";
   const label = isInvoice ? "INVOICE" : "BILL";
   const printId = "idine-invoice-printable";
   const footerText = settings?.invoiceFooter || "Thank you for visiting us!";
@@ -1164,6 +1184,7 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
     // send them automatically to a configured network thermal printer.
     if (isInvoice) {
       await triggerPrint(printId);
+      if (order?.id) setInvoicePrintCount(recordInvoicePrint(Number(order.id)));
       return;
     }
     const printer = resolvePrinter(printerSetup, printers, isInvoice ? "invoice" : "bill");
@@ -1234,7 +1255,18 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
                   padding: "20px 0 16px",
                   fontSize: 13,
                   lineHeight: 1.5,
+                  position: "relative",
                 }}>
+                  {isInvoiceReprint && (
+                    <div aria-hidden="true" style={{
+                      position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transform: "rotate(-28deg)", color: "#dc2626", opacity: 0.16,
+                      fontSize: 46, fontWeight: 900, letterSpacing: 4, whiteSpace: "nowrap",
+                    }}>
+                      REPRINT
+                    </div>
+                  )}
                   {/* Restaurant header */}
                   <ReceiptHeader settings={settings} label={label} />
 
@@ -1466,6 +1498,13 @@ function KotOverlay({ kot, onClose, onPrint }: { kot: any; onClose: () => void; 
                 border: "2px solid #000", padding: "4px 14px",
               }}>{typeLabel}</span>
             </div>
+            {kot.isRunningOrder && (
+              <div style={{ textAlign: "center", marginBottom: 8 }}>
+                <span style={{ display: "inline-block", background: "#facc15", color: "#000", border: "3px solid #000", padding: "5px 16px", fontSize: 18, fontWeight: 900, letterSpacing: 1.5 }}>
+                  RUNNING ORDER
+                </span>
+              </div>
+            )}
             <div style={{ borderTop: "2px solid #000", margin: "8px 0" }} />
 
             {/* Meta */}
@@ -1843,6 +1882,7 @@ export default function POSPage() {
           type: orderType, tableId: selectedTableId, waiterName: selectedWaiterName,
           placedBy: getUser()?.name || null,
           customerName: customerName !== "Walk-in Customer" ? customerName : null,
+          isRunningOrder: true,
         };
 
         return {
