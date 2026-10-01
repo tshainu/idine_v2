@@ -9,6 +9,7 @@ export const discounts = new Hono()
     const rows = await db.select().from(schema.discounts).where(
       branchId ? and(eq(schema.discounts.branchId, branchId), eq(schema.discounts.isActive, true)) : eq(schema.discounts.isActive, true)
     ).orderBy(asc(schema.discounts.name));
+    c.header("Cache-Control", "no-store, no-cache, must-revalidate");
     return c.json({ discounts: rows }, 200);
   })
   .post("/", async (c) => {

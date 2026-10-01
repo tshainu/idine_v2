@@ -527,8 +527,10 @@ function FinalizeModal({
   const serviceChargeRate = parseFloat((settings.serviceCharge || "0").replace("%", "")) / 100;
   const { data: discountData } = useQuery({
     queryKey: ["discounts", branchId],
-    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`)).json(),
-    staleTime: 30_000,
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`, { cache: "no-store" })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const availableDiscounts: any[] = (discountData as any)?.discounts || [];
   const defaultDiscount = availableDiscounts.find(d =>
@@ -1744,8 +1746,10 @@ export default function POSPage() {
   const kotPrinterSetup = parsePrinterSetup((printerSettingsData as any)?.settings || {});
   const { data: posDiscountData } = useQuery({
     queryKey: ["pos-discounts", branchId],
-    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`)).json(),
-    staleTime: 30_000,
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`, { cache: "no-store" })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const posDiscounts: any[] = (posDiscountData as any)?.discounts || [];
   // categoryPrinterMap: { [categoryId]: printerId }

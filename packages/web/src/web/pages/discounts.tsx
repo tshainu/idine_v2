@@ -22,7 +22,10 @@ export default function DiscountsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["discounts", branchId],
-    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`)).json(),
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`, { cache: "no-store" })).json(),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const discounts: any[] = (data as any)?.discounts || [];
   const save = useMutation({
@@ -33,11 +36,11 @@ export default function DiscountsPage() {
       });
       const body = await res.json(); if (!res.ok) throw new Error(body.error || "Could not save discount"); return body;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["discounts", branchId] }); setForm(EMPTY); setEditingId(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["discounts"] }); qc.invalidateQueries({ queryKey: ["pos-discounts"] }); setForm(EMPTY); setEditingId(null); },
   });
   const remove = useMutation({
     mutationFn: async (id: number) => fetch(`/api/discounts/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discounts", branchId] }),
+    onSuccess: () => { qc.removeQueries({ queryKey: ["discounts"] }); qc.removeQueries({ queryKey: ["pos-discounts"] }); qc.invalidateQueries({ queryKey: ["discounts"] }); qc.invalidateQueries({ queryKey: ["pos-discounts"] }); },
   });
   const startEdit = (d: any) => { setEditingId(d.id); setForm({ name: d.name, type: d.type, value: String(d.value), defaultFor: d.defaultFor || "" }); };
   return <div className="flex h-screen overflow-hidden" style={{ background: BG }}>
