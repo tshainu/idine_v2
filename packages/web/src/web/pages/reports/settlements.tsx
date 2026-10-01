@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Eye, FileDown, Printer, RefreshCw, X } from "lucide-react";
 import { Sidebar } from "../../components/layout/sidebar";
 import { getBranchId, getUser } from "../../lib/store";
+import { DateRangePicker } from "./layout";
 
 const BG = "var(--color-bg)";
 const SURF = "var(--color-surface)";
@@ -223,8 +224,7 @@ export default function SettlementReport() {
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
         <div className="rounded-xl border p-4 flex flex-wrap items-end gap-3" style={{ background: SURF, borderColor: BORD }}>
-          <label className="text-xs" style={{ color: MUTED }}>From<input type="date" value={from} onChange={e => setFrom(e.target.value)} className="block mt-1 rounded border px-2 py-2 text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }} /></label>
-          <label className="text-xs" style={{ color: MUTED }}>To<input type="date" value={to} onChange={e => setTo(e.target.value)} className="block mt-1 rounded border px-2 py-2 text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }} /></label>
+          <DateRangePicker from={from} to={to} setFrom={setFrom} setTo={setTo} compact={false} />
           <label className="text-xs" style={{ color: MUTED }}>Login user<select value={staff} onChange={e => setStaff(e.target.value)} className="block mt-1 rounded border px-2 py-2 text-xs min-w-44" style={{ background: SURF2, borderColor: BORD, color: TEXT }}><option value="all">All users</option>{staffOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
           <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-2 rounded border text-xs" style={{ borderColor: BORD, color: MUTED }}><RefreshCw size={13} /> Refresh</button>
           <div className="ml-auto flex items-center gap-2 text-xs" style={{ color: DIM }}><CalendarDays size={14} /> {filtered.length} record{filtered.length === 1 ? "" : "s"}</div>

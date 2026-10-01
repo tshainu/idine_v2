@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranchId } from "../../lib/store";
-import { ReportLayout, DataTable, GOLD, SURF, BORD, MUTED, DIM } from "./layout";
+import { ReportLayout, DataTable, DateRangePicker, GOLD, SURF, BORD, MUTED, DIM } from "./layout";
 import type { ColDef } from "./layout";
 
 type Filter = "today" | "yesterday" | "week" | "month" | "year" | "custom";
@@ -103,7 +103,7 @@ export default function CashierSalesReport() {
               {label}
             </button>
           ))}
-          {filter === "custom" && <><input type="date" value={from} onChange={e => setFrom(e.target.value)} /><input type="date" value={to} onChange={e => setTo(e.target.value)} /></>}
+          {filter === "custom" && <DateRangePicker from={from} to={to} setFrom={setFrom} setTo={setTo} />}
         </div>
         <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-xs font-semibold border" style={{ borderColor: BORD, color: MUTED }}>Print / PDF</button>
       </div>

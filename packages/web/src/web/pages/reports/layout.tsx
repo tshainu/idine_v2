@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Sidebar } from "../../components/layout/sidebar";
 import {
   TrendingUp, UtensilsCrossed, Package, DollarSign, Users, Heart,
-  LayoutGrid, Table, ChevronLeft, ChevronRight, Download, SlidersHorizontal,
+  LayoutGrid, Table, ChevronLeft, ChevronRight, Download, SlidersHorizontal, CalendarDays,
 } from "lucide-react";
 
 export const GOLD = "var(--color-gold)";
@@ -13,6 +13,24 @@ export const BORD = "var(--color-border)";
 export const MUTED = "var(--color-text-muted)";
 export const DIM  = "var(--color-text-dim)";
 export const TEXT = "var(--color-text)";
+
+export function DatePicker({ label, value, onChange, compact = false }: { label?: string; value: string; onChange: (value: string) => void; compact?: boolean }) {
+  return <label className={compact ? "inline-flex items-center gap-1.5 text-xs" : "block text-xs"} style={{ color: MUTED }}>
+    {label && <span>{label}</span>}
+    <span className="relative inline-flex items-center">
+      <CalendarDays size={13} className="absolute left-2 pointer-events-none" style={{ color: DIM }} />
+      <input type="date" value={value} onChange={e => onChange(e.target.value)} onClick={e => e.currentTarget.showPicker?.()} className={`${compact ? "" : "mt-1"} rounded-lg border pl-7 pr-2 py-1.5 text-xs outline-none`} style={{ background: SURF, borderColor: BORD, color: TEXT }} aria-label={label || "Select date"} />
+    </span>
+  </label>;
+}
+
+export function DateRangePicker({ from, to, setFrom, setTo, compact = true }: { from: string; to: string; setFrom: (value: string) => void; setTo: (value: string) => void; compact?: boolean }) {
+  return <div className="flex flex-wrap items-end gap-2">
+    <DatePicker label={compact ? undefined : "From"} value={from} onChange={setFrom} compact={compact} />
+    <span className="text-xs pb-2" style={{ color: DIM }}>to</span>
+    <DatePicker label={compact ? undefined : "To"} value={to} onChange={setTo} compact={compact} />
+  </div>;
+}
 
 const SUB_REPORTS = [
   { path: "/reports/sales",     label: "Sales Performance",  icon: TrendingUp },

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { getBranchId, getUser } from "../../lib/store";
-import { ReportLayout, DataTable, ViewToggle, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
+import { ReportLayout, DataTable, ViewToggle, DateRangePicker, GOLD, SURF, BORD, MUTED, DIM, TEXT } from "./layout";
 import type { ColDef } from "./layout";
 
 type DateFilter = "today" | "yesterday" | "week" | "month" | "year" | "custom";
@@ -163,11 +163,7 @@ export default function MenuReport() {
         {([['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year'], ['custom', 'Custom']] as [DateFilter, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setDateFilter(key)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border" style={{ background: dateFilter === key ? GOLD : "transparent", color: dateFilter === key ? "var(--color-surface)" : MUTED, borderColor: dateFilter === key ? GOLD : BORD }}>{label}</button>
         ))}
-        {dateFilter === "custom" && <>
-          <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border" style={{ background: SURF, borderColor: BORD, color: TEXT }} />
-          <span className="text-xs" style={{ color: DIM }}>to</span>
-          <input type="date" value={to} onChange={e => setTo(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border" style={{ background: SURF, borderColor: BORD, color: TEXT }} />
-        </>}
+        {dateFilter === "custom" && <DateRangePicker from={from} to={to} setFrom={setFrom} setTo={setTo} />}
       </div>
       {/* Header row */}
       <div className="flex items-center justify-between flex-wrap gap-2">
