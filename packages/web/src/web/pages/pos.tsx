@@ -357,7 +357,10 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
   const [discountId, setDiscountId] = useState("");
   const { data: discountData } = useQuery({
     queryKey: ["discounts", order.branchId],
-    queryFn: async () => (await fetch(`/api/discounts?branchId=${order.branchId}`)).json(),
+    queryFn: async () => (await fetch(`/api/discounts?branchId=${order.branchId}`, { cache: "no-store" })).json(),
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
   const discounts: any[] = (discountData as any)?.discounts || [];
   const subtotal = items.reduce((s: number, i: any) => s + i.qty * i.price, 0);
@@ -464,12 +467,12 @@ function OrderDetailsModal({ order, items, onClose, onCreateInvoice, onPrintBill
             <span style={{ color: GOLD }}>{total.toFixed(2)}</span>
           </div>
           {order.discountName && <div className="text-[11px] mt-2" style={{ color: GOLD }}>Applied discount: {order.discountName} ({order.discountType === "percent" ? `${order.discountValue}%` : `LKR ${Number(order.discountValue || 0).toFixed(2)}`})</div>}
-          <div className="flex items-center gap-2 mt-3">
+          {discounts.length > 0 && <div className="flex items-center gap-2 mt-3">
             <select value={discountId} onChange={e => setDiscountId(e.target.value)} className="flex-1 rounded border px-2 py-2 text-xs" style={{ background: SURF2, borderColor: BORD, color: TEXT }}>
               <option value="">Select discount…</option>{discounts.map(d => <option key={d.id} value={d.id}>{d.name} — {d.type === "percent" ? `${d.value}%` : `LKR ${Number(d.value).toFixed(2)}`}</option>)}
             </select>
             <button disabled={!discountId || applyDiscount.isPending} onClick={() => applyDiscount.mutate(Number(discountId))} className="rounded px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: GOLD, color: "#111" }}>{applyDiscount.isPending ? "Applying…" : "Apply"}</button>
-          </div>
+          </div>}
           {applyDiscount.error && <div className="text-[11px] mt-1" style={{ color: "var(--color-danger)" }}>{(applyDiscount.error as Error).message}</div>}
         </div>
 
@@ -529,6 +532,7 @@ function FinalizeModal({
     queryKey: ["discounts", branchId],
     queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`, { cache: "no-store" })).json(),
     staleTime: 0,
+    refetchInterval: 5000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -1748,6 +1752,7 @@ export default function POSPage() {
     queryKey: ["pos-discounts", branchId],
     queryFn: async () => (await fetch(`/api/discounts?branchId=${branchId}`, { cache: "no-store" })).json(),
     staleTime: 0,
+    refetchInterval: 5000,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
