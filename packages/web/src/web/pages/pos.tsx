@@ -1122,10 +1122,10 @@ function InvoiceOverlay({ orderId, onClose, mode = "invoice" }: {
   const isInvoiceReprint = isInvoice && invoicePrintCount > 0;
   const receiptTable = receiptTables.find((table: any) => String(table.id) === String(order?.tableId));
   const receiptTableName = receiptTable?.name || receiptTable?.tableName || order?.tableName || order?.tableMasterName || (order?.tableId ? `T${order.tableId}` : "");
-  // Plain number, no currency symbol, no trailing ".00" on whole numbers
+  // Plain number, no currency symbol, always show two cents on receipts
   const num = (n: number) => {
     const v = Number(n || 0);
-    return v.toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 });
+    return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
   // LKR-prefixed — used only for TOTAL / Cash Given / Amount Paid / Balance
   const money = (n: number) => `LKR ${num(n)}`;
