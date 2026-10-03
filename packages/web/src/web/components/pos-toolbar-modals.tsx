@@ -849,7 +849,7 @@ export function QROrdersModal({ branchId, onClose, allowReject = true }: { branc
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold" style={{ color: GOLD }}>LKR {Number(order.total || 0).toLocaleString()}</div>
+                      <div className="text-sm font-bold" style={{ color: GOLD }}>LKR {Number(order.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       <div className="text-[10px]" style={{ color: DIM }}>{(order.items || []).length} items</div>
                     </div>
                   </div>
@@ -860,7 +860,7 @@ export function QROrdersModal({ branchId, onClose, allowReject = true }: { branc
                       <div key={item.id ?? idx} className="flex justify-between px-3 py-1.5 text-xs border-b last:border-0"
                         style={{ borderColor: BORD }}>
                         <span style={{ color: TEXT }}>{item.qty}× {item.name}</span>
-                        <span style={{ color: MUTED }}>LKR {Number(item.total || item.price * item.qty || 0).toLocaleString()}</span>
+                        <span style={{ color: MUTED }}>LKR {Number(item.total || item.price * item.qty || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     ))}
                   </div>
