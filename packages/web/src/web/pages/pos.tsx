@@ -969,62 +969,30 @@ function recordInvoicePrint(orderId: number) {
 async function triggerPrint(printableId: string) {
   if (printInFlight) return printInFlight;
   printInFlight = (async () => {
-  const styleId = "idine-print-style";
-  if (!document.getElementById(styleId)) {
-    const s = document.createElement("style");
-    s.id = styleId;
-    s.innerHTML = `@page {
-      size: 3in auto;
-      margin: 0;
-    }
-    @media print {
-      html, body {
-        width: 3in !important;
-        min-width: 3in !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      body > * { display: none !important; }
-      #idine-invoice-print-root {
-        display: block !important;
-        position: static !important;
-        width: 3in !important;
-        min-width: 3in !important;
-        max-width: 3in !important;
-        margin: 0 !important;
-        padding: 0 0.12in 0 0 !important;
-        background: #fff !important;
-      }
-      #idine-invoice-print-root > #idine-invoice-printable,
-      #idine-invoice-print-root > #idine-kot-printable {
-        width: calc(3in - 0.12in) !important;
-        min-width: calc(3in - 0.12in) !important;
-        max-width: calc(3in - 0.12in) !important;
-        box-sizing: border-box !important;
-        margin: 0 !important;
-      }
-      #idine-invoice-print-root img {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
-      }
-    }`;
-    document.head.appendChild(s);
-  }
-  let root = document.getElementById("idine-invoice-print-root");
-  if (!root) {
-    root = document.createElement("div");
-    root.id = "idine-invoice-print-root";
-    root.style.display = "none";
-    document.body.appendChild(root);
-  }
   const src = document.getElementById(printableId);
-  // Use outerHTML (not innerHTML) so the source element's own inline styles
-  // (color, font-weight, font-family, etc.) travel with it — innerHTML only
-  // copied the children, silently dropping the wrapper's styling on print.
-  root.innerHTML = src ? src.outerHTML : "";
-  root.style.display = "block";
-  const images = Array.from(root.querySelectorAll("img"));
+  if (!src) return;
+
+  // Print from an isolated document. The previous approach temporarily
+  // exposed a hidden node in the live POS document; polling and order refreshes
+  // could change that node while the browser/driver was still rasterizing it.
+  const printWindow = window.open("", "_blank", "width=420,height=760");
+  if (!printWindow) throw new Error("The print window was blocked. Please allow pop-ups for the POS.");
+
+  const printableHtml = src.outerHTML;
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>iDine Invoice</title><style>
+    * { box-sizing: border-box; }
+    html, body { width: 3in; min-width: 3in; margin: 0; padding: 0; background: #fff; }
+    @page { size: 3in auto; margin: 0; }
+    #idine-invoice-print-root { width: 3in; min-width: 3in; max-width: 3in; padding: 0 0.12in 0 0; background: #fff; }
+    #idine-invoice-print-root > #idine-invoice-printable,
+    #idine-invoice-print-root > #idine-kot-printable { width: calc(3in - 0.12in); min-width: calc(3in - 0.12in); max-width: calc(3in - 0.12in); margin: 0; }
+    #idine-invoice-print-root img { width: 100%; max-width: 100%; height: auto; }
+    @media print { html, body { width: 3in !important; min-width: 3in !important; margin: 0 !important; padding: 0 !important; } }
+  </style></head><body><div id="idine-invoice-print-root">${printableHtml}</div></body></html>`);
+  printWindow.document.close();
+
+  const images = Array.from(printWindow.document.querySelectorAll("img"));
   await Promise.all(images.map((image) => {
     if (image.complete && image.naturalWidth > 0) return image.decode?.().catch(() => undefined);
     return new Promise<void>((resolve) => {
@@ -1033,24 +1001,22 @@ async function triggerPrint(printableId: string) {
       image.addEventListener("error", finish, { once: true });
     });
   }));
-  // Do not hide or replace the print root immediately after window.print().
-  // Some browser/driver combinations capture the print surface asynchronously;
-  // changing it immediately can produce duplicated headers or corrupt glyphs.
+  await new Promise<void>(resolve => printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(() => resolve())));
   await new Promise<void>((resolve) => {
     let finished = false;
     const finish = () => {
       if (finished) return;
       finished = true;
-      window.removeEventListener("afterprint", finish);
-      window.clearTimeout(timeout);
+      printWindow.removeEventListener("afterprint", finish);
+      printWindow.clearTimeout(timeout);
+      window.setTimeout(() => { if (!printWindow.closed) printWindow.close(); }, 150);
       resolve();
     };
-    const timeout = window.setTimeout(finish, 30000);
-    window.addEventListener("afterprint", finish, { once: true });
-    window.print();
+    const timeout = printWindow.setTimeout(finish, 30000);
+    printWindow.addEventListener("afterprint", finish, { once: true });
+    printWindow.focus();
+    printWindow.print();
   });
-  root.innerHTML = "";
-  root.style.display = "none";
   })().finally(() => {
     printInFlight = null;
   });
