@@ -84,6 +84,7 @@ async function queueJobs(input: {
       type: input.order.type,
       items: toKotItems(items, input.deltas),
       mode: input.type === "reprint" ? "update" : "new",
+      reprint: input.type === "reprint",
       printedAt: new Date(),
     };
     const ids = items.map((i) => i.id).sort((a, b) => a - b).join(".");
@@ -193,6 +194,7 @@ export function useReprintKot() {
         type: input.order.type,
         items: toKotItems(input.items, input.deltas),
         mode: "update",
+        reprint: true,
         printedAt: new Date(),
       };
       return printKotToConfiguredPrinters(payload, config, (item) => item.printerId, async (failedItems) => {

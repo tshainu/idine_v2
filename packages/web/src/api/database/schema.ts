@@ -16,6 +16,8 @@ export const users = sqliteTable("users", {
   branchId: integer("branch_id").references(() => branches.id),
   name: text("name").notNull(),
   pin: text("pin"),
+  accessibleTableIds: text("accessible_table_ids"), // JSON array; null means every table
+  linkedCashierId: integer("linked_cashier_id").references(() => users.id),
   userId: text("user_id"),       // shared per-business identifier, e.g. "ELE5236"
   username: text("username"),    // unique login name within the business
   password: text("password"),    // Bun.password hash

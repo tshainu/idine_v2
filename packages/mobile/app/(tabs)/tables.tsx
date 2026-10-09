@@ -14,8 +14,8 @@ const c = Colors.light;
 
 export default function TablesScreen() {
   const router = useRouter();
-  const { branchId } = useSession();
-  const tables = useTables(branchId);
+  const { branchId, allowedTableIds } = useSession();
+  const tables = useTables(branchId, { allowedTableIds });
   const orders = useOrders(branchId, { poll: 10_000 });
   const [zone, setZone] = useState<string>("all");
 

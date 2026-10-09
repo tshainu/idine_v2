@@ -30,6 +30,7 @@ export type KotPayload = {
   items: KotItem[];
   /** "new" prints a fresh KOT, "update" marks it as an amended ticket. */
   mode?: "new" | "update";
+  reprint?: boolean;
   printedAt?: Date;
 };
 
@@ -146,7 +147,7 @@ export function buildKot(payload: KotPayload, width: PaperWidth = 32): Uint8Arra
   b.line(`+${"-".repeat(boxWidth)}+`).bold(false);
 
   b.align("left").line(rule(width));
-  if (payload.mode === "update") b.bold(true).line("*** UPDATED ORDER ***").bold(false);
+  if (payload.mode === "update") b.bold(true).line(payload.reprint ? "*** REPRINT ***" : "*** UPDATED ORDER ***").bold(false);
   b.line(`Order #: ${payload.orderNumber}`);
   if (tableLabel) b.bold(true).line(`Table: ${tableLabel}`).bold(false);
   b.line(`Time: ${two(printedAt.getHours())}:${two(printedAt.getMinutes())}:${two(printedAt.getSeconds())}`);

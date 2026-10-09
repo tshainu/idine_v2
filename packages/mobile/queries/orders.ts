@@ -86,6 +86,7 @@ export function useSendToKitchen(branchId: number | undefined) {
       lines: CartLine[];
       waiterId: number | null;
       waiterName?: string | null;
+      cashierId?: number | null;
       customerName?: string | null;
       customerId?: number | null;
       notes?: string | null;
@@ -121,6 +122,7 @@ export function useSendToKitchen(branchId: number | undefined) {
           status: "pending",
           tableId: input.tableId,
           waiterId: input.waiterId,
+          cashierId: input.cashierId ?? null,
           customerId: input.customerId ?? null,
           customerName: input.customerName ?? null,
           notes: input.notes ?? null,

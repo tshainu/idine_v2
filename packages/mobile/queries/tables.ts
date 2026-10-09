@@ -2,16 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "../lib/http";
 import type { Table } from "../lib/types";
 
-export function useTables(branchId: number | undefined, opts?: { poll?: boolean }) {
+export function useTables(branchId: number | undefined, opts?: { poll?: boolean; allowedTableIds?: number[] | null }) {
   return useQuery({
-    queryKey: ["tables", branchId],
+    queryKey: ["tables", branchId, opts?.allowedTableIds ?? "all"],
     enabled: !!branchId,
     staleTime: 15_000,
     gcTime: 10 * 60_000,
     refetchOnMount: false,
     queryFn: async () => {
       const data = await http.get<{ tables: Table[] }>("/tables", { branchId });
-      return (data.tables ?? []).filter((t) => t.isActive);
+      const active = (data.tables ?? []).filter((t) => t.isActive);
+      return opts?.allowedTableIds == null ? active : active.filter((table) => opts.allowedTableIds!.includes(table.id));
     },
     refetchInterval: opts?.poll === false ? false : 20_000,
   });

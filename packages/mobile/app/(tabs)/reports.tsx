@@ -7,7 +7,7 @@ import { Card, StatCard, SectionTitle, Loading, ErrorBanner, EmptyState } from "
 import { useSession } from "../../hooks/use-session";
 import { useOrders } from "../../queries/orders";
 import { useMyShifts } from "../../queries/shifts";
-import { lkr, startOfDay, startOfWeek, startOfMonth, dateOf, elapsed } from "../../lib/format";
+import { startOfDay, startOfWeek, startOfMonth } from "../../lib/format";
 
 const c = Colors.light;
 
@@ -42,10 +42,7 @@ export default function ReportsScreen() {
       .filter((o) => (mineOnly ? o.waiterId === waiterId : true));
 
     const valid = rows.filter((o) => !VOID.includes(o.status));
-    const sales = valid.reduce((s, o) => s + (o.total ?? 0), 0);
-    const tips = valid.reduce((s, o) => s + (o.tipAmount ?? 0), 0);
     const covers = valid.length;
-    const avg = covers ? sales / covers : 0;
 
     // Top sellers by quantity across the period.
     const byItem = new Map<string, { name: string; qty: number; amount: number }>();
@@ -60,11 +57,9 @@ export default function ReportsScreen() {
     const top = [...byItem.values()].sort((a, b) => b.qty - a.qty).slice(0, 8);
 
     const byType = new Map<string, number>();
-    for (const o of valid) byType.set(o.type, (byType.get(o.type) ?? 0) + (o.total ?? 0));
-
     const cancelled = rows.filter((o) => VOID.includes(o.status)).length;
 
-    return { sales, tips, covers, avg, top, byType: [...byType.entries()], cancelled };
+    return { covers, top, byType: [...new Set(valid.map((o) => o.type))], cancelled };
   }, [orders.data, from, mineOnly, waiterId]);
 
   const shiftHours = useMemo(() => {
@@ -138,10 +133,7 @@ export default function ReportsScreen() {
         ) : null}
 
         <View style={s.grid}>
-          <StatCard label="Sales" value={lkr(data.sales)} icon="cash-outline" tone="info" style={s.gridItem} />
           <StatCard label="Orders" value={String(data.covers)} icon="receipt-outline" tone="primary" style={s.gridItem} />
-          <StatCard label="Avg order" value={lkr(data.avg)} icon="trending-up-outline" style={s.gridItem} />
-          <StatCard label="Tips earned" value={lkr(data.tips)} icon="wallet-outline" tone="success" style={s.gridItem} />
         </View>
 
         <Card style={{ marginTop: Space.lg }}>
@@ -165,16 +157,11 @@ export default function ReportsScreen() {
           <>
             <SectionTitle title="By order type" />
             <Card>
-              {data.byType.map(([type, amount], i) => {
-                const pct = data.sales ? (amount / data.sales) * 100 : 0;
+              {data.byType.map((type, i) => {
                 return (
                   <View key={type} style={[s.bar, i > 0 && { marginTop: Space.md }]}>
                     <View style={s.barTop}>
                       <Text style={s.barLabel}>{type}</Text>
-                      <Text style={s.barValue}>{lkr(amount)}</Text>
-                    </View>
-                    <View style={s.barTrack}>
-                      <View style={[s.barFill, { width: `${Math.max(2, pct)}%` }]} />
                     </View>
                   </View>
                 );
@@ -193,7 +180,6 @@ export default function ReportsScreen() {
                 <Text style={s.topRank}>{i + 1}</Text>
                 <Text style={s.topName} numberOfLines={1}>{it.name}</Text>
                 <Text style={s.topQty}>{it.qty}×</Text>
-                <Text style={s.topAmount}>{lkr(it.amount)}</Text>
               </View>
             ))}
           </Card>

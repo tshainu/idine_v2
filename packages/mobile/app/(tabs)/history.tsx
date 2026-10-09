@@ -10,7 +10,7 @@ import { useSession } from "../../hooks/use-session";
 import { useOrders } from "../../queries/orders";
 import { useTables } from "../../queries/tables";
 import { useReprintKot } from "../../queries/print";
-import { lkr, dateTimeOf, startOfDay, startOfWeek } from "../../lib/format";
+import { dateTimeOf, startOfDay, startOfWeek } from "../../lib/format";
 import type { Order } from "../../lib/types";
 
 const c = Colors.light;
@@ -90,16 +90,12 @@ export default function HistoryScreen() {
     );
   }
 
-  const total = shown
-    .filter((o) => !["cancelled", "refunded"].includes(o.status))
-    .reduce((sum, o) => sum + (o.total ?? 0), 0);
-
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right"]}>
       <View style={s.head}>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Order history</Text>
-          <Text style={s.sub}>{shown.length} orders · {lkr(total)}</Text>
+          <Text style={s.sub}>{shown.length} orders</Text>
         </View>
         <TouchableOpacity
           onPress={() => setMineOnly((v) => !v)}
@@ -167,11 +163,7 @@ export default function HistoryScreen() {
                       <Text style={s.metaDim}>{dateTimeOf(o.createdAt)}</Text>
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
-                      <Text style={s.total}>{lkr(o.total)}</Text>
                       <Pill label={o.status} fg={tone.fg} bg={tone.bg} />
-                      {(o.tipAmount ?? 0) > 0 ? (
-                        <Text style={s.tip}>tip {lkr(o.tipAmount)}</Text>
-                      ) : null}
                     </View>
                     <Ionicons
                       name={open ? "chevron-up" : "chevron-down"}
@@ -191,24 +183,20 @@ export default function HistoryScreen() {
                           <Text style={s.itemName}>{it.name}</Text>
                           {it.note ? <Text style={s.itemNote}>{it.note}</Text> : null}
                         </View>
-                        <Text style={s.itemPrice}>{lkr(it.total)}</Text>
                       </View>
                     ))}
 
                     <View style={s.sumRow}>
                       <Text style={s.sumLabel}>Subtotal</Text>
-                      <Text style={s.sumValue}>{lkr(o.subtotal)}</Text>
                     </View>
                     {(o.discount ?? 0) > 0 ? (
                       <View style={s.sumRow}>
                         <Text style={s.sumLabel}>Discount</Text>
-                        <Text style={s.sumValue}>-{lkr(o.discount)}</Text>
                       </View>
                     ) : null}
                     {(o.tipAmount ?? 0) > 0 ? (
                       <View style={s.sumRow}>
                         <Text style={s.sumLabel}>Tip (to waiter)</Text>
-                        <Text style={[s.sumValue, { color: c.success }]}>{lkr(o.tipAmount)}</Text>
                       </View>
                     ) : null}
 

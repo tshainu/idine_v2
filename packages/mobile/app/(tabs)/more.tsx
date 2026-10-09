@@ -119,6 +119,13 @@ export default function MoreScreen() {
             onPress={() => router.push("/profile")}
             divider
           />
+          <Row
+            icon="grid-outline"
+            label="Waiter access"
+            hint="Tables and linked cashier account"
+            onPress={() => router.push("/waiter-settings")}
+            divider
+          />
         </Card>
 
         {/* About */}

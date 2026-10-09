@@ -10,7 +10,7 @@ import { useTables } from "../../queries/tables";
 import { useOrders, useUpdateOrder, useUpdateRunningOrder } from "../../queries/orders";
 import { useReprintKot } from "../../queries/print";
 import { useActiveShift } from "../../queries/shifts";
-import { lkr, initials, elapsed } from "../../lib/format";
+import { initials, elapsed } from "../../lib/format";
 import type { Order, OrderItem } from "../../lib/types";
 
 const c = Colors.light;
@@ -213,7 +213,6 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
-                      <Text style={s.orderTotal}>{lkr(o.total)}</Text>
                       <Pill label={o.status} fg={st.fg} bg={st.bg} border={st.border} />
                     </View>
                   </View>
@@ -251,7 +250,6 @@ export default function DashboardScreen() {
               <View style={s.modalTotalRow}>
                 <View>
                   <Text style={s.modalEyebrow}>CURRENT TOTAL</Text>
-                  <Text style={s.modalTotal}>{lkr(draftItems.reduce((sum, item) => sum + item.price * item.qty, 0))}</Text>
                 </View>
                 {selectedOrder ? <Pill label={selectedOrder.status} fg={c.primaryDark} bg={c.primarySoft} /> : null}
               </View>
@@ -262,7 +260,6 @@ export default function DashboardScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.editItemName}>{item.name}</Text>
                     {item.note ? <Text style={s.editItemNote}>{item.note}</Text> : null}
-                    <Text style={s.editItemPrice}>{lkr(item.price)} each</Text>
                   </View>
                   <View style={s.qtyControl}>
                     <TouchableOpacity style={s.qtyButton} onPress={() => changeDraftQty(item.id, -1)} activeOpacity={0.75}>

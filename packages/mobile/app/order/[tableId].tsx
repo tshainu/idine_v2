@@ -77,9 +77,9 @@ export default function TakeOrderScreen() {
   const router = useRouter();
   const { tableId: rawId, edit: editParam, new: newParam } = useLocalSearchParams<{ tableId: string; edit?: string; new?: string }>();
   const tableId = Number(rawId);
-  const { branchId, waiterId, waiterName } = useSession();
+  const { branchId, waiterId, waiterName, allowedTableIds, linkedCashierId } = useSession();
 
-  const tables = useTables(branchId);
+  const tables = useTables(branchId, { allowedTableIds });
   const categories = useCategories(branchId);
   const menu = useMenuItems(branchId);
   const modifiers = useModifiers(branchId);
@@ -108,6 +108,9 @@ export default function TakeOrderScreen() {
   const [reasonModal, setReasonModal] = useState<{ summary: string } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const reasonResolver = useRef<((reason: string) => void) | null>(null);
+  const [pinModal, setPinModal] = useState(false);
+  const [pinText, setPinText] = useState("");
+  const pinResolver = useRef<((authorized: boolean) => void) | null>(null);
   const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
   const [pressedItems, setPressedItems] = useState<Set<number>>(() => new Set());
   const pressedTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -260,6 +263,14 @@ export default function TakeOrderScreen() {
     });
   }
 
+  function askAuthorizationPin(): Promise<boolean> {
+    return new Promise((resolve) => {
+      pinResolver.current = resolve;
+      setPinText("");
+      setPinModal(true);
+    });
+  }
+
   async function beginEdit() {
     if (!openOrder || loadingEdit) return;
     setLoadingEdit(true);
@@ -315,6 +326,7 @@ export default function TakeOrderScreen() {
           .map(({ item, next }) => ({ item, qtyAfter: next?.qty ?? 0, qtyReduced: item.qty - (next?.qty ?? 0) }));
         let modificationReason = "";
         if (reductions.length) {
+          if (reductions.some(({ item }) => item.kotPrinted) && !(await askAuthorizationPin())) return;
           modificationReason = await askModificationReason(reductions.map(({ item, qtyReduced }) => `${item.name} ×${qtyReduced}`).join("\n"));
           if (!modificationReason) return;
         }
@@ -400,6 +412,7 @@ export default function TakeOrderScreen() {
         lines: cart,
         waiterId: waiterId ?? null,
         waiterName,
+        cashierId: linkedCashierId,
         customerId,
         customerName: customerName.trim() || null,
       });
@@ -634,7 +647,7 @@ export default function TakeOrderScreen() {
             <View style={s.sheetHead}>
               <View>
                 <Text style={s.sheetTitle}>Cart · {table?.name ?? ""}</Text>
-                <Text style={s.cartDrawerSub}>{cartCount} item{cartCount === 1 ? "" : "s"} · {lkr(cartTotal)}</Text>
+                <Text style={s.cartDrawerSub}>{cartCount} item{cartCount === 1 ? "" : "s"}</Text>
               </View>
               <TouchableOpacity onPress={() => setCartOpen(false)} style={s.cartClose} activeOpacity={0.7}>
                 <Ionicons name="chevron-up" size={22} color={c.muted} />
@@ -655,9 +668,6 @@ export default function TakeOrderScreen() {
                       <Text style={s.cartLineMeta}>{line.modifiers.map((modifier) => modifier.name).join(", ")}</Text>
                     ) : null}
                     {line.note ? <Text style={s.cartLineNote}>“{line.note}”</Text> : null}
-                    <Text style={s.cartLinePrice}>
-                      {lkr(line.unitPrice + line.modifiers.reduce((sum, modifier) => sum + modifier.price, 0))} each
-                    </Text>
                     <View style={s.cartLineActions}>
                       <TouchableOpacity style={s.cartLineAction} onPress={() => setOptionsLine(line)} activeOpacity={0.75}>
                         <Ionicons name="options-outline" size={14} color={c.primaryDark} />
@@ -677,7 +687,6 @@ export default function TakeOrderScreen() {
             <View style={s.sheetFoot}>
               <View style={s.totalRow}>
                 <Text style={s.totalLabel}>Total</Text>
-                <Text style={s.totalValue}>{lkr(cartTotal)}</Text>
               </View>
               {openOrder ? (
                 <Text style={s.appendNote}>
@@ -707,6 +716,17 @@ export default function TakeOrderScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+      <Modal visible={pinModal} animationType="fade" transparent onRequestClose={() => { pinResolver.current?.(false); pinResolver.current = null; setPinModal(false); }}>
+        <View style={s.reasonBackdrop}><View style={s.reasonCard}>
+          <Text style={s.sheetTitle}>Authorization required</Text>
+          <Text style={s.reasonSummary}>Reducing an item already sent to the kitchen requires an admin or manager PIN.</Text>
+          <TextInput value={pinText} onChangeText={setPinText} placeholder="Enter authorized PIN" placeholderTextColor={c.mutedSoft} style={s.reasonInput} keyboardType="number-pad" secureTextEntry autoFocus />
+          <View style={s.reasonActions}>
+            <TouchableOpacity onPress={() => { pinResolver.current?.(false); pinResolver.current = null; setPinModal(false); }} style={s.reasonCancel}><Text style={s.reasonCancelText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={async () => { try { await http.post("/users/authorize-modification", { pin: pinText, branchId }); pinResolver.current?.(true); pinResolver.current = null; setPinModal(false); } catch { Alert.alert("Invalid PIN", "Use an admin or manager authorization PIN."); } }} style={s.reasonSave}><Text style={s.reasonSaveText}>Authorize</Text></TouchableOpacity>
+          </View>
+        </View></View>
       </Modal>
     </SafeAreaView>
   );
@@ -830,7 +850,6 @@ function ItemSheet({ item, modifiers, onClose, onAdd }: {
                         >
                           <Text style={[s.optText, on && { color: c.primaryDark }]}>{v.name}</Text>
                           <Text style={[s.optPrice, on && { color: c.primaryDark }]}>
-                            {lkr(v.priceDineIn || item.price)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -855,9 +874,6 @@ function ItemSheet({ item, modifiers, onClose, onAdd }: {
                           style={[s.opt, on && { backgroundColor: c.primarySoft, borderColor: c.primary }]}
                         >
                           <Text style={[s.optText, on && { color: c.primaryDark }]}>{m.name}</Text>
-                          {m.price ? (
-                            <Text style={[s.optPrice, on && { color: c.primaryDark }]}>+{lkr(m.price)}</Text>
-                          ) : null}
                         </TouchableOpacity>
                       );
                     })}
@@ -882,7 +898,7 @@ function ItemSheet({ item, modifiers, onClose, onAdd }: {
                 <QtyStepper qty={qty} onChange={(n) => setQty(Math.max(1, n))} min={1} />
               </View>
               <PrimaryButton
-                label={`Add · ${lkr(unit * qty)}`}
+                label="Add item"
                 icon="add"
                 onPress={() => onAdd(variation, chosen, note, qty)}
               />

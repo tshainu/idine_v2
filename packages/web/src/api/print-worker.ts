@@ -74,7 +74,7 @@ export function buildKOT(job: any): Buffer {
   parts.push(align("left"));
   if (payload.mode === "update") {
     parts.push(bold(true));
-    parts.push(text("*** UPDATED ORDER ***"));
+    parts.push(text(payload.reprint ? "*** REPRINT ***" : "*** UPDATED ORDER ***"));
     parts.push(bold(false));
   }
   parts.push(bold(true));
