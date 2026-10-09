@@ -7,14 +7,18 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "extra": {
       "apiUrl": "https://idinev2.69-169-97-195.sslip.io/",
       "applicationId": "idine-rnsd8e1",
       "router": {},
       "eas": {
-        "projectId": "535f993b-342c-4ea5-a958-22ee26076d4d"
+        "projectId": "2fd35adb-9705-4dc7-bea1-ef81414807d4"
       }
     },
     "ios": {
@@ -44,10 +48,17 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "sounds": ["./assets/ready_alert.mp3"] }],
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/ready_alert.mp3"
+          ]
+        }
+      ],
       "expo-font",
       "expo-audio"
     ],
-    "owner": "shainu"
+    "owner": "tshainu"
   }
 }
