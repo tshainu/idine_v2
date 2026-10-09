@@ -173,6 +173,7 @@ export function useUpdateRunningOrder() {
       updates: { id: number; qty: number; note?: string | null }[];
       removeIds: number[];
       additions: CartLine[];
+      authorizationPin?: string | null;
     }) => {
       const current = await http.get<{ order: Order; items: OrderItem[] }>(`/orders/${input.orderId}`);
       const removed = new Set(input.removeIds);
@@ -195,13 +196,15 @@ export function useUpdateRunningOrder() {
         customerName: input.customerName?.trim() || null,
         // Hold the order out of KDS until all item updates/additions finish.
         status: "pending",
+        source: "waiter-app",
+        authorizationPin: input.authorizationPin ?? null,
       });
 
       await Promise.all([
         ...input.updates.map((item) =>
-          http.patch(`/order-items/${item.id}`, { qty: item.qty, note: item.note ?? null }),
+          http.patch(`/order-items/${item.id}`, { qty: item.qty, note: item.note ?? null, source: "waiter-app", authorizationPin: input.authorizationPin ?? null }),
         ),
-        ...input.removeIds.map((id) => http.del(`/order-items/${id}`)),
+        ...input.removeIds.map((id) => http.del(`/order-items/${id}`, { source: "waiter-app", authorizationPin: input.authorizationPin ?? null })),
       ]);
 
       if (input.additions.length) {
@@ -228,8 +231,8 @@ export function useUpdateRunningOrder() {
 export function useUpdateOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...patch }: { id: number } & Partial<Order>) =>
-      http.patch<{ order: Order }>(`/orders/${id}`, patch),
+    mutationFn: async ({ id, authorizationPin, ...patch }: { id: number; authorizationPin?: string | null } & Partial<Order>) =>
+      http.patch<{ order: Order }>(`/orders/${id}`, { ...patch, source: "waiter-app", authorizationPin: authorizationPin ?? null }),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order", v.id] });

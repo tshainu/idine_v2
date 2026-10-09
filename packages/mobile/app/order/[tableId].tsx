@@ -110,7 +110,7 @@ export default function TakeOrderScreen() {
   const reasonResolver = useRef<((reason: string) => void) | null>(null);
   const [pinModal, setPinModal] = useState(false);
   const [pinText, setPinText] = useState("");
-  const pinResolver = useRef<((authorized: boolean) => void) | null>(null);
+  const pinResolver = useRef<((pin: string | null) => void) | null>(null);
   const [categoryPrinterMap, setCategoryPrinterMap] = useState<Record<number, number>>({});
   const [pressedItems, setPressedItems] = useState<Set<number>>(() => new Set());
   const pressedTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
@@ -263,7 +263,7 @@ export default function TakeOrderScreen() {
     });
   }
 
-  function askAuthorizationPin(): Promise<boolean> {
+  function askAuthorizationPin(): Promise<string | null> {
     return new Promise((resolve) => {
       pinResolver.current = resolve;
       setPinText("");
@@ -325,8 +325,10 @@ export default function TakeOrderScreen() {
           .filter(({ item, next }) => !next || next.qty < item.qty)
           .map(({ item, next }) => ({ item, qtyAfter: next?.qty ?? 0, qtyReduced: item.qty - (next?.qty ?? 0) }));
         let modificationReason = "";
+        let authorizationPin: string | null = null;
         if (reductions.length) {
-          if (reductions.some(({ item }) => item.kotPrinted) && !(await askAuthorizationPin())) return;
+          authorizationPin = await askAuthorizationPin();
+          if (!authorizationPin) return;
           modificationReason = await askModificationReason(reductions.map(({ item, qtyReduced }) => `${item.name} ×${qtyReduced}`).join("\n"));
           if (!modificationReason) return;
         }
@@ -342,6 +344,7 @@ export default function TakeOrderScreen() {
           customerName,
           updates,
           removeIds,
+          authorizationPin,
           additions,
         });
         if (reductions.length) {
@@ -717,14 +720,14 @@ export default function TakeOrderScreen() {
           </View>
         </View>
       </Modal>
-      <Modal visible={pinModal} animationType="fade" transparent onRequestClose={() => { pinResolver.current?.(false); pinResolver.current = null; setPinModal(false); }}>
+      <Modal visible={pinModal} animationType="fade" transparent onRequestClose={() => { pinResolver.current?.(null); pinResolver.current = null; setPinModal(false); }}>
         <View style={s.reasonBackdrop}><View style={s.reasonCard}>
           <Text style={s.sheetTitle}>Authorization required</Text>
           <Text style={s.reasonSummary}>Reducing an item already sent to the kitchen requires an admin or manager PIN.</Text>
           <TextInput value={pinText} onChangeText={setPinText} placeholder="Enter authorized PIN" placeholderTextColor={c.mutedSoft} style={s.reasonInput} keyboardType="number-pad" secureTextEntry autoFocus />
           <View style={s.reasonActions}>
-            <TouchableOpacity onPress={() => { pinResolver.current?.(false); pinResolver.current = null; setPinModal(false); }} style={s.reasonCancel}><Text style={s.reasonCancelText}>Cancel</Text></TouchableOpacity>
-            <TouchableOpacity onPress={async () => { try { await http.post("/users/authorize-modification", { pin: pinText, branchId }); pinResolver.current?.(true); pinResolver.current = null; setPinModal(false); } catch { Alert.alert("Invalid PIN", "Use an admin or manager authorization PIN."); } }} style={s.reasonSave}><Text style={s.reasonSaveText}>Authorize</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => { pinResolver.current?.(null); pinResolver.current = null; setPinModal(false); }} style={s.reasonCancel}><Text style={s.reasonCancelText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={async () => { try { await http.post("/users/authorize-modification", { pin: pinText, branchId }); pinResolver.current?.(pinText); pinResolver.current = null; setPinModal(false); } catch { Alert.alert("Invalid PIN", "Use an admin or manager authorization PIN."); } }} style={s.reasonSave}><Text style={s.reasonSaveText}>Authorize</Text></TouchableOpacity>
           </View>
         </View></View>
       </Modal>

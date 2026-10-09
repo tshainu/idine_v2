@@ -5,6 +5,7 @@ import { eq, and, desc, inArray, isNull, or, like, gte } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
 import { notifyKitchenReady } from "../push-notifications";
 import { triggerSalesTemplate } from "../sales-messaging";
+import { verifyAuthorizedPin } from "./users";
 
 // Table occupancy must follow the live orders: the POS never reset it, so tables
 // stayed "occupied" long after their order was settled and waiters were blocked.
@@ -230,12 +231,15 @@ export const orders = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
-    const { cancellationReason, cancellationUserId, cancellationUserName, ...orderUpdate } = body as any;
+    const { cancellationReason, cancellationUserId, cancellationUserName, authorizationPin, source, ...orderUpdate } = body as any;
     const [before] = await db.select()
       .from(schema.orders)
       .where(eq(schema.orders.id, id));
     if (!before) return c.json({ error: "Order not found" }, 404);
     const isCancelling = orderUpdate.status === "cancelled" && before.status !== "cancelled";
+    if (isCancelling && source === "waiter-app" && !(await verifyAuthorizedPin(authorizationPin, before.branchId))) {
+      return c.json({ error: "Admin or manager authorization PIN is required to cancel a running order" }, 403);
+    }
     const reason = String(cancellationReason || "").trim();
     if (isCancelling && !reason) return c.json({ error: "Cancellation reason is required" }, 400);
     if (["completed", "billed", "paid"].includes(String(orderUpdate.status || "").toLowerCase())) {

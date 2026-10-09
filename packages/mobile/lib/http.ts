@@ -65,5 +65,5 @@ export const http = {
   get: <T>(path: string, query?: Query) => request<T>("GET", path, { query }),
   post: <T>(path: string, body?: unknown, query?: Query) => request<T>("POST", path, { body, query }),
   patch: <T>(path: string, body?: unknown, query?: Query) => request<T>("PATCH", path, { body, query }),
-  del: <T>(path: string, query?: Query) => request<T>("DELETE", path, { query }),
+  del: <T>(path: string, body?: unknown, query?: Query) => request<T>("DELETE", path, { body, query }),
 };

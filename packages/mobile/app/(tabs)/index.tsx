@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Alert, Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { Alert, Modal, View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { useReprintKot } from "../../queries/print";
 import { useActiveShift } from "../../queries/shifts";
 import { initials, elapsed } from "../../lib/format";
 import type { Order, OrderItem } from "../../lib/types";
+import { http } from "../../lib/http";
 
 const c = Colors.light;
 
@@ -29,6 +30,15 @@ export default function DashboardScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [draftItems, setDraftItems] = useState<OrderItem[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [pinModal, setPinModal] = useState(false);
+  const [pinText, setPinText] = useState("");
+  const pinResolver = useRef<((pin: string | null) => void) | null>(null);
+
+  const askAuthorizationPin = () => new Promise<string | null>((resolve) => {
+    pinResolver.current = resolve;
+    setPinText("");
+    setPinModal(true);
+  });
 
   const openOrderModal = (order: Order) => {
     setSelectedOrder(order);
@@ -59,6 +69,12 @@ export default function DashboardScreen() {
       closeOrderModal();
       return;
     }
+    const hasReduction = removed.length > 0 || changed.some((item) => {
+      const previous = original.find((source) => source.id === item.id);
+      return previous ? item.qty < previous.qty : false;
+    });
+    const authorizationPin = hasReduction ? await askAuthorizationPin() : null;
+    if (hasReduction && !authorizationPin) return;
     setSavingOrder(true);
     try {
       const result = await updateRunningOrder.mutateAsync({
@@ -68,6 +84,7 @@ export default function DashboardScreen() {
         updates: changed,
         removeIds: removed,
         additions: [],
+        authorizationPin,
       });
       const deltas = [
         ...changed.flatMap((item) => {
@@ -111,9 +128,11 @@ export default function DashboardScreen() {
         text: "Cancel order",
         style: "destructive",
         onPress: async () => {
+          const authorizationPin = await askAuthorizationPin();
+          if (!authorizationPin) return;
           setSavingOrder(true);
           try {
-            await updateOrder.mutateAsync({ id: selectedOrder.id, status: "cancelled" });
+            await updateOrder.mutateAsync({ id: selectedOrder.id, status: "cancelled", authorizationPin });
             closeOrderModal(true);
             Alert.alert("Order cancelled", `${selectedOrder.orderNumber} has been cancelled.`);
           } catch (error) {
@@ -324,6 +343,17 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+      <Modal visible={pinModal} animationType="fade" transparent onRequestClose={() => { pinResolver.current?.(null); pinResolver.current = null; setPinModal(false); }}>
+        <View style={s.pinBackdrop}><View style={s.pinCard}>
+          <Text style={s.pinTitle}>Admin authorization required</Text>
+          <Text style={s.pinHint}>Reducing an item or cancelling a running order requires an admin or manager PIN.</Text>
+          <TextInput value={pinText} onChangeText={setPinText} placeholder="Enter authorized PIN" placeholderTextColor={c.mutedSoft} style={s.pinInput} keyboardType="number-pad" secureTextEntry autoFocus />
+          <View style={s.pinActions}>
+            <TouchableOpacity onPress={() => { pinResolver.current?.(null); pinResolver.current = null; setPinModal(false); }} style={s.pinCancel}><Text style={s.pinCancelText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={async () => { try { await http.post("/users/authorize-modification", { pin: pinText, branchId }); pinResolver.current?.(pinText); pinResolver.current = null; setPinModal(false); } catch { Alert.alert("Invalid PIN", "Use an admin or manager authorization PIN."); } }} style={s.pinConfirm}><Text style={s.pinConfirmText}>Authorize</Text></TouchableOpacity>
+          </View>
+        </View></View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -425,4 +455,14 @@ const s = StyleSheet.create({
   newOrderText: { fontFamily: Fonts.semibold, fontSize: 12.5, color: c.primaryDark },
   cancelOrderButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: Space.sm, minHeight: 48 },
   cancelOrderText: { fontFamily: Fonts.semibold, fontSize: 12, color: c.destructive },
+  pinBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: Space.lg, backgroundColor: "rgba(10, 20, 35, 0.5)" },
+  pinCard: { width: "100%", maxWidth: 420, backgroundColor: c.background, borderRadius: Radius.xl, padding: Space.xl, ...Shadow.card },
+  pinTitle: { fontFamily: Fonts.bold, fontSize: 18, color: c.foreground },
+  pinHint: { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.muted, marginTop: Space.sm },
+  pinInput: { height: 48, borderWidth: 1, borderColor: c.border, borderRadius: Radius.md, backgroundColor: c.card, paddingHorizontal: Space.md, marginTop: Space.lg, color: c.foreground, fontFamily: Fonts.semibold, fontSize: 16 },
+  pinActions: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: Space.md, marginTop: Space.lg },
+  pinCancel: { paddingHorizontal: Space.md, paddingVertical: 11 },
+  pinCancelText: { fontFamily: Fonts.semibold, color: c.muted },
+  pinConfirm: { paddingHorizontal: Space.lg, paddingVertical: 11, borderRadius: Radius.md, backgroundColor: c.primary },
+  pinConfirmText: { fontFamily: Fonts.semibold, color: c.onPrimary },
 });

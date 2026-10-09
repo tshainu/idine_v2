@@ -3,6 +3,18 @@ import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 
+export async function verifyAuthorizedPin(pin: unknown, branchId?: number | null) {
+  const supplied = String(pin || "").trim();
+  if (!supplied) return null;
+  const candidates = branchId
+    ? await db.select().from(schema.users).where(and(eq(schema.users.isActive, true), or(eq(schema.users.branchId, Number(branchId)), isNull(schema.users.branchId))))
+    : await db.select().from(schema.users).where(eq(schema.users.isActive, true));
+  return candidates.find((candidate) =>
+    ["admin", "manager", "superadmin"].includes(String(candidate.role).toLowerCase()) &&
+    (String(candidate.pin || "") === supplied || (!candidate.pin && supplied === "5625") || (candidate.pin === "0000" && supplied === "5625"))
+  ) ?? null;
+}
+
 export const users = new Hono()
   .get("/", async (c) => {
     const branchId = c.req.query("branchId");
@@ -35,13 +47,7 @@ export const users = new Hono()
     const { pin, branchId } = await c.req.json();
     const supplied = String(pin || "").trim();
     if (!supplied) return c.json({ error: "Authorized PIN is required" }, 400);
-    const candidates = branchId
-      ? await db.select().from(schema.users).where(and(eq(schema.users.isActive, true), or(eq(schema.users.branchId, Number(branchId)), isNull(schema.users.branchId))))
-      : await db.select().from(schema.users).where(eq(schema.users.isActive, true));
-    const authorized = candidates.find((candidate) =>
-      ["admin", "manager", "superadmin"].includes(String(candidate.role).toLowerCase()) &&
-      (String(candidate.pin || "") === supplied || (!candidate.pin && supplied === "5625") || (candidate.pin === "0000" && supplied === "5625"))
-    );
+    const authorized = await verifyAuthorizedPin(pin, branchId ? Number(branchId) : null);
     if (!authorized) return c.json({ error: "Invalid authorized PIN. Use an admin or manager PIN." }, 401);
     return c.json({ authorizedBy: { id: authorized.id, name: authorized.name, role: authorized.role } }, 200);
   })

@@ -3,6 +3,7 @@ import { db } from "../database";
 import * as schema from "../database/schema";
 import { eq, inArray } from "drizzle-orm";
 import { pushOutbox } from "../sync-worker";
+import { verifyAuthorizedPin } from "./users";
 
 function authoritativePrice(menu: any, orderType: string | null | undefined, requested: number, promotionName?: string | null): number {
   if (!menu) return Number(requested || 0);
@@ -76,16 +77,20 @@ export const orderItems = new Hono()
   .patch("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
     const body = await c.req.json();
+    const { source, authorizationPin, ...itemUpdate } = body as any;
     const [existing] = await db.select().from(schema.orderItems).where(eq(schema.orderItems.id, id));
     if (!existing) return c.json({ error: "Order item not found" }, 404);
     const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, existing.orderId));
     const [menu] = existing.menuItemId
       ? await db.select().from(schema.menuItems).where(eq(schema.menuItems.id, existing.menuItemId))
       : [];
-    const nextPrice = authoritativePrice(menu, order?.type, body.price ?? existing.price, body.promotionName ?? existing.promotionName);
-    const nextQty = body.qty ?? existing.qty;
+    const nextPrice = authoritativePrice(menu, order?.type, itemUpdate.price ?? existing.price, itemUpdate.promotionName ?? existing.promotionName);
+    const nextQty = itemUpdate.qty ?? existing.qty;
+    if (source === "waiter-app" && Number(nextQty) < Number(existing.qty) && !(await verifyAuthorizedPin(authorizationPin, order?.branchId))) {
+      return c.json({ error: "Admin or manager authorization PIN is required to reduce an item" }, 403);
+    }
     const patch = {
-      ...body,
+      ...itemUpdate,
       price: nextPrice,
       total: lineTotal(nextPrice, { ...existing, ...body, qty: nextQty }),
     };
@@ -96,7 +101,15 @@ export const orderItems = new Hono()
   })
   .delete("/:id", async (c) => {
     const id = parseInt(c.req.param("id"));
+    let body: any = {};
+    try { body = await c.req.json(); } catch { /* empty DELETE body */ }
     const [existing] = await db.select().from(schema.orderItems).where(eq(schema.orderItems.id, id));
+    if (existing && body.source === "waiter-app") {
+      const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, existing.orderId));
+      if (!(await verifyAuthorizedPin(body.authorizationPin, order?.branchId))) {
+        return c.json({ error: "Admin or manager authorization PIN is required to cancel an item" }, 403);
+      }
+    }
     await db.delete(schema.orderItems).where(eq(schema.orderItems.id, id));
     if (existing?.orderId) await recalculateOrder(existing.orderId);
     pushOutbox("order_items", "delete", id, { id });
