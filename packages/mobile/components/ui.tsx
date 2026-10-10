@@ -112,19 +112,21 @@ export function PrimaryButton({ label, onPress, loading, disabled, icon, style, 
 }
 
 // ── Quantity stepper ──────────────────────────────────────────────────────────
-export function QtyStepper({ qty, onChange, min = 0, compact }: {
-  qty: number; onChange: (n: number) => void; min?: number; compact?: boolean;
+export function QtyStepper({ qty, onChange, min = 0, compact, hideDecrease = false }: {
+  qty: number; onChange: (n: number) => void; min?: number; compact?: boolean; hideDecrease?: boolean;
 }) {
   const size = compact ? 30 : 38;
   return (
     <View style={s.stepper}>
-      <TouchableOpacity
-        onPress={() => onChange(Math.max(min, qty - 1))}
-        style={[s.stepBtn, { width: size, height: size }]}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="remove" size={compact ? 15 : 18} color={c.foreground} />
-      </TouchableOpacity>
+      {hideDecrease ? <View style={{ width: size, height: size }} /> : (
+        <TouchableOpacity
+          onPress={() => onChange(Math.max(min, qty - 1))}
+          style={[s.stepBtn, { width: size, height: size }]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="remove" size={compact ? 15 : 18} color={c.foreground} />
+        </TouchableOpacity>
+      )}
       <Text style={[s.stepQty, compact && { fontSize: 14, minWidth: 22 }]}>{qty}</Text>
       <TouchableOpacity
         onPress={() => onChange(qty + 1)}

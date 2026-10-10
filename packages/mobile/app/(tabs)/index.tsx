@@ -7,7 +7,7 @@ import { Colors, Fonts, Radius, Shadow, Space, TableStatus } from "../../constan
 import { Card, StatCard, SectionTitle, Pill, ErrorBanner, PrimaryButton } from "../../components/ui";
 import { useSession } from "../../hooks/use-session";
 import { useTables } from "../../queries/tables";
-import { useOrders, useUpdateOrder, useUpdateRunningOrder } from "../../queries/orders";
+import { useOrders, useUpdateRunningOrder } from "../../queries/orders";
 import { useReprintKot } from "../../queries/print";
 import { useActiveShift } from "../../queries/shifts";
 import { initials, elapsed } from "../../lib/format";
@@ -26,7 +26,6 @@ export default function DashboardScreen() {
   const shift = useActiveShift(waiterId);
   const updateRunningOrder = useUpdateRunningOrder();
   const reprintKot = useReprintKot();
-  const updateOrder = useUpdateOrder();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [draftItems, setDraftItems] = useState<OrderItem[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -120,30 +119,6 @@ export default function DashboardScreen() {
     }
   };
 
-  const cancelSelectedOrder = () => {
-    if (!selectedOrder) return;
-    Alert.alert("Cancel order?", `Cancel ${selectedOrder.orderNumber}? This cannot be undone.`, [
-      { text: "Keep order", style: "cancel" },
-      {
-        text: "Cancel order",
-        style: "destructive",
-        onPress: async () => {
-          const authorizationPin = await askAuthorizationPin();
-          if (!authorizationPin) return;
-          setSavingOrder(true);
-          try {
-            await updateOrder.mutateAsync({ id: selectedOrder.id, status: "cancelled", authorizationPin });
-            closeOrderModal(true);
-            Alert.alert("Order cancelled", `${selectedOrder.orderNumber} has been cancelled.`);
-          } catch (error) {
-            Alert.alert("Cancellation failed", (error as Error)?.message ?? "Could not cancel this order.");
-          } finally {
-            setSavingOrder(false);
-          }
-        },
-      },
-    ]);
-  };
 
   const stats = useMemo(() => {
     const all = orders.data ?? [];
@@ -281,9 +256,11 @@ export default function DashboardScreen() {
                     {item.note ? <Text style={s.editItemNote}>{item.note}</Text> : null}
                   </View>
                   <View style={s.qtyControl}>
-                    <TouchableOpacity style={s.qtyButton} onPress={() => changeDraftQty(item.id, -1)} activeOpacity={0.75}>
-                      <Ionicons name="remove" size={16} color={c.foreground} />
-                    </TouchableOpacity>
+                    {item.kotPrinted ? <View style={s.qtyButtonSpacer} /> : (
+                      <TouchableOpacity style={s.qtyButton} onPress={() => changeDraftQty(item.id, -1)} activeOpacity={0.75}>
+                        <Ionicons name="remove" size={16} color={c.foreground} />
+                      </TouchableOpacity>
+                    )}
                     <Text style={s.qtyValue}>{item.qty}</Text>
                     <TouchableOpacity style={s.qtyButton} onPress={() => changeDraftQty(item.id, 1)} activeOpacity={0.75}>
                       <Ionicons name="add" size={16} color={c.foreground} />
@@ -327,10 +304,6 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               ) : null}
               <View style={s.modalFooterActions}>
-                <TouchableOpacity style={s.cancelOrderButton} onPress={cancelSelectedOrder} activeOpacity={0.8} disabled={savingOrder}>
-                  <Ionicons name="close-circle-outline" size={18} color={c.destructive} />
-                  <Text style={s.cancelOrderText}>Cancel order</Text>
-                </TouchableOpacity>
                 <PrimaryButton
                   label="Save changes & send KOT"
                   icon="send-outline"
@@ -440,6 +413,7 @@ const s = StyleSheet.create({
   editItemPrice: { fontFamily: Fonts.regular, fontSize: 11, color: c.muted, marginTop: 4 },
   qtyControl: { flexDirection: "row", alignItems: "center", gap: 8 },
   qtyButton: { width: 30, height: 30, borderRadius: Radius.pill, backgroundColor: c.primarySoft, alignItems: "center", justifyContent: "center" },
+  qtyButtonSpacer: { width: 30, height: 30 },
   qtyValue: { minWidth: 18, textAlign: "center", fontFamily: Fonts.bold, fontSize: 14, color: c.foreground },
   kotNotice: { flexDirection: "row", alignItems: "center", gap: Space.sm, backgroundColor: c.primarySoft, borderRadius: Radius.md, padding: Space.md, marginTop: Space.md },
   kotNoticeText: { flex: 1, fontFamily: Fonts.regular, fontSize: 11.5, lineHeight: 17, color: c.primaryDark },
@@ -453,8 +427,6 @@ const s = StyleSheet.create({
   modalFooterActions: { flexDirection: "row", alignItems: "center", gap: Space.md },
   newOrderButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Space.sm, minHeight: 44, borderRadius: Radius.md, borderWidth: 1, borderColor: c.primary, backgroundColor: c.primarySoft },
   newOrderText: { fontFamily: Fonts.semibold, fontSize: 12.5, color: c.primaryDark },
-  cancelOrderButton: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: Space.sm, minHeight: 48 },
-  cancelOrderText: { fontFamily: Fonts.semibold, fontSize: 12, color: c.destructive },
   pinBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: Space.lg, backgroundColor: "rgba(10, 20, 35, 0.5)" },
   pinCard: { width: "100%", maxWidth: 420, backgroundColor: c.background, borderRadius: Radius.xl, padding: Space.xl, ...Shadow.card },
   pinTitle: { fontFamily: Fonts.bold, fontSize: 18, color: c.foreground },

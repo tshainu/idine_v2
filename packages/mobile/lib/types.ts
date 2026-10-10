@@ -137,4 +137,5 @@ export type CartLine = {
   modifiers: { id: number; name: string; price: number }[];
   note: string;
   course: "starter" | "main" | "dessert" | "drinks";
+  kotPrinted?: boolean;
 };

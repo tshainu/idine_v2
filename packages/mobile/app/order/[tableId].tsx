@@ -293,6 +293,7 @@ export default function TakeOrderScreen() {
           modifiers: [],
           note: item.note ?? "",
           course: "main",
+          kotPrinted: item.kotPrinted,
         })),
       );
       setEditMode(true);
@@ -682,7 +683,7 @@ export default function TakeOrderScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <QtyStepper qty={line.qty} onChange={(quantity) => setQty(line.key, quantity)} compact />
+                  <QtyStepper qty={line.qty} onChange={(quantity) => setQty(line.key, quantity)} compact hideDecrease={editMode && !!line.kotPrinted} />
                 </View>
               ))}
             </ScrollView>
