@@ -235,6 +235,20 @@ export default function DashboardScreen() {
                   {selectedOrder ? ` · ${selectedOrder.items?.length ?? 0} items · ${selectedOrder.waiterName ?? selectedOrder.placedBy ?? "Unknown waiter"}` : ""}
                 </Text>
               </View>
+              {selectedOrder?.tableId ? (
+                <TouchableOpacity
+                  style={s.headerAddItemsButton}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const target = selectedOrder.tableId;
+                    closeOrderModal(true);
+                    router.push(`/order/${target}?edit=1`);
+                  }}
+                >
+                  <Ionicons name="add" size={16} color={c.primaryDark} />
+                  <Text style={s.headerAddItemsText}>Add items</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity style={s.modalClose} onPress={() => closeOrderModal()} activeOpacity={0.75}>
                 <Ionicons name="close" size={20} color={c.muted} />
               </TouchableOpacity>
@@ -272,20 +286,6 @@ export default function DashboardScreen() {
                 <Ionicons name="print-outline" size={18} color={c.primaryDark} />
                 <Text style={s.kotNoticeText}>Saving changes sends an updated KOT to the relevant kitchen stations.</Text>
               </View>
-              {selectedOrder?.tableId ? (
-                <TouchableOpacity
-                  style={s.addItemsButton}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    const target = selectedOrder.tableId;
-                    closeOrderModal(true);
-                    router.push(`/order/${target}?edit=1`);
-                  }}
-                >
-                  <Ionicons name="add-circle-outline" size={18} color={c.primaryDark} />
-                  <Text style={s.addItemsText}>Add new items to this order</Text>
-                </TouchableOpacity>
-              ) : null}
             </ScrollView>
 
             <View style={s.modalFooter}>
@@ -401,6 +401,8 @@ const s = StyleSheet.create({
   modalTitle: { fontFamily: Fonts.bold, fontSize: 19, color: c.foreground },
   modalSub: { fontFamily: Fonts.regular, fontSize: 12, color: c.muted, marginTop: 3 },
   modalClose: { width: 36, height: 36, borderRadius: Radius.pill, backgroundColor: c.card, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border },
+  headerAddItemsButton: { flexDirection: "row", alignItems: "center", gap: 3, minHeight: 36, borderRadius: Radius.md, paddingHorizontal: 9, backgroundColor: c.primarySoft, borderWidth: 1, borderColor: c.primary, marginRight: Space.sm },
+  headerAddItemsText: { fontFamily: Fonts.semibold, fontSize: 11.5, color: c.primaryDark },
   modalScroll: { padding: Space.lg, paddingBottom: Space.md },
   modalTotalRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.card, borderRadius: Radius.lg, padding: Space.lg, borderWidth: 1, borderColor: c.border },
   modalEyebrow: { fontFamily: Fonts.semibold, fontSize: 10, letterSpacing: 0.8, color: c.muted },
