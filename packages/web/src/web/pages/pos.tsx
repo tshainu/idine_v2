@@ -617,7 +617,7 @@ function FinalizeModal({
   }
 
   async function handleSubmit() {
-    if (submitting) return;
+    if (submitting || !canSubmit) return;
     setSubmitError(null);
     const totalPaidNow = payments.reduce((s, p) => s + p.amount, 0);
     const cashEntry = payments.find(p => p.method === "Cash");
@@ -665,7 +665,7 @@ function FinalizeModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: BORD }}>
           <span className="font-bold text-base" style={{ color: TEXT }}>Finalize Sale</span>
-          <button onClick={onClose} style={{ color: MUTED }}><X size={16} /></button>
+          <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }} style={{ color: MUTED }}><X size={16} /></button>
         </div>
 
         {loading ? (
@@ -680,7 +680,7 @@ function FinalizeModal({
           {/* Left — payment method sidebar */}
           <div className="w-52 border-r flex flex-col shrink-0" style={{ borderColor: BORD, background: BG }}>
             {PAYMENT_METHODS.map(m => (
-              <button key={m}
+              <button key={m} type="button"
                 onClick={() => { setActiveMethod(m); setAmount(""); setGivenAmount(""); setRefNote(""); }}
                 className="px-4 py-4 text-left text-sm border-b transition-colors"
                 style={{
@@ -728,7 +728,7 @@ function FinalizeModal({
                   style={{ borderColor: BORD, background: BG, color: TEXT }} />
               </div>
               <div className="flex flex-col justify-end">
-                <button onClick={handleAddPayment}
+                <button type="button" onClick={handleAddPayment}
                   className="px-4 py-2.5 rounded text-base font-semibold"
                   style={{ background: PURPLE, color: "#fff" }}>
                   Add
@@ -778,7 +778,7 @@ function FinalizeModal({
               <div className="flex flex-col gap-2 w-44 shrink-0">
 
                 {/* Discount */}
-                <button onClick={() => setShowDiscountModal(true)}
+                <button type="button" onClick={() => setShowDiscountModal(true)}
                   className="w-full py-2.5 rounded text-base font-semibold"
                   style={{ background: BORD, color: MUTED }}>
                   {extraDiscount > 0 ? `Discount: -${extraDiscount.toFixed(2)}` : "Add Discount"}
@@ -789,7 +789,7 @@ function FinalizeModal({
                     <option value="fixed">Fixed</option><option value="percent">%</option>
                   </select>
                   <input value={discountInput} onChange={e => setDiscountInput(e.target.value)} placeholder={discountMode === "percent" ? "%" : "Amount"} type="number" min="0" className="flex-1 border rounded px-2 py-2 text-sm outline-none" style={{ borderColor: BORD, background: BG, color: TEXT }} />
-                  <button onClick={handleDiscount} className="px-2 rounded text-sm font-semibold" style={{ background: PURPLE, color: "#fff" }}>Apply</button>
+                  <button type="button" onClick={handleDiscount} className="px-2 rounded text-sm font-semibold" style={{ background: PURPLE, color: "#fff" }}>Apply</button>
                 </div>
 
                 {/* Totals */}
@@ -819,13 +819,13 @@ function FinalizeModal({
                 {/* Quick amounts */}
                 <div className="grid grid-cols-2 gap-1">
                   {QUICK_AMOUNTS.map(v => (
-                    <button key={v} onClick={() => addQuickAmount(v)}
+                  <button type="button" key={v} onClick={() => addQuickAmount(v)}
                       className="py-2.5 rounded text-base font-mono font-semibold border"
                       style={{ borderColor: BORD, background: BORD, color: TEXT }}>
                       {v}
                     </button>
                   ))}
-                  <button onClick={handleBillAmount}
+                  <button type="button" onClick={handleBillAmount}
                     className="col-span-2 py-2.5 rounded text-base font-semibold border"
                     style={{ borderColor: GOLD, background: `${GOLD}22`, color: GOLD }}>
                     Bill Amount
@@ -846,12 +846,12 @@ function FinalizeModal({
                 )}
 
                 {/* Cart details + Clear */}
-                <button onClick={() => setShowCartDetails(v => !v)}
+                <button type="button" onClick={() => setShowCartDetails(v => !v)}
                   className="py-2.5 rounded border text-base font-medium"
                   style={{ borderColor: BORD, background: BORD, color: TEXT }}>
                   {showCartDetails ? "Hide Details" : "Cart Details"}
                 </button>
-                <button onClick={handleClear}
+                <button type="button" onClick={handleClear}
                   className="py-2.5 rounded border text-base font-medium"
                   style={{ borderColor: "var(--color-danger)", color: "var(--color-danger)", background: "transparent" }}>
                   Clear
@@ -915,7 +915,7 @@ function FinalizeModal({
 
         {/* Footer */}
         <div className="grid grid-cols-2 border-t" style={{ borderColor: BORD }}>
-          <button onClick={onClose}
+          <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }}
             className="py-3 text-sm font-semibold"
             style={{ background: "var(--color-danger)", color: "#fff" }}>
             ✕ Cancel
